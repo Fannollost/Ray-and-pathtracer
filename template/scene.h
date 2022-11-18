@@ -64,7 +64,7 @@ public:
 	Sphere() = default;
 	Sphere( int idx, float3 p, float r ) : 
 		pos( p ), r2( r* r ), invr( 1 / r ), objIdx( idx ) {}
-	void Intersect( Ray& ray ) const
+	void Intersect( Ray& ray , float t_min) const
 	{
 		float3 oc = ray.O - this->pos;
 		float b = dot( oc, ray.D );
@@ -72,13 +72,13 @@ public:
 		float t, d = b * b - c;
 		if (d <= 0) return;
 		d = sqrtf( d ), t = -b - d;
-		if (t < ray.t && t > 0)
+		if (t < ray.t && t > t_min)
 		{
 			ray.t = t, ray.objIdx = objIdx;
 			return;
 		}
 		t = d - b;
-		if (t < ray.t && t > 0)
+		if (t < ray.t && t > t_min)
 		{
 			ray.t = t, ray.objIdx = objIdx;
 			return;
@@ -107,10 +107,10 @@ class Plane
 public:
 	Plane() = default;
 	Plane( int idx, float3 normal, float dist ) : N( normal ), d( dist ), objIdx( idx ) {}
-	void Intersect( Ray& ray ) const
+	void Intersect( Ray& ray, float t_min) const
 	{
 		float t = -(dot( ray.O, this->N ) + this->d) / (dot( ray.D, this->N ));
-		if (t < ray.t && t > 0) ray.t = t, ray.objIdx = objIdx;
+		if (t < ray.t && t > t_min) ray.t = t, ray.objIdx = objIdx;
 	}
 	float3 GetNormal( const float3 I ) const
 	{
@@ -161,7 +161,7 @@ public:
 		b[0] = pos - 0.5f * size, b[1] = pos + 0.5f * size;
 		M = transform, invM = transform.FastInvertedTransformNoScale();
 	}
-	void Intersect( Ray& ray ) const
+	void Intersect( Ray& ray, float t_min ) const
 	{
 		// 'rotate' the cube by transforming the ray into object space
 		// using the inverse of the cube transform.
@@ -179,11 +179,11 @@ public:
 		float tzmax = (b[1 - signz].z - O.z) * rDz;
 		if (tmin > tzmax || tzmin > tmax) return;
 		tmin = max( tmin, tzmin ), tmax = min( tmax, tzmax );
-		if (tmin > 0)
+		if (tmin > t_min)
 		{
 			if (tmin < ray.t) ray.t = tmin, ray.objIdx = objIdx;
 		}
-		else if (tmax > 0)
+		else if (tmax > t_min)
 		{
 			if (tmax < ray.t) ray.t = tmax, ray.objIdx = objIdx;
 		}
@@ -229,12 +229,12 @@ public:
 		size = s * 0.5f;
 		T = transform, invT = transform.FastInvertedTransformNoScale();
 	}
-	void Intersect( Ray& ray ) const
+	void Intersect( Ray& ray, float t_min ) const
 	{
 		const float3 O = TransformPosition( ray.O, invT );
 		const float3 D = TransformVector( ray.D, invT );
 		const float t = O.y / -D.y;
-		if (t < ray.t && t > 0)
+		if (t < ray.t && t > t_min)
 		{
 			float3 I = O + t * D;
 			if (I.x > -size && I.x < size && I.z > -size && I.z < size)
@@ -272,6 +272,7 @@ public:
 		sphere = Sphere( 1, float3( 0 ), 0.5f );				// 1: bouncing ball
 		sphere2 = Sphere( 2, float3( 0, 2.5f, -3.07f ), 8 );	// 2: rounded corners
 		cube = Cube( 3, float3( 0 ), float3( 1.15f ) );			// 3: cube
+		pointlight = float3(0, 0.8f, 0.8f);
 		plane[0] = Plane( 4, float3( 1, 0, 0 ), 3 );			// 4: left wall
 		plane[1] = Plane( 5, float3( -1, 0, 0 ), 2.99f );		// 5: right wall
 		plane[2] = Plane( 6, float3( 0, 1, 0 ), 1 );			// 6: floor
@@ -310,26 +311,26 @@ public:
 	{
 		return float3( 24, 24, 22 );
 	}
-	void FindNearest( Ray& ray ) const
+	void FindNearest( Ray& ray, float t_min) const
 	{
 		// room walls - ugly shortcut for more speed
 		float t;
 		if (ray.D.x < 0) PLANE_X( 3, 4 ) else PLANE_X( -2.99f, 5 );
 		if (ray.D.y < 0) PLANE_Y( 1, 6 ) else PLANE_Y( -2, 7 );
 		if (ray.D.z < 0) PLANE_Z( 3, 8 ) else PLANE_Z( -3.99f, 9 );
-		quad.Intersect( ray );
-		sphere.Intersect( ray );
-		sphere2.Intersect( ray );
-		cube.Intersect( ray );
+		quad.Intersect( ray , t_min);
+		sphere.Intersect( ray, t_min );
+		sphere2.Intersect( ray, t_min );
+		cube.Intersect( ray, t_min);
 	}
-	bool IsOccluded( Ray& ray ) const
+	bool IsOccluded( Ray& ray, float t_min) const
 	{
 		float rayLength = ray.t;
 		// skip planes: it is not possible for the walls to occlude anything
-		quad.Intersect( ray );
-		sphere.Intersect( ray );
-		sphere2.Intersect( ray );
-		cube.Intersect( ray );
+		quad.Intersect( ray, t_min );
+		sphere.Intersect( ray, t_min);
+		sphere2.Intersect( ray, t_min);
+		cube.Intersect( ray , t_min);
 		return ray.t < rayLength;
 		// technically this is wasteful: 
 		// - we potentially search beyond rayLength
@@ -382,6 +383,7 @@ public:
 	Sphere sphere;
 	Sphere sphere2;
 	Cube cube;
+	float3 pointlight;
 	Plane plane[6];
 };
 

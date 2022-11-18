@@ -701,6 +701,25 @@ uint RandomUInt(uint& seed)
 }
 float RandomFloat(uint& seed) { return RandomUInt(seed) * 2.3283064365387e-10f; }
 
+float3 RandomVectorInUnitSphere() {
+	while (true) {
+		auto a = float3(Rand(1),Rand(1),Rand(1));
+		if (sqrLength(a) >= 1) continue;
+		return a;
+	}
+}
+
+float3 RandomInHemisphere(float3 normal) {
+	float3 a = RandomVectorInUnitSphere();
+	if (dot(a, normal) > 0.0) {
+		return a;
+	}
+	else {
+		return -a;
+	}
+}
+float3 UnitVector(float3 v) { return v / length(v); }
+float3 RandomUnitVector() { return UnitVector(RandomVectorInUnitSphere()); }
 // Perlin noise implementation - https://stackoverflow.com/questions/29711668/perlin-noise-generation
 static int numX = 512, numY = 512, numOctaves = 7, primeIndex = 0;
 static float persistence = 0.5f;

@@ -452,6 +452,9 @@ uint RandomUInt();
 uint RandomUInt( uint& seed );
 float RandomFloat();
 float RandomFloat( uint& seed );
+float3 UnitVector(float3 v);
+float3 RandomInHemisphere(float3 normal);
+float3 RandomUnitVector();
 float Rand( float range );
 
 // Perlin noise

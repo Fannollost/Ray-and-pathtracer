@@ -18,6 +18,7 @@ public:
 		topLeft = float3( -aspect, 1, 0 );
 		topRight = float3( aspect, 1, 0 );
 		bottomLeft = float3( -aspect, -1, 0 );
+		speed = 0.1f;
 	}
 	Ray GetPrimaryRay( const int x, const int y )
 	{
@@ -30,6 +31,26 @@ public:
 	float aspect = (float)SCRWIDTH / (float)SCRHEIGHT;
 	float3 camPos;
 	float3 topLeft, topRight, bottomLeft;
+	float speed; 
+	bool paused = false;
+
+	void MoveCameraY(int dir) {
+		camPos += float3(0, speed * dir, 0);
+		topLeft += float3(0, speed * dir, 0);
+		topRight += float3(0, speed * dir, 0);
+		bottomLeft += float3(0, speed * dir, 0);
+	}
+
+	void MoveCameraX(int dir) {
+		camPos += float3(speed * dir, 0, 0);
+		topLeft += float3(speed * dir, 0, 0);
+		topRight += float3(speed * dir, 0, 0);
+		bottomLeft += float3(speed * dir, 0, 0);
+	}
+
+	void TogglePause() {
+		paused = !paused;
+	}
 };
 
 }
