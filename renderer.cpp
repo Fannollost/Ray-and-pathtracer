@@ -1,5 +1,4 @@
 #include "precomp.h"
-
 // -----------------------------------------------------------
 // Initialize the renderer
 // -----------------------------------------------------------
@@ -10,25 +9,43 @@ void Renderer::Init()
 	memset( accumulator, 0, SCRWIDTH * SCRHEIGHT * 16 );
 }
 
+
 // -----------------------------------------------------------
 // Evaluate light transport
 // -----------------------------------------------------------
-float3 Renderer::Trace( Ray& ray, int depth )
+float3 Renderer::Trace(Ray& ray, int depth)
 {
 	if (depth <= 0) {
 		return float3(0, 0, 0);
 	}
 
 	float t_min = 0.001;
-	scene.FindNearest( ray, t_min );
+	scene.FindNearest(ray, t_min);
 	if (ray.objIdx == -1) return 0; // or a fancy sky color	
 
 	float3 I = ray.O + ray.t * ray.D;
-	float3 N = scene.GetNormal(ray.objIdx, I, ray.D);
-	float3 albedo = scene.GetAlbedo(ray.objIdx, I);
+	float3 N = normalize(scene.GetNormal(ray.objIdx, I, ray.D));
+	float3 lightRayDirection = normalize(scene.GetLightPos() - ray.IntersectionPoint());
+	Ray scattered; 
+	float3 attenuation;		
+	if (ray.m->scatter(ray, attenuation, scattered, N)) {
+		return attenuation * Trace(scattered, depth - 1);
+	}
 
-	float3 target = normalize(ray.IntersectionPoint() + N + RandomInHemisphere(N));
-	Ray r = Ray(ray.IntersectionPoint(), normalize(target - ray.IntersectionPoint()));
+
+	float len = length(lightRayDirection);
+	Ray r = Ray(ray.IntersectionPoint(), lightRayDirection, ray.color, len);
+	if (scene.IsOccluded(r, 0.001)) return float3(0, 0, 0);
+
+	float str = dot(N, lightRayDirection);
+	if (str < 0.0f) str = 0.0f;
+
+	return ray.color * scene.GetLightColor() * str;
+}
+	//float3 albedo = scene.GetAlbedo(ray.objIdx, I);
+
+	//RandomInHemisphere(N));
+	//Ray r = Ray(ray.IntersectionPoint(), normalize(target - ray.IntersectionPoint()), ray.color);
 
 	//return 0.5 * Trace(r, depth - 1);
 
@@ -37,17 +54,18 @@ float3 Renderer::Trace( Ray& ray, int depth )
 	auto t = 0.5 * (unit_dir.y + 1.0);
 	return (1.0 - t) * float3(1.0, 1.0, 1.0) + t * float3(0.5, 0.7, 1.0);  */
 
-	scene.FindNearest(r, t_min);
+	/*scene.FindNearest(r, t_min);
 	if (r.t < length(normalize(r.D))) {
 		return float3(0, 0, 0);
-	}						 
+	}	*/					 
 
 
-	/* visualize normal */ return (N + 1) * 0.5f;
+	//return ray.color;
+	/* visualize normal */// return (N + 1) * 0.5f;
 
 	/* visualize distance */ // return 0.1f * float3( ray.t, ray.t, ray.t );
 	/* visualize albedo */ // return albedo;
-}
+
 
 // -----------------------------------------------------------
 // Main application tick function - Executed once per frame

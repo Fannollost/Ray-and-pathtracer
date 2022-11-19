@@ -19,6 +19,7 @@
 #include <assert.h>
 #include <io.h>
 
+
 // header for AVX, and every technology before it.
 // if your CPU does not support this (unlikely), include the appropriate header instead.
 // see: https://stackoverflow.com/a/11228864/2844473
@@ -457,6 +458,10 @@ float3 RandomInHemisphere(float3 normal);
 float3 RandomUnitVector();
 float Rand( float range );
 
+
+
+
+
 // Perlin noise
 float noise2D( const float x, const float y );
 
@@ -876,6 +881,7 @@ inline float4 smoothstep( float4 a, float4 b, float4 x )
 	float4 y = clamp( (x - a) / (b - a), 0.0f, 1.0f );
 	return (y * y * (make_float4( 3.0f ) - (make_float4( 2.0f ) * y)));
 }
+inline bool isZero(float3 r) { double s = 1e-8;  return fabs(r.x < s) && fabs(r.y < s) && fabs(r.z < s); }
 
 // axis aligned bounding box class
 class aabb
@@ -1521,8 +1527,7 @@ public:
 // Add your headers here; they will be able to use all previously defined classes and namespaces.
 // In your own .cpp files just add #include "precomp.h".
 // #include "my_include.h"
-
-
+#include "material.h"
 
 // InstructionSet.cpp
 // Compile by using: cl /EHsc /W4 InstructionSet.cpp
@@ -1653,5 +1658,4 @@ public:
 #include "scene.h"
 #include "camera.h"
 #include "renderer.h"
-
 // EOF

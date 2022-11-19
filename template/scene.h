@@ -1,5 +1,4 @@
 #pragma once
-
 // -----------------------------------------------------------
 // scene.h
 // Simple test scene for ray tracing experiments. Goals:
@@ -23,14 +22,12 @@
 #define PLANE_X(o,i) {if((t=-(ray.O.x+o)*ray.rD.x)<ray.t)ray.t=t,ray.objIdx=i;}
 #define PLANE_Y(o,i) {if((t=-(ray.O.y+o)*ray.rD.y)<ray.t)ray.t=t,ray.objIdx=i;}
 #define PLANE_Z(o,i) {if((t=-(ray.O.z+o)*ray.rD.z)<ray.t)ray.t=t,ray.objIdx=i;}
-
 namespace Tmpl8 {
-
 __declspec(align(64)) class Ray
 {
 public:
 	Ray() = default;
-	Ray( float3 origin, float3 direction, float distance = 1e34f )
+	Ray( float3 origin, float3 direction, float3 color ,float distance = 1e34f)
 	{
 		O = origin, D = direction, t = distance;
 		// calculate reciprocal ray direction for triangles and AABBs
@@ -51,8 +48,9 @@ public:
 	float t = 1e34f;
 	int objIdx = -1;
 	bool inside = false; // true when in medium
+	float3 color = 0;
+	material* m;
 };
-
 // -----------------------------------------------------------
 // Sphere primitive
 // Basic sphere, with explicit support for rays that start
@@ -62,8 +60,8 @@ class Sphere
 {
 public:
 	Sphere() = default;
-	Sphere( int idx, float3 p, float r ) : 
-		pos( p ), r2( r* r ), invr( 1 / r ), objIdx( idx ) {}
+	Sphere( int idx, float3 p, float r, float3 c, material m) : 
+		pos( p ), r2( r* r ), invr( 1 / r ), objIdx( idx ), col(c), mat(&m) {}
 	void Intersect( Ray& ray , float t_min) const
 	{
 		float3 oc = ray.O - this->pos;
@@ -74,13 +72,13 @@ public:
 		d = sqrtf( d ), t = -b - d;
 		if (t < ray.t && t > t_min)
 		{
-			ray.t = t, ray.objIdx = objIdx;
+			ray.t = t, ray.objIdx = objIdx, ray.color = col, ray.m = mat;
 			return;
 		}
 		t = d - b;
 		if (t < ray.t && t > t_min)
 		{
-			ray.t = t, ray.objIdx = objIdx;
+			ray.t = t, ray.objIdx = objIdx, ray.color = col;
 			return;
 		}
 	}
@@ -95,6 +93,8 @@ public:
 	float3 pos = 0;
 	float r2 = 0, invr = 0;
 	int objIdx = -1;
+	float3 col = 0;
+	material* mat;
 };
 
 // -----------------------------------------------------------
@@ -106,11 +106,11 @@ class Plane
 {
 public:
 	Plane() = default;
-	Plane( int idx, float3 normal, float dist ) : N( normal ), d( dist ), objIdx( idx ) {}
+	Plane( int idx, float3 normal, float dist, float3 c ) : N( normal ), d( dist ), objIdx( idx ), col(c) {}
 	void Intersect( Ray& ray, float t_min) const
 	{
 		float t = -(dot( ray.O, this->N ) + this->d) / (dot( ray.D, this->N ));
-		if (t < ray.t && t > t_min) ray.t = t, ray.objIdx = objIdx;
+		if (t < ray.t && t > t_min) ray.t = t, ray.objIdx = objIdx, ray.color = col;
 	}
 	float3 GetNormal( const float3 I ) const
 	{
@@ -143,6 +143,7 @@ public:
 	float3 N;
 	float d;
 	int objIdx = -1;
+	float3 col = 0;
 };
 
 // -----------------------------------------------------------
@@ -155,8 +156,9 @@ class Cube
 {
 public:
 	Cube() = default;
-	Cube( int idx, float3 pos, float3 size, mat4 transform = mat4::Identity() )
+	Cube( int idx, float3 pos, float3 size, float3 c, mat4 transform = mat4::Identity() )
 	{
+		col = c;
 		objIdx = idx;
 		b[0] = pos - 0.5f * size, b[1] = pos + 0.5f * size;
 		M = transform, invM = transform.FastInvertedTransformNoScale();
@@ -181,11 +183,11 @@ public:
 		tmin = max( tmin, tzmin ), tmax = min( tmax, tzmax );
 		if (tmin > t_min)
 		{
-			if (tmin < ray.t) ray.t = tmin, ray.objIdx = objIdx;
+			if (tmin < ray.t) ray.t = tmin, ray.objIdx = objIdx, ray.color = col;
 		}
 		else if (tmax > t_min)
 		{
-			if (tmax < ray.t) ray.t = tmax, ray.objIdx = objIdx;
+			if (tmax < ray.t) ray.t = tmax, ray.objIdx = objIdx, ray.color = col;
 		}
 	}
 	float3 GetNormal( const float3 I ) const
@@ -213,6 +215,7 @@ public:
 	float3 b[2];
 	mat4 M, invM;
 	int objIdx = -1;
+	float3 col = 0;
 };
 
 // -----------------------------------------------------------
@@ -223,10 +226,11 @@ class Quad
 {
 public:
 	Quad() = default;
-	Quad( int idx, float s, mat4 transform = mat4::Identity() )
+	Quad( int idx, float s, float3 c ,mat4 transform = mat4::Identity() )
 	{
 		objIdx = idx;
 		size = s * 0.5f;
+		col = c;
 		T = transform, invT = transform.FastInvertedTransformNoScale();
 	}
 	void Intersect( Ray& ray, float t_min ) const
@@ -253,6 +257,7 @@ public:
 	float size;
 	mat4 T, invT;
 	int objIdx = -1;
+	float3 col; 
 };
 
 // -----------------------------------------------------------
@@ -267,18 +272,21 @@ class Scene
 public:
 	Scene()
 	{
+		float3 white = float3(1.0, 1.0, 1.0);
+		float3 red = float3(1.0, 0, 0);
+		float3 blue = float3(0, 1.0, 0);
+		float3 green = float3(0, 0, 1.0);
 		// we store all primitives in one continuous buffer
-		quad = Quad( 0, 1 );									// 0: light source
-		sphere = Sphere( 1, float3( 0 ), 0.5f );				// 1: bouncing ball
-		sphere2 = Sphere( 2, float3( 0, 2.5f, -3.07f ), 8 );	// 2: rounded corners
-		cube = Cube( 3, float3( 0 ), float3( 1.15f ) );			// 3: cube
-		pointlight = float3(0, 0.8f, 0.8f);
-		plane[0] = Plane( 4, float3( 1, 0, 0 ), 3 );			// 4: left wall
-		plane[1] = Plane( 5, float3( -1, 0, 0 ), 2.99f );		// 5: right wall
-		plane[2] = Plane( 6, float3( 0, 1, 0 ), 1 );			// 6: floor
-		plane[3] = Plane( 7, float3( 0, -1, 0 ), 2 );			// 7: ceiling
-		plane[4] = Plane( 8, float3( 0, 0, 1 ), 3 );			// 8: front wall
-		plane[5] = Plane( 9, float3( 0, 0, -1 ), 3.99f );		// 9: back wall
+		quad = Quad(0, 1, white);									// 0: light source
+		sphere = Sphere( 1, float3( 0 ), 0.5f, red,  diffuse(0.9f));				// 1: bouncing ball
+		sphere2 = Sphere( 2, float3( 0, 2.5f, -3.07f ), 8, blue, diffuse(0.1f));	// 2: rounded corners
+		cube = Cube( 3, float3( 0 ), float3( 1.15f ) , green);			// 3: cube
+		plane[0] = Plane( 4, float3( 1, 0, 0 ), 3 , red );			// 4: left wall
+		plane[1] = Plane( 5, float3( -1, 0, 0 ), 2.99f, blue );		// 5: right wall
+		plane[2] = Plane( 6, float3( 0, 1, 0 ), 1 , blue);			// 6: floor
+		plane[3] = Plane( 7, float3( 0, -1, 0 ), 2, green );			// 7: ceiling
+		plane[4] = Plane( 8, float3( 0, 0, 1 ), 3, red );			// 8: front wall
+		plane[5] = Plane( 9, float3( 0, 0, -1 ), 3.99f, blue);		// 9: back wall
 		SetTime( 0 );
 		// Note: once we have triangle support we should get rid of the class
 		// hierarchy: virtuals reduce performance somewhat.
@@ -309,15 +317,16 @@ public:
 	}
 	float3 GetLightColor() const
 	{
-		return float3( 24, 24, 22 );
+		return quad.col;
 	}
 	void FindNearest( Ray& ray, float t_min) const
 	{
 		// room walls - ugly shortcut for more speed
 		float t;
-		if (ray.D.x < 0) PLANE_X( 3, 4 ) else PLANE_X( -2.99f, 5 );
-		if (ray.D.y < 0) PLANE_Y( 1, 6 ) else PLANE_Y( -2, 7 );
-		if (ray.D.z < 0) PLANE_Z( 3, 8 ) else PLANE_Z( -3.99f, 9 );
+		for (int i = 0; i < size(plane); i++) plane[i].Intersect(ray, t_min);
+		//if (ray.D.x < 0) PLANE_X( 3, 4 ) else PLANE_X( -2.99f, 5 );
+		//if (ray.D.y < 0) PLANE_Y( 1, 6 ) else PLANE_Y( -2, 7 );
+		//if (ray.D.z < 0) PLANE_Z( 3, 8 ) else PLANE_Z( -3.99f, 9 );
 		quad.Intersect( ray , t_min);
 		sphere.Intersect( ray, t_min );
 		sphere2.Intersect( ray, t_min );
@@ -383,8 +392,6 @@ public:
 	Sphere sphere;
 	Sphere sphere2;
 	Cube cube;
-	float3 pointlight;
 	Plane plane[6];
 };
-
 }
