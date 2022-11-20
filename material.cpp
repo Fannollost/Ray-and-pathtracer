@@ -1,5 +1,5 @@
 #include "precomp.h"
-
+/*
 class material {
 public:
 	virtual bool scatter(
@@ -22,4 +22,4 @@ public:
 public:
 	float3 albedo;
 
-};
+};	 */

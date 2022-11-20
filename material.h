@@ -1,5 +1,5 @@
 #pragma once
-#ifndef MATERIAL_H
+/*#ifndef MATERIAL_H
 #define MATERIAL_H
 
 class material
@@ -15,6 +15,6 @@ public:
 	diffuse(float3 a) : albedo(a) {}
 	virtual bool scatter(Ray& ray, float3& att, Ray& scattered, float3 normal) const;
 	float3 albedo;
-};
-#endif // !MATERIAL_H
+};						 
+#endif // !MATERIAL_H  */
 

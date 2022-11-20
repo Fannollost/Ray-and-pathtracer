@@ -15,9 +15,7 @@ void Renderer::Init()
 // -----------------------------------------------------------
 float3 Renderer::Trace(Ray& ray, int depth)
 {
-	if (depth <= 0) {
-		return float3(0, 0, 0);
-	}
+	if (depth <= 0) return float3(0, 0, 0);
 
 	float t_min = 0.001;
 	scene.FindNearest(ray, t_min);
@@ -28,9 +26,9 @@ float3 Renderer::Trace(Ray& ray, int depth)
 	float3 lightRayDirection = normalize(scene.GetLightPos() - ray.IntersectionPoint());
 	Ray scattered; 
 	float3 attenuation;		
-	if (ray.m->scatter(ray, attenuation, scattered, N)) {
-		return attenuation * Trace(scattered, depth - 1);
-	}
+	//if (ray.m->scatter(ray, attenuation, scattered, N)) {
+	//	return attenuation * Trace(scattered, depth - 1);
+	//}
 
 
 	float len = length(lightRayDirection);

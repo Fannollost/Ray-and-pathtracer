@@ -22,7 +22,10 @@
 #define PLANE_X(o,i) {if((t=-(ray.O.x+o)*ray.rD.x)<ray.t)ray.t=t,ray.objIdx=i;}
 #define PLANE_Y(o,i) {if((t=-(ray.O.y+o)*ray.rD.y)<ray.t)ray.t=t,ray.objIdx=i;}
 #define PLANE_Z(o,i) {if((t=-(ray.O.z+o)*ray.rD.z)<ray.t)ray.t=t,ray.objIdx=i;}
+
 namespace Tmpl8 {
+	class material;
+	class diffuse;
 __declspec(align(64)) class Ray
 {
 public:
@@ -51,6 +54,58 @@ public:
 	float3 color = 0;
 	material* m;
 };
+
+
+// -----------------------------------------------------------
+// Triangle Primitive
+// 
+// 
+// -----------------------------------------------------------
+class Triangle {
+public:
+	Triangle() = default;
+	Triangle(float3 ver0, float3 ver1, float3 ver2, float3 c) : v0(ver0), v1(ver1), v2(ver2), col(c) {
+		e1 = v1 - v0;
+		e2 = v2 - v0;
+		N = normalize(cross(e1, e2));
+	}
+	void Intersect(Ray& ray, float t_min) const {
+		float3 ref = normalize(cross(ray.D, e2));
+		float det = dot(e1, ref);
+
+		if (det < t_min) return;//maybe check for nearly parallel?
+		float invDet = 1.0 / det;
+		float3 tvec = ray.O - v0;
+		float u = dot(tvec, ref) * invDet;
+
+		if (u < 0 || u > 1) return;
+		
+		float3 qvec = normalize(cross(tvec, e1));
+		float v = dot(normalize(ray.D), qvec) * invDet;
+		/*if (v < 0 || u + v > 1) return;	  */
+
+		
+		//float3 s = normalize((ray.O - v0) / det);
+		/*float3 r = normalize(cross(s, e1));
+
+		float b_1 = dot(s, ref);
+		float b_2 = dot(r, ray.D);
+		float b_3 = 1.0f - b_1 - b_2;
+		if (b_1 < 0.0f || b_2 < 0.0f || b_3 < 0.0f)  return;
+						    */
+		float t = dot(e2, qvec) * invDet;	  
+		if (t < ray.t && t > t_min) {
+			ray.t = t, ray.objIdx = objIdx, ray.color = col;
+		}
+	}
+	float3 GetNormal(const float3 I) const { return N; }
+	float3 v0, v1, v2, e1, e2, N;
+	int objIdx = -1;
+	float3 col;
+};
+
+
+
 // -----------------------------------------------------------
 // Sphere primitive
 // Basic sphere, with explicit support for rays that start
@@ -60,7 +115,7 @@ class Sphere
 {
 public:
 	Sphere() = default;
-	Sphere( int idx, float3 p, float r, float3 c, material m) : 
+	Sphere( int idx, float3 p, float r, float3 c, material& m) : 
 		pos( p ), r2( r* r ), invr( 1 / r ), objIdx( idx ), col(c), mat(&m) {}
 	void Intersect( Ray& ray , float t_min) const
 	{
@@ -106,11 +161,11 @@ class Plane
 {
 public:
 	Plane() = default;
-	Plane( int idx, float3 normal, float dist, float3 c ) : N( normal ), d( dist ), objIdx( idx ), col(c) {}
+	Plane( int idx, float3 normal, float dist, float3 c, material& m) : N( normal ), d( dist ), objIdx( idx ), col(c), mat(&m) {}
 	void Intersect( Ray& ray, float t_min) const
 	{
 		float t = -(dot( ray.O, this->N ) + this->d) / (dot( ray.D, this->N ));
-		if (t < ray.t && t > t_min) ray.t = t, ray.objIdx = objIdx, ray.color = col;
+		if (t < ray.t && t > t_min) ray.t = t, ray.objIdx = objIdx, ray.color = col, ray.m = mat;
 	}
 	float3 GetNormal( const float3 I ) const
 	{
@@ -144,6 +199,7 @@ public:
 	float d;
 	int objIdx = -1;
 	float3 col = 0;
+	material* mat;
 };
 
 // -----------------------------------------------------------
@@ -156,11 +212,12 @@ class Cube
 {
 public:
 	Cube() = default;
-	Cube( int idx, float3 pos, float3 size, float3 c, mat4 transform = mat4::Identity() )
+	Cube( int idx, float3 pos, float3 size, float3 c, material &m, mat4 transform = mat4::Identity() )
 	{
 		col = c;
 		objIdx = idx;
 		b[0] = pos - 0.5f * size, b[1] = pos + 0.5f * size;
+		mat = &m;
 		M = transform, invM = transform.FastInvertedTransformNoScale();
 	}
 	void Intersect( Ray& ray, float t_min ) const
@@ -183,11 +240,11 @@ public:
 		tmin = max( tmin, tzmin ), tmax = min( tmax, tzmax );
 		if (tmin > t_min)
 		{
-			if (tmin < ray.t) ray.t = tmin, ray.objIdx = objIdx, ray.color = col;
+			if (tmin < ray.t) ray.t = tmin, ray.objIdx = objIdx, ray.color = col, ray.m = mat;
 		}
 		else if (tmax > t_min)
 		{
-			if (tmax < ray.t) ray.t = tmax, ray.objIdx = objIdx, ray.color = col;
+			if (tmax < ray.t) ray.t = tmax, ray.objIdx = objIdx, ray.color = col, ray.m = mat;
 		}
 	}
 	float3 GetNormal( const float3 I ) const
@@ -216,6 +273,7 @@ public:
 	mat4 M, invM;
 	int objIdx = -1;
 	float3 col = 0;
+	material* mat;
 };
 
 // -----------------------------------------------------------
@@ -226,11 +284,12 @@ class Quad
 {
 public:
 	Quad() = default;
-	Quad( int idx, float s, float3 c ,mat4 transform = mat4::Identity() )
+	Quad(int idx, float s, float3 c, material &m, mat4 transform = mat4::Identity())
 	{
 		objIdx = idx;
 		size = s * 0.5f;
 		col = c;
+		mat = &m;
 		T = transform, invT = transform.FastInvertedTransformNoScale();
 	}
 	void Intersect( Ray& ray, float t_min ) const
@@ -242,7 +301,7 @@ public:
 		{
 			float3 I = O + t * D;
 			if (I.x > -size && I.x < size && I.z > -size && I.z < size)
-				ray.t = t, ray.objIdx = objIdx;
+				ray.t = t, ray.objIdx = objIdx, ray.m = mat;
 		}
 	}
 	float3 GetNormal( const float3 I ) const
@@ -258,8 +317,34 @@ public:
 	mat4 T, invT;
 	int objIdx = -1;
 	float3 col; 
+	material* mat;
 };
 
+class material {
+public:
+	virtual bool scatter(
+		Ray& ray, float3& att, Ray& scattered, float3 normal
+	) {
+		return false;
+	}
+};
+
+class diffuse : public material {
+public:
+	diffuse(float3 a) : albedo(a) {}
+
+	virtual bool scatter(Ray& ray, float3& att, Ray& scattered, float3 normal) const {
+		float3 dir = normal + RandomUnitVector();
+		if (isZero(dir)) dir = normal;
+		scattered = Ray(ray.IntersectionPoint(), dir, ray.color);
+		att = albedo;
+		return true;
+	}
+
+public:
+	float3 albedo;
+
+};
 // -----------------------------------------------------------
 // Scene class
 // We intersect this. The query is internally forwarded to the
@@ -277,16 +362,17 @@ public:
 		float3 blue = float3(0, 1.0, 0);
 		float3 green = float3(0, 0, 1.0);
 		// we store all primitives in one continuous buffer
-		quad = Quad(0, 1, white);									// 0: light source
+		quad = Quad(0, 1, white, diffuse(1.0f));									// 0: light source
 		sphere = Sphere( 1, float3( 0 ), 0.5f, red,  diffuse(0.9f));				// 1: bouncing ball
 		sphere2 = Sphere( 2, float3( 0, 2.5f, -3.07f ), 8, blue, diffuse(0.1f));	// 2: rounded corners
-		cube = Cube( 3, float3( 0 ), float3( 1.15f ) , green);			// 3: cube
-		plane[0] = Plane( 4, float3( 1, 0, 0 ), 3 , red );			// 4: left wall
-		plane[1] = Plane( 5, float3( -1, 0, 0 ), 2.99f, blue );		// 5: right wall
-		plane[2] = Plane( 6, float3( 0, 1, 0 ), 1 , blue);			// 6: floor
-		plane[3] = Plane( 7, float3( 0, -1, 0 ), 2, green );			// 7: ceiling
-		plane[4] = Plane( 8, float3( 0, 0, 1 ), 3, red );			// 8: front wall
-		plane[5] = Plane( 9, float3( 0, 0, -1 ), 3.99f, blue);		// 9: back wall
+		cube = Cube( 3, float3( 0 ), float3( 1.15f ) , green, diffuse(0.8f));			// 3: cube
+		plane[0] = Plane( 4, float3( 1, 0, 0 ), 3 , red , diffuse(0.8f));			// 4: left wall
+		plane[1] = Plane( 5, float3( -1, 0, 0 ), 2.99f, blue, diffuse(0.8f));		// 5: right wall
+		plane[2] = Plane( 6, float3( 0, 1, 0 ), 1 , blue, diffuse(0.8f));			// 6: floor
+		plane[3] = Plane( 7, float3( 0, -1, 0 ), 2, green, diffuse(0.8f));			// 7: ceiling
+		plane[4] = Plane( 8, float3( 0, 0, 1 ), 3, red, diffuse(0.8f));			// 8: front wall
+		plane[5] = Plane( 9, float3( 0, 0, -1 ), 3.99f, blue, diffuse(0.8f));		// 9: back wall
+		triangle = Triangle(float3(0.0f, 0.0f, 0), float3(0.2f, 0, 0.2f), float3(0.1f, 0.2f, 0), blue);
 		SetTime( 0 );
 		// Note: once we have triangle support we should get rid of the class
 		// hierarchy: virtuals reduce performance somewhat.
@@ -331,6 +417,8 @@ public:
 		sphere.Intersect( ray, t_min );
 		sphere2.Intersect( ray, t_min );
 		cube.Intersect( ray, t_min);
+		triangle.Intersect(ray, t_min);
+		triangle2.Intersect(ray, t_min);
 	}
 	bool IsOccluded( Ray& ray, float t_min) const
 	{
@@ -340,6 +428,9 @@ public:
 		sphere.Intersect( ray, t_min);
 		sphere2.Intersect( ray, t_min);
 		cube.Intersect( ray , t_min);
+		triangle.Intersect(ray, t_min);
+		triangle2.Intersect(ray, t_min);
+
 		return ray.t < rayLength;
 		// technically this is wasteful: 
 		// - we potentially search beyond rayLength
@@ -393,5 +484,8 @@ public:
 	Sphere sphere2;
 	Cube cube;
 	Plane plane[6];
+	Triangle triangle;
+	Triangle triangle2;
+
 };
 }
