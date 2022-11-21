@@ -46,7 +46,7 @@ public:
 	float4* accumulator;
 	Scene scene;
 	Camera camera;
-
+	float2 xBox = float2(-1,1), yBox = float2(-1, 1), zBox = float2(-1, 1);	//makeboudningbox
 	enum UserInput {
 		KEYBOARD_W = 87,
 		KEYBOARD_D = 68,

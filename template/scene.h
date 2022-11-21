@@ -64,7 +64,7 @@ public:
 class Triangle {
 public:
 	Triangle() = default;
-	Triangle(float3 ver0, float3 ver1, float3 ver2, float3 c) : v0(ver0), v1(ver1), v2(ver2), col(c) {
+	Triangle(int idx, float3 ver0, float3 ver1, float3 ver2, float3 c) : objIdx(idx), v0(ver0), v1(ver1), v2(ver2), col(c) {
 		e1 = v1 - v0;
 		e2 = v2 - v0;
 		N = normalize(cross(e1, e2));
@@ -104,7 +104,41 @@ public:
 	float3 col;
 };
 
+class ILight {
+public:
+	virtual float3 GetNormal() = 0;
+	virtual float3 GetLightPosition() = 0;
+	virtual float3 GetLightColor() = 0;
+};
 
+class Light {
+public: 
+	Light() = default;
+	Light(int idx, float3 p, float str, float3 c, float3 n) : objIdx(idx), pos(p), strength(str), col(c), normal(n) {}
+	float3 GetNormal() { return normal; }
+	float3 GetLightPosition() { return pos; }
+	float3 GetLightColor() { return col; }
+	float3 pos;
+	float3 col;
+	float strength;
+	int objIdx;
+	float3 normal;
+};
+
+class AreaLight : public Light {
+public:
+	AreaLight() = default;
+	AreaLight(int idx, float3 p, float str, float3 c, float r, float3 n) : Light(idx, p, str, c, n) {
+		radius = r;
+	}
+	float3 GetLightPosition() {
+		float newRad = radius * sqrt(RandomFloat());
+		float theta = RandomFloat() * 2 * PI;
+		return float3(pos.x + newRad * cos(theta), pos.y + newRad * sin(theta), pos.z);
+	}
+
+	float radius;
+};
 
 // -----------------------------------------------------------
 // Sphere primitive
@@ -319,7 +353,6 @@ public:
 	float3 col; 
 	material* mat;
 };
-
 class material {
 public:
 	virtual bool scatter(
@@ -363,16 +396,17 @@ public:
 		float3 green = float3(0, 0, 1.0);
 		// we store all primitives in one continuous buffer
 		quad = Quad(0, 1, white, diffuse(1.0f));									// 0: light source
+		//light[0] = AreaLight(11, float3(0, 1, 0), 50, white, 0.2f, float3(0, -1, 0));			//DIT FF CHECKEN!
 		sphere = Sphere( 1, float3( 0 ), 0.5f, red,  diffuse(0.9f));				// 1: bouncing ball
 		sphere2 = Sphere( 2, float3( 0, 2.5f, -3.07f ), 8, blue, diffuse(0.1f));	// 2: rounded corners
-		cube = Cube( 3, float3( 0 ), float3( 1.15f ) , green, diffuse(0.8f));			// 3: cube
+		cube = Cube( 3, float3( 0 ), float3( 1.15f ) , green, diffuse(0.8f));		// 3: cube
 		plane[0] = Plane( 4, float3( 1, 0, 0 ), 3 , red , diffuse(0.8f));			// 4: left wall
 		plane[1] = Plane( 5, float3( -1, 0, 0 ), 2.99f, blue, diffuse(0.8f));		// 5: right wall
 		plane[2] = Plane( 6, float3( 0, 1, 0 ), 1 , blue, diffuse(0.8f));			// 6: floor
 		plane[3] = Plane( 7, float3( 0, -1, 0 ), 2, green, diffuse(0.8f));			// 7: ceiling
-		plane[4] = Plane( 8, float3( 0, 0, 1 ), 3, red, diffuse(0.8f));			// 8: front wall
+		plane[4] = Plane( 8, float3( 0, 0, 1 ), 3, red, diffuse(0.8f));				// 8: front wall
 		plane[5] = Plane( 9, float3( 0, 0, -1 ), 3.99f, blue, diffuse(0.8f));		// 9: back wall
-		triangle = Triangle(float3(0.0f, 0.0f, 0), float3(0.2f, 0, 0.2f), float3(0.1f, 0.2f, 0), blue);
+		triangle = Triangle(10, float3(0.0f, 0.0f, 0), float3(0.2f, 0, 0.2f), float3(0.1f, 0.2f, 0), blue);
 		SetTime( 0 );
 		// Note: once we have triangle support we should get rid of the class
 		// hierarchy: virtuals reduce performance somewhat.
@@ -443,10 +477,11 @@ public:
 		// this way we prevent calculating it multiple times.
 		if (objIdx == -1) return float3( 0 ); // or perhaps we should just crash
 		float3 N;
-		if (objIdx == 0) N = quad.GetNormal( I );
-		else if (objIdx == 1) N = sphere.GetNormal( I );
-		else if (objIdx == 2) N = sphere2.GetNormal( I );
-		else if (objIdx == 3) N = cube.GetNormal( I );
+		if (objIdx == 0) N = quad.GetNormal(I);
+		else if (objIdx == 1) N = sphere.GetNormal(I);
+		else if (objIdx == 2) N = sphere2.GetNormal(I);
+		else if (objIdx == 3) N = cube.GetNormal(I);
+		else if (objIdx == 10) N = triangle.GetNormal(I);
 		else 
 		{
 			// faster to handle the 6 planes without a call to GetNormal
@@ -479,7 +514,9 @@ public:
 	}
 	__declspec(align(64)) // start a new cacheline here
 	float animTime = 0;
+
 	Quad quad;
+	Light* light[1];
 	Sphere sphere;
 	Sphere sphere2;
 	Cube cube;

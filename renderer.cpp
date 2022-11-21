@@ -17,13 +17,14 @@ float3 Renderer::Trace(Ray& ray, int depth)
 {
 	if (depth <= 0) return float3(0, 0, 0);
 
-	float t_min = 0.001;
+	float t_min = 0.00001f;
 	scene.FindNearest(ray, t_min);
 	if (ray.objIdx == -1) return 0; // or a fancy sky color	
 
+
 	float3 I = ray.O + ray.t * ray.D;
-	float3 N = normalize(scene.GetNormal(ray.objIdx, I, ray.D));
-	float3 lightRayDirection = normalize(scene.GetLightPos() - ray.IntersectionPoint());
+	float3 N = scene.GetNormal(ray.objIdx, I, ray.D);
+	float3 lightRayDirection = scene.GetLightPos() - ray.IntersectionPoint();
 	Ray scattered; 
 	float3 attenuation;		
 	//if (ray.m->scatter(ray, attenuation, scattered, N)) {
@@ -32,8 +33,8 @@ float3 Renderer::Trace(Ray& ray, int depth)
 
 
 	float len = length(lightRayDirection);
-	Ray r = Ray(ray.IntersectionPoint(), lightRayDirection, ray.color, len);
-	if (scene.IsOccluded(r, 0.001)) return float3(0, 0, 0);
+	Ray r = Ray(ray.IntersectionPoint(), normalize(lightRayDirection/* + RandomInHemisphere(N)*/), ray.color, len);
+	if (scene.IsOccluded(r, t_min)) return float3(0, 0, 0);
 
 	float str = dot(N, lightRayDirection);
 	if (str < 0.0f) str = 0.0f;
