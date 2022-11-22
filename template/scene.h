@@ -40,6 +40,7 @@ public:
 	#endif
 	}
 	float3 IntersectionPoint() { return O + t * D; }
+	material* GetMaterial() { return m; }
 	// ray data
 #ifndef SPEEDTRIX
 	float3 O, D, rD;
@@ -111,6 +112,7 @@ public:
 	float3 GetNormal() { return normal; }
 	virtual float3 GetLightPosition() { return pos; }
 	float3 GetLightColor() { return col; }
+	virtual float GetLightIntensityAt(float3 p) { return 1; }
 	float3 pos;
 	float3 col;
 	float strength;
@@ -121,16 +123,22 @@ public:
 class AreaLight : public Light {
 public:
 	AreaLight() = default;
-	AreaLight(int idx, float3 p, float str, float3 c, float r, float3 n) : Light(idx, p, str, c, n) {
+	AreaLight(int idx, float3 p, float str, float3 c, float r, float3 n, int s) : Light(idx, p, str, c, n) {
 		radius = r;
+		samples = s;
+	}
+	float GetLightIntensityAt(float3 p) override {
+		for (int i = 0; i < samples; i++) {
+			
+		}
+		return 0;
 	}
 	float3 GetLightPosition() override {
 		float newRad = radius * sqrt(RandomFloat());
 		float theta = RandomFloat() * 2 * PI;
 		return float3(pos.x + newRad * cos(theta), pos.y + newRad * sin(theta), pos.z);
 	}
-
-
+	int samples;
 	float radius;
 };
 
@@ -390,11 +398,11 @@ public:
 		float3 blue = float3(0, 1.0, 0);
 		float3 green = float3(0, 0, 1.0);
 		// we store all primitives in one continuous buffer
-		quad = Quad(0, 1, white, diffuse(1.0f));									// 0: light source
-		light[0] = new AreaLight(11, float3(0, 1, 0), 50, white, 0.2f, float3(0, -1, 0));			//DIT FF CHECKEN!
-		sphere = Sphere( 1, float3( 0 ), 0.5f, red,  diffuse(0.9f));				// 1: bouncing ball
-		sphere2 = Sphere( 2, float3( 0, 2.5f, -3.07f ), 8, blue, diffuse(0.1f));	// 2: rounded corners
-		cube = Cube( 3, float3( 0 ), float3( 1.15f ) , green, diffuse(0.8f));		// 3: cube
+		quad = Quad(0, 1, white, diffuse(float3(0.8f)));									// 0: light source
+		light[0] = new AreaLight(11, float3(0.1f, 1, 0), 50,  white, 0.2f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
+		sphere = Sphere( 1, float3( 0 ), 0.5f, red,  diffuse(float3(0.2f)));				// 1: bouncing ball
+		sphere2 = Sphere( 2, float3( 0, 2.5f, -3.07f ), 8, blue, diffuse(float3(0.2f)));	// 2: rounded corners
+		cube = Cube( 3, float3( 0 ), float3( 1.15f ) , green, diffuse(float3(0.2f)));		// 3: cube
 		plane[0] = Plane( 4, float3( 1, 0, 0 ), 3 , red , diffuse(0.8f));			// 4: left wall
 		plane[1] = Plane( 5, float3( -1, 0, 0 ), 2.99f, blue, diffuse(0.8f));		// 5: right wall
 		plane[2] = Plane( 6, float3( 0, 1, 0 ), 1 , blue, diffuse(0.8f));			// 6: floor
@@ -446,8 +454,8 @@ public:
 		sphere.Intersect( ray, t_min );
 		sphere2.Intersect( ray, t_min );
 		cube.Intersect( ray, t_min);
-		triangle.Intersect(ray, t_min);
-		triangle2.Intersect(ray, t_min);
+		//triangle.Intersect(ray, t_min);
+		//triangle2.Intersect(ray, t_min);
 	}
 	bool IsOccluded( Ray& ray, float t_min) const
 	{
@@ -457,8 +465,8 @@ public:
 		sphere.Intersect( ray, t_min);
 		sphere2.Intersect( ray, t_min);
 		cube.Intersect( ray , t_min);
-		triangle.Intersect(ray, t_min);
-		triangle2.Intersect(ray, t_min);
+		//triangle.Intersect(ray, t_min);
+		//triangle2.Intersect(ray, t_min);
 
 		return ray.t < rayLength;
 		// technically this is wasteful: 

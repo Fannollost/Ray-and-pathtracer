@@ -22,24 +22,25 @@ float3 Renderer::Trace(Ray& ray, int depth)
 	if (ray.objIdx == -1) return 0; // or a fancy sky color	
 
 	float3 totCol = float3(0);
+	float3 attenuation;
 	for(int i = 0; i < sizeof(scene.light) / sizeof(scene.light[0]); i++){
 		float3 I = ray.O + ray.t * ray.D;
 		float3 N = scene.GetNormal(ray.objIdx, I, ray.D);
+		material m = *ray.GetMaterial();
 		float3 lightRayDirection = scene.light[i]->GetLightPosition() - ray.IntersectionPoint();
-		Ray scattered; 
-		float3 attenuation;		
+		Ray scattered = Ray(float3(0), float3(0), float3(0)); 	
 	
-		//if (ray.m->scatter(ray, attenuation, scattered, N)) {
-		//	return attenuation * Trace(scattered, depth - 1);
-		//}
-
 		float len = length(lightRayDirection);
 		Ray r = Ray(ray.IntersectionPoint(), normalize(lightRayDirection/* + RandomInHemisphere(N)*/), ray.color, len);
 		if (scene.IsOccluded(r, t_min)) return float3(0, 0, 0);
 
-		float str = dot(N, lightRayDirection);
+		float str = dot(N, normalize(lightRayDirection));
 		if (str < 0.0f) str = 0.0f;
-			totCol += ray.color * scene.light[i]->GetLightColor() * str;
+		totCol += ray.color * scene.light[i]->GetLightColor() * str;
+
+		if (m.scatter(ray, attenuation, scattered, N)) {
+			return attenuation * Trace(scattered, depth - 1);
+		}
 	}
 
 	return totCol;
@@ -88,7 +89,7 @@ void Renderer::Tick( float deltaTime )
 		// trace a primary ray for each pixel on the line
 		for (int x = 0; x < SCRWIDTH; x++)
 			accumulator[x + y * SCRWIDTH] =
-				float4( Trace( camera.GetPrimaryRay( x, y ) , 1), 2 );
+				float4( Trace( camera.GetPrimaryRay( x, y ) , 1), 10 );
 		// translate accumulator contents to rgb32 pixels
 		for (int dest = y * SCRWIDTH, x = 0; x < SCRWIDTH; x++)
 			screen->pixels[dest + x] = 
