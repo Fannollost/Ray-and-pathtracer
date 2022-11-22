@@ -104,19 +104,12 @@ public:
 	float3 col;
 };
 
-class ILight {
-public:
-	virtual float3 GetNormal() = 0;
-	virtual float3 GetLightPosition() = 0;
-	virtual float3 GetLightColor() = 0;
-};
-
 class Light {
 public: 
 	Light() = default;
 	Light(int idx, float3 p, float str, float3 c, float3 n) : objIdx(idx), pos(p), strength(str), col(c), normal(n) {}
 	float3 GetNormal() { return normal; }
-	float3 GetLightPosition() { return pos; }
+	virtual float3 GetLightPosition() { return pos; }
 	float3 GetLightColor() { return col; }
 	float3 pos;
 	float3 col;
@@ -131,11 +124,12 @@ public:
 	AreaLight(int idx, float3 p, float str, float3 c, float r, float3 n) : Light(idx, p, str, c, n) {
 		radius = r;
 	}
-	float3 GetLightPosition() {
+	float3 GetLightPosition() override {
 		float newRad = radius * sqrt(RandomFloat());
 		float theta = RandomFloat() * 2 * PI;
 		return float3(pos.x + newRad * cos(theta), pos.y + newRad * sin(theta), pos.z);
 	}
+
 
 	float radius;
 };
