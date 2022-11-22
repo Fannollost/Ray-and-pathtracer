@@ -21,25 +21,28 @@ float3 Renderer::Trace(Ray& ray, int depth)
 	scene.FindNearest(ray, t_min);
 	if (ray.objIdx == -1) return 0; // or a fancy sky color	
 
+	float3 totCol = float3(0);
+	for(int i = 0; i < sizeof(scene.light) / sizeof(scene.light[0]); i++){
+		float3 I = ray.O + ray.t * ray.D;
+		float3 N = scene.GetNormal(ray.objIdx, I, ray.D);
+		float3 lightRayDirection = scene.light[i]->GetLightPosition() - ray.IntersectionPoint();
+		Ray scattered; 
+		float3 attenuation;		
+	
+		//if (ray.m->scatter(ray, attenuation, scattered, N)) {
+		//	return attenuation * Trace(scattered, depth - 1);
+		//}
 
-	float3 I = ray.O + ray.t * ray.D;
-	float3 N = scene.GetNormal(ray.objIdx, I, ray.D);
-	float3 lightRayDirection = scene.GetLightPos() - ray.IntersectionPoint();
-	Ray scattered; 
-	float3 attenuation;		
-	//if (ray.m->scatter(ray, attenuation, scattered, N)) {
-	//	return attenuation * Trace(scattered, depth - 1);
-	//}
+		float len = length(lightRayDirection);
+		Ray r = Ray(ray.IntersectionPoint(), normalize(lightRayDirection/* + RandomInHemisphere(N)*/), ray.color, len);
+		if (scene.IsOccluded(r, t_min)) return float3(0, 0, 0);
 
+		float str = dot(N, lightRayDirection);
+		if (str < 0.0f) str = 0.0f;
+			totCol += ray.color * scene.light[i]->GetLightColor() * str;
+	}
 
-	float len = length(lightRayDirection);
-	Ray r = Ray(ray.IntersectionPoint(), normalize(lightRayDirection/* + RandomInHemisphere(N)*/), ray.color, len);
-	if (scene.IsOccluded(r, t_min)) return float3(0, 0, 0);
-
-	float str = dot(N, lightRayDirection);
-	if (str < 0.0f) str = 0.0f;
-
-	return ray.color * scene.GetLightColor() * str;
+	return totCol;
 }
 	//float3 albedo = scene.GetAlbedo(ray.objIdx, I);
 
