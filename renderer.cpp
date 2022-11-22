@@ -27,20 +27,22 @@ float3 Renderer::Trace(Ray& ray, int depth)
 		float3 I = ray.O + ray.t * ray.D;
 		float3 N = scene.GetNormal(ray.objIdx, I, ray.D);
 		material m = *ray.GetMaterial();
+		
 		float3 lightRayDirection = scene.light[i]->GetLightPosition() - ray.IntersectionPoint();
-		Ray scattered = Ray(float3(0), float3(0), float3(0)); 	
-	
+
 		float len = length(lightRayDirection);
-		Ray r = Ray(ray.IntersectionPoint(), normalize(lightRayDirection/* + RandomInHemisphere(N)*/), ray.color, len);
-		if (scene.IsOccluded(r, t_min)) return float3(0, 0, 0);
+		Ray r = Ray(ray.IntersectionPoint(), normalize(lightRayDirection), ray.color, len);
+		if (scene.IsOccluded(r, t_min)) break;
 
 		float str = dot(N, normalize(lightRayDirection));
 		if (str < 0.0f) str = 0.0f;
-		totCol += ray.color * scene.light[i]->GetLightColor() * str;
-
+		totCol += ray.color * scene.light[i]->GetLightColor() * str * scene.light[i]->GetLightIntensityAt(ray.IntersectionPoint());
+		Ray scattered;
 		if (m.scatter(ray, attenuation, scattered, N)) {
 			return attenuation * Trace(scattered, depth - 1);
 		}
+
+
 	}
 
 	return totCol;

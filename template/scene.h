@@ -128,10 +128,13 @@ public:
 		samples = s;
 	}
 	float GetLightIntensityAt(float3 p) override {
+		float dis = abs(length(pos - p));
+		float relStr =  1 / (dis * dis) * strength;
+		float totCol = 0;
 		for (int i = 0; i < samples; i++) {
-			
+		   
 		}
-		return 0;
+		return relStr;
 	}
 	float3 GetLightPosition() override {
 		float newRad = radius * sqrt(RandomFloat());
@@ -369,10 +372,11 @@ class diffuse : public material {
 public:
 	diffuse(float3 a) : albedo(a) {}
 
-	virtual bool scatter(Ray& ray, float3& att, Ray& scattered, float3 normal) const {
-		float3 dir = normal + RandomUnitVector();
+	virtual bool scatter(Ray& ray, float3& att, Ray& scattered, float3 normal) override {
+		
+		float3 dir = reflect(ray.D, normal) + RandomUnitVector();
 		if (isZero(dir)) dir = normal;
-		scattered = Ray(ray.IntersectionPoint(), dir, ray.color);
+		scattered = Ray(ray.IntersectionPoint(), normalize(dir), ray.color);
 		att = albedo;
 		return true;
 	}
@@ -399,7 +403,8 @@ public:
 		float3 green = float3(0, 0, 1.0);
 		// we store all primitives in one continuous buffer
 		quad = Quad(0, 1, white, diffuse(float3(0.8f)));									// 0: light source
-		light[0] = new AreaLight(11, float3(0.1f, 1, 0), 50,  white, 0.2f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
+		light[0] = new AreaLight(11, float3(0.1f, 1, 0), 5.0f,  white, 0.2f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
+		light[1] = new AreaLight(12, float3(0.1f, -1, 0), 5.0f,  white, 0.2f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
 		sphere = Sphere( 1, float3( 0 ), 0.5f, red,  diffuse(float3(0.2f)));				// 1: bouncing ball
 		sphere2 = Sphere( 2, float3( 0, 2.5f, -3.07f ), 8, blue, diffuse(float3(0.2f)));	// 2: rounded corners
 		cube = Cube( 3, float3( 0 ), float3( 1.15f ) , green, diffuse(float3(0.2f)));		// 3: cube
@@ -519,7 +524,7 @@ public:
 	float animTime = 0;
 
 	Quad quad;
-	Light* light[1];
+	Light* light[2];
 	Sphere sphere;
 	Sphere sphere2;
 	Cube cube;
