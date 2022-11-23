@@ -140,6 +140,7 @@ public:
 		float newRad = radius * sqrt(RandomFloat());
 		float theta = RandomFloat() * 2 * PI;
 		return float3(pos.x + newRad * cos(theta), pos.y + newRad * sin(theta), pos.z);
+	   //	return pos;
 	}
 	int samples;
 	float radius;
@@ -154,8 +155,8 @@ class Sphere
 {
 public:
 	Sphere() = default;
-	Sphere( int idx, float3 p, float r, float3 c, material& m) : 
-		pos( p ), r2( r* r ), invr( 1 / r ), objIdx( idx ), col(c), mat(&m) {}
+	Sphere( int idx, float3 p, float r, float3 c, material* m) : 
+		pos( p ), r2( r* r ), invr( 1 / r ), objIdx( idx ), col(c), mat(m) {}
 	void Intersect( Ray& ray , float t_min) const
 	{
 		float3 oc = ray.O - this->pos;
@@ -200,7 +201,7 @@ class Plane
 {
 public:
 	Plane() = default;
-	Plane( int idx, float3 normal, float dist, float3 c, material& m) : N( normal ), d( dist ), objIdx( idx ), col(c), mat(&m) {}
+	Plane( int idx, float3 normal, float dist, float3 c, material* m) : N( normal ), d( dist ), objIdx( idx ), col(c), mat(m) {}
 	void Intersect( Ray& ray, float t_min) const
 	{
 		float t = -(dot( ray.O, this->N ) + this->d) / (dot( ray.D, this->N ));
@@ -251,12 +252,12 @@ class Cube
 {
 public:
 	Cube() = default;
-	Cube( int idx, float3 pos, float3 size, float3 c, material &m, mat4 transform = mat4::Identity() )
+	Cube( int idx, float3 pos, float3 size, float3 c, material* m, mat4 transform = mat4::Identity() )
 	{
 		col = c;
 		objIdx = idx;
 		b[0] = pos - 0.5f * size, b[1] = pos + 0.5f * size;
-		mat = &m;
+		mat = m;
 		M = transform, invM = transform.FastInvertedTransformNoScale();
 	}
 	void Intersect( Ray& ray, float t_min ) const
@@ -323,12 +324,12 @@ class Quad
 {
 public:
 	Quad() = default;
-	Quad(int idx, float s, float3 c, material &m, mat4 transform = mat4::Identity())
+	Quad(int idx, float s, float3 c, material* m, mat4 transform = mat4::Identity())
 	{
 		objIdx = idx;
 		size = s * 0.5f;
 		col = c;
-		mat = &m;
+		mat = m;
 		T = transform, invT = transform.FastInvertedTransformNoScale();
 	}
 	void Intersect( Ray& ray, float t_min ) const
@@ -374,17 +375,35 @@ public:
 
 	virtual bool scatter(Ray& ray, float3& att, Ray& scattered, float3 normal) override {
 		
-		float3 dir = reflect(ray.D, normal) + RandomUnitVector();
+		float3 dir = normalize(normal + RandomUnitVector());
 		if (isZero(dir)) dir = normal;
-		scattered = Ray(ray.IntersectionPoint(), normalize(dir), ray.color);
+		scattered = Ray(ray.IntersectionPoint(), dir, ray.color);
 		att = albedo;
 		return true;
 	}
 
 public:
 	float3 albedo;
-
 };
+
+class metal : public material {
+public:
+	metal(float3 a) : albedo(a){}
+	virtual bool scatter(Ray& ray, float3& att, Ray& scattered, float3 normal) override {
+		float3 dir = normalize(reflect(ray.D, normal));
+		if (isZero(dir)) dir = normal;
+		scattered = Ray(ray.IntersectionPoint(), dir, ray.color);
+		att = albedo;
+		return dot(scattered.D, normal) > 0;
+	}
+
+public:
+	float3 albedo;
+};
+
+/*class metal : public material {
+	public metal()
+};*/
 // -----------------------------------------------------------
 // Scene class
 // We intersect this. The query is internally forwarded to the
@@ -402,18 +421,18 @@ public:
 		float3 blue = float3(0, 1.0, 0);
 		float3 green = float3(0, 0, 1.0);
 		// we store all primitives in one continuous buffer
-		quad = Quad(0, 1, white, diffuse(float3(0.8f)));									// 0: light source
-		light[0] = new AreaLight(11, float3(0.1f, 1, 0), 5.0f,  white, 0.2f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
-		light[1] = new AreaLight(12, float3(0.1f, -1, 0), 5.0f,  white, 0.2f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
-		sphere = Sphere( 1, float3( 0 ), 0.5f, red,  diffuse(float3(0.2f)));				// 1: bouncing ball
-		sphere2 = Sphere( 2, float3( 0, 2.5f, -3.07f ), 8, blue, diffuse(float3(0.2f)));	// 2: rounded corners
-		cube = Cube( 3, float3( 0 ), float3( 1.15f ) , green, diffuse(float3(0.2f)));		// 3: cube
-		plane[0] = Plane( 4, float3( 1, 0, 0 ), 3 , red , diffuse(0.8f));			// 4: left wall
-		plane[1] = Plane( 5, float3( -1, 0, 0 ), 2.99f, blue, diffuse(0.8f));		// 5: right wall
-		plane[2] = Plane( 6, float3( 0, 1, 0 ), 1 , blue, diffuse(0.8f));			// 6: floor
-		plane[3] = Plane( 7, float3( 0, -1, 0 ), 2, green, diffuse(0.8f));			// 7: ceiling
-		plane[4] = Plane( 8, float3( 0, 0, 1 ), 3, red, diffuse(0.8f));				// 8: front wall
-		plane[5] = Plane( 9, float3( 0, 0, -1 ), 3.99f, blue, diffuse(0.8f));		// 9: back wall
+		quad = Quad(0, 1, white, new diffuse(float3(0.8f)));									// 0: light source
+		light[0] = new AreaLight(11, float3(0.1f, 1, 0), 5.0f,  white, 0.1f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
+		light[1] = new AreaLight(12, float3(0.1f, -1, 0), 5.0f,  white, 0.1f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
+		sphere = Sphere( 1, float3( 0 ), 0.5f, red,  new diffuse(float3(1)));				// 1: bouncing ball
+		sphere2 = Sphere( 2, float3( 0, 2.5f, -3.07f ), 8, blue, new diffuse(float3(0.2f)));	// 2: rounded corners
+		cube = Cube( 3, float3( 0 ), float3( 1.15f ) , green, new diffuse(float3(1.0f)));		// 3: cube
+		plane[0] = Plane( 4, float3( 1, 0, 0 ), 3 , red , new diffuse(0.8f));			// 4: left wall
+		plane[1] = Plane( 5, float3( -1, 0, 0 ), 2.99f, blue, new diffuse(0.8f));		// 5: right wall
+		plane[2] = Plane( 6, float3( 0, 1, 0 ), 1 , blue, new diffuse(0.8f));			// 6: floor
+		plane[3] = Plane( 7, float3( 0, -1, 0 ), 2, green, new diffuse(0.8f));			// 7: ceiling
+		plane[4] = Plane( 8, float3( 0, 0, 1 ), 3, red, new diffuse(0.8f));				// 8: front wall
+		plane[5] = Plane( 9, float3( 0, 0, -1 ), 3.99f, blue, new diffuse(0.8f));		// 9: back wall
 		triangle = Triangle(10, float3(0.0f, 0.0f, 0), float3(0.2f, 0, 0.2f), float3(0.1f, 0.2f, 0), blue);
 		SetTime( 0 );
 		// Note: once we have triangle support we should get rid of the class
@@ -531,6 +550,6 @@ public:
 	Plane plane[6];
 	Triangle triangle;
 	Triangle triangle2;
-
+	int aaSamples = 4;
 };
 }
