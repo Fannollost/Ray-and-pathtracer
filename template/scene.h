@@ -421,9 +421,10 @@ public:
 		float3 blue = float3(0, 1.0, 0);
 		float3 green = float3(0, 0, 1.0);
 		// we store all primitives in one continuous buffer
-		quad = Quad(0, 1, white, new diffuse(float3(0.8f)));									// 0: light source
-		light[0] = new AreaLight(11, float3(0.1f, 1, 0), 5.0f,  white, 0.1f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
-		light[1] = new AreaLight(12, float3(0.1f, -1, 0), 5.0f,  white, 0.1f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
+		quad = Quad(0, 1, white, new diffuse(float3(0.8f)));
+		//Light(int idx, float3 p, float str, float3 c, float3 n) // 0: light source
+		light[0] = new Light(11, float3(0.1f, 1, 0), 5.0f,  white, 0.1f);			//DIT FF CHECKEN!
+		// light[1] = new AreaLight(12, float3(0.1f, -1, 0), 5.0f,  white, 0.1f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
 		sphere = Sphere( 1, float3( 0 ), 0.5f, red,  new diffuse(float3(1)));				// 1: bouncing ball
 		sphere2 = Sphere( 2, float3( 0, 2.5f, -3.07f ), 8, blue, new diffuse(float3(0.2f)));	// 2: rounded corners
 		cube = Cube( 3, float3( 0 ), float3( 1.15f ) , green, new diffuse(float3(1.0f)));		// 3: cube
@@ -543,7 +544,7 @@ public:
 	float animTime = 0;
 
 	Quad quad;
-	Light* light[2];
+	Light* light[1];
 	Sphere sphere;
 	Sphere sphere2;
 	Cube cube;
