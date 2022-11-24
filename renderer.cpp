@@ -14,9 +14,9 @@ void Renderer::Init()
 // -----------------------------------------------------------
 // Evaluate light transport
 // -----------------------------------------------------------
-float3 Renderer::Trace(Ray& ray, int depth)
+float3 Renderer::Trace(Ray& ray, int depth, float energy)
 {
-	if (depth <= 0) return float3(1, 1, 1);
+	if (depth <= 0) return float3(0, 0, 0);
 
 	float t_min = 0.001f;
 	scene.FindNearest(ray, t_min);
@@ -31,18 +31,16 @@ float3 Renderer::Trace(Ray& ray, int depth)
 	for(int i = 0; i < sizeof(scene.light) / sizeof(scene.light[0]); i++){
 	
 		float3 lightRayDirection = scene.light[i]->GetLightPosition() - ray.IntersectionPoint();
-
 		float len = length(lightRayDirection);
 		Ray r = Ray(ray.IntersectionPoint(), normalize(lightRayDirection), ray.color, len);
 		if (scene.IsOccluded(r, t_min)) continue;
 
-		float str = dot(N, normalize(lightRayDirection));
-		if (str < 0.0f) str = 0.0f;
-		totCol += ray.color * scene.light[i]->GetLightColor() * str * scene.light[i]->GetLightIntensityAt(ray.IntersectionPoint());
+		totCol += ray.color * scene.light[i]->GetLightColor() * scene.light[i]->GetLightIntensityAt(ray.IntersectionPoint(), N) * energy;
 	}
 
 	if (m->scatter(ray, attenuation, scattered, N)) {
-		totCol += attenuation * (Trace(scattered, depth -1) * 0.5f);
+		float maxEnergy = energy * attenuation.x;
+		totCol += (Trace(scattered, depth -1, maxEnergy)) *maxEnergy;
 		return totCol;
 	}
 
@@ -97,7 +95,7 @@ void Renderer::Tick( float deltaTime )
 			for (int s = 0; s < scene.aaSamples; ++s) {
 				float newX = x + RandomFloat();
 				float newY = y + RandomFloat();
-				totCol += Trace(camera.GetPrimaryRay(newX, newY), 2);
+				totCol += Trace(camera.GetPrimaryRay(newX, newY), 2, 1);
 			}
 			accumulator[x + y * SCRWIDTH] = totCol / scene.aaSamples;
 		}
@@ -111,6 +109,6 @@ void Renderer::Tick( float deltaTime )
 	avg = (1 - alpha) * avg + alpha * t.elapsed() * 1000;
 	if (alpha > 0.05f) alpha *= 0.5f;
 	float fps = 1000 / avg, rps = (SCRWIDTH * SCRHEIGHT) * fps;
-	//printf( "%5.2fms (%.1fps) - %.1fMrays/s %.1fCameraSpeed\n", avg, fps, rps / 1000000, camera.speed );
+	printf( "%5.2fms (%.1fps) - %.1fMrays/s %.1fCameraSpeed\n", avg, fps, rps / 1000000, camera.speed );
 }
 

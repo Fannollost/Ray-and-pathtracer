@@ -8,7 +8,7 @@ class Renderer : public TheApp
 public:
 	// game flow methods
 	void Init();
-	float3 Trace( Ray& ray, int depth );
+	float3 Trace( Ray& ray, int depth, float energy );
 	void Tick( float deltaTime );
 	void Shutdown() { /* implement if you want to do something on exit */ }
 	// input handling

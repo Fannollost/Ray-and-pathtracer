@@ -113,7 +113,7 @@ public:
 	float3 GetNormal() { return normal; }
 	virtual float3 GetLightPosition() { return pos; }
 	float3 GetLightColor() { return col; }
-	virtual float GetLightIntensityAt(float3 p) { return 1; }
+	virtual float GetLightIntensityAt(float3 p, float3 n) { return 1; }
 	float3 pos;
 	float3 col;
 	float strength;
@@ -128,14 +128,18 @@ public:
 		radius = r;
 		samples = s;
 	}
-	float GetLightIntensityAt(float3 p) override {
+	float GetLightIntensityAt(float3 p, float3 n) override {
 		float dis = abs(length(pos - p));
 		float relStr =  1 / (dis) * strength;
 		float totCol = 0;
+		float3 dir = pos - p;
+		float str = dot(n, normalize(dir));
+		if (str < 0.0f) str = 0.0f;
+
 		for (int i = 0; i < samples; i++) {
 		 //lerp between values then divide by samples  
 		}
-		return relStr;
+		return relStr * str;
 	}
 	float3 GetLightPosition() override {
 		float newRad = radius * sqrt(RandomFloat());
@@ -150,21 +154,33 @@ public:
 class DirectionalLight : public Light {
 public:
 	DirectionalLight() = default;
-	DirectionalLight(int idx, float3 p, float str, float3 c, float3 n, int s, float cs) : Light(idx, p, str, c, n) {
+	DirectionalLight(int idx, float3 p, float str, float3 c, float3 n, int s, float bs) : Light(idx, p, str, c, n) {
 		samples = s;
-		coneSize = cs;
+		beamSize = bs;
 	}
+	float3 GetLightPosition() override {
+		//float3 r = dot(pos), -normal) / length(normal);
+		//pos - r;
+	}
+	float GetLightIntensityAt(float3 p, float3 n) override {
+		float3 dir = p - pos;
+		float dis = length(dir);
+		float str = abs(dot(n, dir) / (length(n) * length(dir)));
+		return (1 / dis * str * strength);
 
-	float GetLightIntensityAt(float3 p) override {
-		float3 diff = p - pos;
+		/*float3 str = dot(normal, n);
+		float distDiff = length(str - p);
+		if(distDiff > 0)
+		return 0.0f;*/
+		//float3 diff = p - pos;
 		//float angle = asin(cross(normal, diff) / (length(normal) * length(diff))) * 180.0f / PI;
-		float dis = abs(length(pos - p));
-		float relStr = 1 / (dis)*strength;
+		//float dis = abs(length(pos - p));
+		//float relStr = 1 / (dis)*strength;
 		//return relStr * sqrt(fmaxf(normal / 2.0f) - angle) / (normal / 2), 0)));
 	}
 
 	int samples;
-	float coneSize;
+	float beamSize;
 };
 // -----------------------------------------------------------
 // Sphere primitive
@@ -411,7 +427,6 @@ public:
 	metal(float3 a) : albedo(a){}
 	virtual bool scatter(Ray& ray, float3& att, Ray& scattered, float3 normal) override {
 		float3 dir = reflect(ray.D, normal);
-		if (isZero(dir)) dir = normal;
 		scattered = Ray(ray.IntersectionPoint(), dir, ray.color);
 		att = albedo;
 		return dot(scattered.D, normal) > 0;
@@ -442,17 +457,18 @@ public:
 		float3 green = float3(0, 0, 1.0);
 		// we store all primitives in one continuous buffer
 		quad = Quad(0, 1, white, new diffuse(float3(0.8f)));									// 0: light source
-		light[0] = new AreaLight(11, float3(0.1f, 1, 0), 5.0f,  white, 0.1f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
-		light[1] = new AreaLight(12, float3(0.1f, -1, 0), 5.0f,  white, 0.1f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
-		sphere = Sphere( 1, float3( 0 ), 0.5f, red,  new diffuse(float3(0.2f)));				// 1: bouncing ball
-		sphere2 = Sphere( 2, float3( 0, 2.5f, -3.07f ), 8, blue, new diffuse(float3(0.2f)));	// 2: rounded corners
-		cube = Cube( 3, float3( 0 ), float3( 1.15f ) , green, new metal(float3(0.2f)));		// 3: cube
-		plane[0] = Plane( 4, float3( 1, 0, 0 ), 3 , red , new diffuse(0.8f));			// 4: left wall
-		plane[1] = Plane( 5, float3( -1, 0, 0 ), 2.99f, blue, new diffuse(0.8f));		// 5: right wall
-		plane[2] = Plane( 6, float3( 0, 1, 0 ), 1 , blue, new diffuse(0.8f));			// 6: floor
-		plane[3] = Plane( 7, float3( 0, -1, 0 ), 2, green, new diffuse(0.8f));			// 7: ceiling
-		plane[4] = Plane( 8, float3( 0, 0, 1 ), 3, red, new diffuse(0.8f));				// 8: front wall
-		plane[5] = Plane( 9, float3( 0, 0, -1 ), 3.99f, blue, new diffuse(0.8f));		// 9: back wall
+		light[0] = new AreaLight(11, float3(0.1f, 1, 0), 1.0f,  white, 0.1f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
+		light[1] = new AreaLight(12, float3(0.1f, -1, 0), 1.0f,  white, 0.1f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
+		sphere = Sphere( 1, float3( 0 ), 0.5f, red,  new metal(float3(1.0f)));				// 1: bouncing ball
+		sphere2 = Sphere( 2, float3( 0.5f,0,0 ), 0.5f, red,  new metal(float3(1.0f)));				// 1: bouncing ball
+		//sphere2 = Sphere( 2, float3( 0, 2.5f, -3.07f ), 8, blue, new diffuse(float3(0.2f)));	// 2: rounded corners
+		//cube = Cube( 3, float3( 0 ), float3( 1.15f ) , green, new diffuse(float3(0.5f)));		// 3: cube
+		plane[0] = Plane( 4, float3( 1, 0, 0 ), 3 , white, new diffuse(0.8f));			// 4: left wall
+		plane[1] = Plane( 5, float3( -1, 0, 0 ), 2.99f, white, new diffuse(0.8f));		// 5: right wall
+		plane[2] = Plane( 6, float3( 0, 1, 0 ), 1 , white, new diffuse(0.8f));			// 6: floor
+		plane[3] = Plane( 7, float3( 0, -1, 0 ), 2, white, new diffuse(0.8f));			// 7: ceiling
+		plane[4] = Plane( 8, float3( 0, 0, 1 ), 3, white, new diffuse(0.8f));				// 8: front wall
+		plane[5] = Plane( 9, float3( 0, 0, -1 ), 3.99f, white, new diffuse(0.8f));		// 9: back wall
 		triangle = Triangle(10, float3(0.0f, 0.0f, 0), float3(0.2f, 0, 0.2f), float3(0.1f, 0.2f, 0), blue);
 		SetTime( 0 );
 		// Note: once we have triangle support we should get rid of the class
@@ -497,7 +513,7 @@ public:
 		quad.Intersect( ray , t_min);
 		sphere.Intersect( ray, t_min );
 		sphere2.Intersect( ray, t_min );
-		cube.Intersect( ray, t_min);
+		//cube.Intersect( ray, t_min);
 		//triangle.Intersect(ray, t_min);
 		//triangle2.Intersect(ray, t_min);
 	}
@@ -508,7 +524,7 @@ public:
 		quad.Intersect( ray, t_min );
 		sphere.Intersect( ray, t_min);
 		sphere2.Intersect( ray, t_min);
-		cube.Intersect( ray , t_min);
+		//cube.Intersect( ray , t_min);
 		//triangle.Intersect(ray, t_min);
 		//triangle2.Intersect(ray, t_min);
 
@@ -527,7 +543,7 @@ public:
 		if (objIdx == 0) N = quad.GetNormal(I);
 		else if (objIdx == 1) N = sphere.GetNormal(I);
 		else if (objIdx == 2) N = sphere2.GetNormal(I);
-		else if (objIdx == 3) N = cube.GetNormal(I);
+		//else if (objIdx == 3) N = cube.GetNormal(I);
 		else if (objIdx == 10) N = triangle.GetNormal(I);
 		else 
 		{
@@ -544,7 +560,7 @@ public:
 		if (objIdx == 0) return quad.GetAlbedo( I );
 		if (objIdx == 1) return sphere.GetAlbedo( I );
 		if (objIdx == 2) return sphere2.GetAlbedo( I );
-		if (objIdx == 3) return cube.GetAlbedo( I );
+		//if (objIdx == 3) return cube.GetAlbedo( I );
 		return plane[objIdx - 4].GetAlbedo( I );
 		// once we have triangle support, we should pass objIdx and the bary-
 		// centric coordinates of the hit, instead of the intersection location.

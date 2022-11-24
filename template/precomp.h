@@ -459,9 +459,6 @@ float3 RandomUnitVector();
 float Rand( float range );
 
 
-
-
-
 // Perlin noise
 float noise2D( const float x, const float y );
 
