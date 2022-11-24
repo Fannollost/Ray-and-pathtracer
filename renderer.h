@@ -13,16 +13,43 @@ public:
 	void Shutdown() { /* implement if you want to do something on exit */ }
 	// input handling
 	void MouseUp( int button ) { 
-		/* implement if you want to detect mouse button presses */ }
-	void MouseDown( int button ) { /* implement if you want to detect mouse button presses */ }
-	void MouseMove( int x, int y ) { mousePos.x = x, mousePos.y = y; }
+		mousePressed = false;
+	}
+	void MouseDown(int button) { mousePressed = true; }
+	void MouseMove(int x, int y) {
+		if (mousePressed) {
+			camera.RotateScreenY((float(x) - float(mousePos.x))/SCRWIDTH);
+			camera.RotateScreenX((float(y) - float(mousePos.y)) / SCRWIDTH);
+		}
+		mousePos.x = x, mousePos.y = y;
+		
+	}
 	void MouseWheel(float y) { 
 		y > 0 ? camera.speed += 0.1f : camera.speed -= 0.1f;
 	}
 	void KeyUp( int key ) {
-		
-		/* implement if you want to handle keys */ }
-	void KeyDown( int key ) { 
+		switch (key) {
+		case KEYBOARD_W:
+			camera.MoveCameraY(-1);
+			break;
+		case KEYBOARD_S:
+			camera.MoveCameraY(1);
+			break;
+		case KEYBOARD_D:
+			camera.MoveCameraX(-1);
+			break;
+		case KEYBOARD_A:
+			camera.MoveCameraX(1);
+			break;
+		case KEYBOARD_PLUS:
+			camera.FOV(-1.f);
+			break;
+		case KEYBOARD_MINUS:
+			camera.FOV(1.f);
+			break;
+		}
+	}
+	void KeyDown( int key ) {
 		switch (key) {
 			case KEYBOARD_W:
 				camera.MoveCameraY(1);
@@ -39,10 +66,17 @@ public:
 			case KEYBOARD_SPACE:
 				camera.TogglePause();
 				break;
+			case KEYBOARD_PLUS:
+				camera.FOV(1.f);
+				break;
+			case KEYBOARD_MINUS:
+				camera.FOV(-1.f);
+				break;
 		}
 		/* implement if you want to handle keys */ }
 	// data members
 	int2 mousePos;
+	bool mousePressed = false;
 	float4* accumulator;
 	Scene scene;
 	Camera camera;
@@ -52,7 +86,9 @@ public:
 		KEYBOARD_D = 68,
 		KEYBOARD_S = 83,
 		KEYBOARD_A = 65,
-		KEYBOARD_SPACE = 32
+		KEYBOARD_SPACE = 32,
+		KEYBOARD_PLUS = 334,
+		KEYBOARD_MINUS = 333
 	};
 };
 

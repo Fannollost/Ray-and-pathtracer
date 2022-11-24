@@ -570,6 +570,6 @@ public:
 	Plane plane[6];
 	Triangle triangle;
 	Triangle triangle2;
-	int aaSamples = 4;
+	int aaSamples = 1;
 };
 }
