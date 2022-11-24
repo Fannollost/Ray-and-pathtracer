@@ -26,6 +26,7 @@
 namespace Tmpl8 {
 	class material;
 	class diffuse;
+	class metal;
 __declspec(align(64)) class Ray
 {
 public:
@@ -129,10 +130,10 @@ public:
 	}
 	float GetLightIntensityAt(float3 p) override {
 		float dis = abs(length(pos - p));
-		float relStr =  1 / (dis * dis) * strength;
+		float relStr =  1 / (dis) * strength;
 		float totCol = 0;
 		for (int i = 0; i < samples; i++) {
-		   
+		 //lerp between values then divide by samples  
 		}
 		return relStr;
 	}
@@ -140,12 +141,31 @@ public:
 		float newRad = radius * sqrt(RandomFloat());
 		float theta = RandomFloat() * 2 * PI;
 		return float3(pos.x + newRad * cos(theta), pos.y + newRad * sin(theta), pos.z);
-	   //	return pos;
+	   	//return pos;
 	}
 	int samples;
 	float radius;
 };
 
+class DirectionalLight : public Light {
+public:
+	DirectionalLight() = default;
+	DirectionalLight(int idx, float3 p, float str, float3 c, float3 n, int s, float cs) : Light(idx, p, str, c, n) {
+		samples = s;
+		coneSize = cs;
+	}
+
+	float GetLightIntensityAt(float3 p) override {
+		float3 diff = p - pos;
+		//float angle = asin(cross(normal, diff) / (length(normal) * length(diff))) * 180.0f / PI;
+		float dis = abs(length(pos - p));
+		float relStr = 1 / (dis)*strength;
+		//return relStr * sqrt(fmaxf(normal / 2.0f) - angle) / (normal / 2), 0)));
+	}
+
+	int samples;
+	float coneSize;
+};
 // -----------------------------------------------------------
 // Sphere primitive
 // Basic sphere, with explicit support for rays that start
@@ -375,9 +395,9 @@ public:
 
 	virtual bool scatter(Ray& ray, float3& att, Ray& scattered, float3 normal) override {
 		
-		float3 dir = normalize(normal + RandomUnitVector());
+		float3 dir = ray.IntersectionPoint() + normal + RandomInHemisphere(normal);
 		if (isZero(dir)) dir = normal;
-		scattered = Ray(ray.IntersectionPoint(), dir, ray.color);
+		scattered = Ray(ray.IntersectionPoint(), normalize(dir - ray.IntersectionPoint()), ray.color);
 		att = albedo;
 		return true;
 	}
@@ -390,7 +410,7 @@ class metal : public material {
 public:
 	metal(float3 a) : albedo(a){}
 	virtual bool scatter(Ray& ray, float3& att, Ray& scattered, float3 normal) override {
-		float3 dir = normalize(reflect(ray.D, normal));
+		float3 dir = reflect(ray.D, normal);
 		if (isZero(dir)) dir = normal;
 		scattered = Ray(ray.IntersectionPoint(), dir, ray.color);
 		att = albedo;
@@ -424,9 +444,9 @@ public:
 		quad = Quad(0, 1, white, new diffuse(float3(0.8f)));									// 0: light source
 		light[0] = new AreaLight(11, float3(0.1f, 1, 0), 5.0f,  white, 0.1f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
 		light[1] = new AreaLight(12, float3(0.1f, -1, 0), 5.0f,  white, 0.1f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
-		sphere = Sphere( 1, float3( 0 ), 0.5f, red,  new diffuse(float3(1)));				// 1: bouncing ball
+		sphere = Sphere( 1, float3( 0 ), 0.5f, red,  new diffuse(float3(0.2f)));				// 1: bouncing ball
 		sphere2 = Sphere( 2, float3( 0, 2.5f, -3.07f ), 8, blue, new diffuse(float3(0.2f)));	// 2: rounded corners
-		cube = Cube( 3, float3( 0 ), float3( 1.15f ) , green, new diffuse(float3(1.0f)));		// 3: cube
+		cube = Cube( 3, float3( 0 ), float3( 1.15f ) , green, new metal(float3(0.2f)));		// 3: cube
 		plane[0] = Plane( 4, float3( 1, 0, 0 ), 3 , red , new diffuse(0.8f));			// 4: left wall
 		plane[1] = Plane( 5, float3( -1, 0, 0 ), 2.99f, blue, new diffuse(0.8f));		// 5: right wall
 		plane[2] = Plane( 6, float3( 0, 1, 0 ), 1 , blue, new diffuse(0.8f));			// 6: floor

@@ -39,10 +39,12 @@ float3 Renderer::Trace(Ray& ray, int depth)
 		if (str < 0.0f) str = 0.0f;
 		totCol += ray.color * scene.light[i]->GetLightColor() * str * scene.light[i]->GetLightIntensityAt(ray.IntersectionPoint());
 	}
+
 	if (m->scatter(ray, attenuation, scattered, N)) {
-		//totCol += ray.color * attenuation * scene.light[i]->GetLightColor() * str * scene.light[i]->GetLightIntensityAt(ray.IntersectionPoint());
-		return totCol * attenuation * Trace(scattered, depth -1);
+		totCol += attenuation * (Trace(scattered, depth -1) * 0.5f);
+		return totCol;
 	}
+
 }
 	//float3 albedo = scene.GetAlbedo(ray.objIdx, I);
 
@@ -89,9 +91,9 @@ void Renderer::Tick( float deltaTime )
 		for (int x = 0; x < SCRWIDTH; x++) {
 			float3 totCol = float3(0);				//antialiassing
 			for (int s = 0; s < scene.aaSamples; ++s) {
-				float newX = (x + RandomFloat());
-				float newY = (y + RandomFloat());
-				totCol += Trace(camera.GetPrimaryRay(newX, newY), 1);
+				float newX = x + RandomFloat();
+				float newY = y + RandomFloat();
+				totCol += Trace(camera.GetPrimaryRay(newX, newY), 2);
 			}
 			accumulator[x + y * SCRWIDTH] = totCol / scene.aaSamples;
 		}
