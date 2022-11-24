@@ -75,11 +75,14 @@ float3 Renderer::Trace(Ray& ray, int depth)
 // -----------------------------------------------------------
 void Renderer::Tick( float deltaTime )
 {
+	
 	// animation
 	if (!camera.paused) {
 		static float animTime = 0;
 		scene.SetTime(animTime += deltaTime * 0.002f);
 	}
+	camera.MoveTick();
+	camera.FOVTick();
 	// pixel loop
 	Timer t;
 	// lines are executed as OpenMP parallel tasks (disabled in DEBUG)
@@ -108,3 +111,4 @@ void Renderer::Tick( float deltaTime )
 	float fps = 1000 / avg, rps = (SCRWIDTH * SCRHEIGHT) * fps;
 	//printf( "%5.2fms (%.1fps) - %.1fMrays/s %.1fCameraSpeed\n", avg, fps, rps / 1000000, camera.speed );
 }
+

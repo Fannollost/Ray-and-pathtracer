@@ -28,8 +28,27 @@ public:
 		y > 0 ? camera.speed += 0.1f : camera.speed -= 0.1f;
 	}
 	void KeyUp( int key ) {
-		
-		/* implement if you want to handle keys */ }
+		switch (key) {
+		case KEYBOARD_W:
+			camera.MoveCameraY(-1);
+			break;
+		case KEYBOARD_S:
+			camera.MoveCameraY(1);
+			break;
+		case KEYBOARD_D:
+			camera.MoveCameraX(-1);
+			break;
+		case KEYBOARD_A:
+			camera.MoveCameraX(1);
+			break;
+		case KEYBOARD_PLUS:
+			camera.FOV(-1.f);
+			break;
+		case KEYBOARD_MINUS:
+			camera.FOV(1.f);
+			break;
+		}
+	}
 	void KeyDown( int key ) {
 		switch (key) {
 			case KEYBOARD_W:
