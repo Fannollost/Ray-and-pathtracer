@@ -447,7 +447,7 @@ inline uint RGBF32_to_RGB8( const float4* v )
 #endif
 }
 
-// random numbers
+// numbers
 uint InitSeed( uint seedBase );
 uint RandomUInt();
 uint RandomUInt( uint& seed );
@@ -457,6 +457,7 @@ float3 UnitVector(float3 v);
 float3 RandomInHemisphere(float3 normal);
 float3 RandomUnitVector();
 float Rand( float range );
+float3 RandomVectorInUnitSphere();
 
 
 // Perlin noise
@@ -1524,7 +1525,7 @@ public:
 // Add your headers here; they will be able to use all previously defined classes and namespaces.
 // In your own .cpp files just add #include "precomp.h".
 // #include "my_include.h"
-
+#include <cmath>
 
 // InstructionSet.cpp
 // Compile by using: cl /EHsc /W4 InstructionSet.cpp

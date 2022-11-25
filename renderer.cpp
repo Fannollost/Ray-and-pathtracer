@@ -27,7 +27,7 @@ float3 Renderer::Trace(Ray& ray, int depth, float energy)
 	material* m = ray.GetMaterial();
 	Ray scattered;
 	float3 I = ray.O + ray.t * ray.D;
-	float3 N = scene.GetNormal(ray.objIdx, I, ray.D);
+	float3 N = ray.hitNormal;// scene.GetNormal(ray.objIdx, I, ray.D);
 	for(int i = 0; i < sizeof(scene.light) / sizeof(scene.light[0]); i++){
 	
 		float3 lightRayDirection = scene.light[i]->GetLightPosition() - ray.IntersectionPoint();

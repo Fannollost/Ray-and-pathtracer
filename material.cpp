@@ -12,7 +12,8 @@ public:
 	diffuse(float3 a) : albedo(a) {}
 
 	virtual bool scatter(Ray& ray, float3& att, Ray& scattered, float3 normal) const {
-		float3 dir = normal + RandomUnitVector();
+		float3 dir = normal + 
+		UnitVector();
 		if (isZero(dir)) dir = normal;
 		scattered = Ray(ray.IntersectionPoint(), dir, ray.color);
 		att = albedo;

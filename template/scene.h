@@ -42,6 +42,10 @@ public:
 	}
 	float3 IntersectionPoint() { return O + t * D; }
 	material* GetMaterial() { return m; }
+	void SetInside(float3 normal) {
+		inside = dot(normalize(D), normal) < 0;
+		hitNormal = inside ? normal : -normal;
+	}
 	// ray data
 #ifndef SPEEDTRIX
 	float3 O, D, rD;
@@ -54,6 +58,7 @@ public:
 	int objIdx = -1;
 	bool inside = false; // true when in medium
 	float3 color = 0;
+	float3 hitNormal;
 	material* m;
 };
 
@@ -204,12 +209,14 @@ public:
 		if (t < ray.t && t > t_min)
 		{
 			ray.t = t, ray.objIdx = objIdx, ray.color = col, ray.m = mat;
+			ray.SetInside(-GetNormal(ray.IntersectionPoint()));
 			return;
 		}
 		t = d - b;
 		if (t < ray.t && t > t_min)
 		{
-			ray.t = t, ray.objIdx = objIdx, ray.color = col;
+			ray.t = t, ray.objIdx = objIdx, ray.color = col, ray.m = mat;
+			ray.SetInside(GetNormal(ray.IntersectionPoint()));
 			return;
 		}
 	}
@@ -241,7 +248,8 @@ public:
 	void Intersect( Ray& ray, float t_min) const
 	{
 		float t = -(dot( ray.O, this->N ) + this->d) / (dot( ray.D, this->N ));
-		if (t < ray.t && t > t_min) ray.t = t, ray.objIdx = objIdx, ray.color = col, ray.m = mat;
+		if (t < ray.t && t > t_min) ray.t = t, ray.objIdx = objIdx, ray.color = col, ray.m = mat,
+			ray.SetInside(N);
 	}
 	float3 GetNormal( const float3 I ) const
 	{
@@ -316,11 +324,13 @@ public:
 		tmin = max( tmin, tzmin ), tmax = min( tmax, tzmax );
 		if (tmin > t_min)
 		{
-			if (tmin < ray.t) ray.t = tmin, ray.objIdx = objIdx, ray.color = col, ray.m = mat;
+			if (tmin < ray.t) ray.t = tmin, ray.objIdx = objIdx, ray.color = col, ray.m = mat,
+				ray.SetInside(GetNormal(ray.IntersectionPoint()));
 		}
 		else if (tmax > t_min)
 		{
-			if (tmax < ray.t) ray.t = tmax, ray.objIdx = objIdx, ray.color = col, ray.m = mat;
+			if (tmax < ray.t) ray.t = tmax, ray.objIdx = objIdx, ray.color = col, ray.m = mat,
+				ray.SetInside(GetNormal(ray.IntersectionPoint()));
 		}
 	}
 	float3 GetNormal( const float3 I ) const
@@ -377,7 +387,8 @@ public:
 		{
 			float3 I = O + t * D;
 			if (I.x > -size && I.x < size && I.z > -size && I.z < size)
-				ray.t = t, ray.objIdx = objIdx, ray.m = mat;
+				ray.t = t, ray.objIdx = objIdx, ray.m = mat, 
+			ray.SetInside(GetNormal(ray.IntersectionPoint()));
 		}
 	}
 	float3 GetNormal( const float3 I ) const
@@ -424,9 +435,9 @@ public:
 
 class metal : public material {
 public:
-	metal(float3 a) : albedo(a){}
+	metal(float3 a, float f) : albedo(a), fuzzy(f < 1 ? f : 1){}
 	virtual bool scatter(Ray& ray, float3& att, Ray& scattered, float3 normal) override {
-		float3 dir = reflect(ray.D, normal);
+		float3 dir = reflect(ray.D, normal); //add fuzzy
 		scattered = Ray(ray.IntersectionPoint(), dir, ray.color);
 		att = albedo;
 		return dot(scattered.D, normal) > 0;
@@ -434,11 +445,38 @@ public:
 
 public:
 	float3 albedo;
+	float fuzzy;
 };
 
-/*class metal : public material {
-	public metal()
-};*/
+class glass : public material {
+public:
+	 glass(float refIndex) : ir(refIndex){}
+	 virtual bool scatter(Ray& ray, float3& att, Ray& scattered, float3 normal) override {
+		 att = float3(1.0f);
+		 float refrRatio = ray.inside ? (1.0 / ir) : ir;
+		 float3 uDir = UnitVector(ray.D);
+
+		 float ctheta = fmin(dot(-uDir, ray.hitNormal), 1.0);			//maybe use normal
+		 float stheta = sqrt(1.0 - ctheta * ctheta);
+		 float3 refDir;
+		 if ((refrRatio * stheta) > 1.0) {
+			 refDir = reflect(uDir, ray.hitNormal);
+		 }
+		 else {
+			 refDir = refractRay(uDir, ray.hitNormal, refrRatio);
+		 };
+		 scattered = Ray(ray.IntersectionPoint(), refDir, ray.color);
+		 return true;
+	 }
+	 float3 refractRay(float3 oRayDir, float3 normal, float refRatio) {
+		 float theta = fmin(dot(-oRayDir, normal), 1.0);
+		 float3 perpendicular = refRatio * (oRayDir + theta * normal);
+		 float3	parallel = -sqrt(fabs(1.0 - pow(length(perpendicular), 2))) * normal;
+		 return perpendicular + parallel;
+	 }
+	 float ir;
+};
+
 // -----------------------------------------------------------
 // Scene class
 // We intersect this. The query is internally forwarded to the
@@ -459,16 +497,16 @@ public:
 		quad = Quad(0, 1, white, new diffuse(float3(0.8f)));									// 0: light source
 		light[0] = new AreaLight(11, float3(0.1f, 1, 0), 1.0f,  white, 0.1f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
 		light[1] = new AreaLight(12, float3(0.1f, -1, 0), 1.0f,  white, 0.1f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
-		sphere = Sphere( 1, float3( 0 ), 0.5f, red,  new metal(float3(1.0f)));				// 1: bouncing ball
-		sphere2 = Sphere( 2, float3( 0.5f,0,0 ), 0.5f, red,  new metal(float3(1.0f)));				// 1: bouncing ball
+		sphere = Sphere( 1, float3( 0 ), 0.5f, red,  new glass(1.4f));				// 1: bouncing ball
+		sphere2 = Sphere( 2, float3( 0,-0.1f,0 ), 0.2f, red,  new metal(float3(1.0f), 0.4f));				// 1: bouncing ball
 		//sphere2 = Sphere( 2, float3( 0, 2.5f, -3.07f ), 8, blue, new diffuse(float3(0.2f)));	// 2: rounded corners
 		//cube = Cube( 3, float3( 0 ), float3( 1.15f ) , green, new diffuse(float3(0.5f)));		// 3: cube
-		plane[0] = Plane( 4, float3( 1, 0, 0 ), 3 , white, new diffuse(0.8f));			// 4: left wall
-		plane[1] = Plane( 5, float3( -1, 0, 0 ), 2.99f, white, new diffuse(0.8f));		// 5: right wall
+		plane[0] = Plane( 4, float3( 1, 0, 0 ), 3 , blue, new diffuse(0.8f));			// 4: left wall
+		plane[1] = Plane( 5, float3( -1, 0, 0 ), 2.99f, red, new diffuse(0.8f));		// 5: right wall
 		plane[2] = Plane( 6, float3( 0, 1, 0 ), 1 , white, new diffuse(0.8f));			// 6: floor
-		plane[3] = Plane( 7, float3( 0, -1, 0 ), 2, white, new diffuse(0.8f));			// 7: ceiling
-		plane[4] = Plane( 8, float3( 0, 0, 1 ), 3, white, new diffuse(0.8f));				// 8: front wall
-		plane[5] = Plane( 9, float3( 0, 0, -1 ), 3.99f, white, new diffuse(0.8f));		// 9: back wall
+		plane[3] = Plane( 7, float3( 0, -1, 0 ), 2, blue, new diffuse(0.8f));			// 7: ceiling
+		plane[4] = Plane( 8, float3( 0, 0, 1 ), 3, red, new diffuse(0.8f));				// 8: front wall
+		plane[5] = Plane( 9, float3( 0, 0, -1 ), 3.99f, green, new diffuse(0.8f));		// 9: back wall
 		triangle = Triangle(10, float3(0.0f, 0.0f, 0), float3(0.2f, 0, 0.2f), float3(0.1f, 0.2f, 0), blue);
 		SetTime( 0 );
 		// Note: once we have triangle support we should get rid of the class
