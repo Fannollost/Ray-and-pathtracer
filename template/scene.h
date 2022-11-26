@@ -71,44 +71,43 @@ public:
 class Triangle {
 public:
 	Triangle() = default;
-	Triangle(int idx, float3 ver0, float3 ver1, float3 ver2, float3 c) : objIdx(idx), v0(ver0), v1(ver1), v2(ver2), col(c) {
+	Triangle(int idx, float3 ver0, float3 ver1, float3 ver2, float3 c, material* m) : objIdx(idx), v0(ver0), v1(ver1), v2(ver2), col(c), mat(m) {
 		e1 = v1 - v0;
 		e2 = v2 - v0;
-		N = normalize(cross(e1, e2));
+		N = cross(e1, e2);
 	}
-	void Intersect(Ray& ray, float t_min) const {
-		float3 ref = normalize(cross(ray.D, e2));
-		float det = dot(e1, ref);
+	void Intersect(Ray& ray, float t_min) const {		 //scratchapixel implementation
+		float area = length(N);
+		float NdotRayDir = dot(N, ray.D);
+		if (fabs(NdotRayDir) < t_min) return;
+		float d = -dot(N, v0);
+		float t = -(dot(N, ray.O) + d) / NdotRayDir;
+		if (t < 0) return;
+		float3 p = ray.O + t * ray.D;
+		float3 c;
 
-		if (det < t_min) return;//maybe check for nearly parallel?
-		float invDet = 1.0 / det;
-		float3 tvec = ray.O - v0;
-		float u = dot(tvec, ref) * invDet;
+		float3 vp0 = p - v0;
+		c = cross(e1, vp0);
+		if (dot(N, c) < 0) return;
+		float3 vp1 = p - v1;
+		float3 e3 = v2 - v1;
+		c = cross(e3, vp1);
+		if (dot(N, c) < 0) return;
+		float3 e4 = v0 - v2;
+		float3 vp2 = p - v2;
+		c = cross(e4, vp2);
+		if (dot(N, c) < 0) return;
 
-		if (u < 0 || u > 1) return;
+		ray.t = t, ray.objIdx = objIdx, ray.m = mat,
+			ray.SetInside(GetNormal(ray.IntersectionPoint()));
+
 		
-		float3 qvec = normalize(cross(tvec, e1));
-		float v = dot(normalize(ray.D), qvec) * invDet;
-		/*if (v < 0 || u + v > 1) return;	  */
-
-		
-		//float3 s = normalize((ray.O - v0) / det);
-		/*float3 r = normalize(cross(s, e1));
-
-		float b_1 = dot(s, ref);
-		float b_2 = dot(r, ray.D);
-		float b_3 = 1.0f - b_1 - b_2;
-		if (b_1 < 0.0f || b_2 < 0.0f || b_3 < 0.0f)  return;
-						    */
-		float t = dot(e2, qvec) * invDet;	  
-		if (t < ray.t && t > t_min) {
-			ray.t = t, ray.objIdx = objIdx, ray.color = col;
-		}
 	}
 	float3 GetNormal(const float3 I) const { return N; }
 	float3 v0, v1, v2, e1, e2, N;
 	int objIdx = -1;
 	float3 col;
+	material* mat;
 };
 
 class Light {
@@ -521,7 +520,7 @@ public:
 		light[0] = new AreaLight(11, float3(0.1f, 1, 0), 1.0f,  white, 0.1f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
 		light[1] = new AreaLight(12, float3(0.1f, -1, 0), 1.0f,  white, 0.1f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
 		sphere = Sphere( 1, float3( 0 ), 0.5f, white,  new glass(0.1f));				// 1: bouncing ball
-		sphere2 = Sphere( 2, float3( 0,-0.1f,0 ), 0.2f, red, new glass(0.1f));				// 1: bouncing ball
+		sphere2 = Sphere( 2, float3( 0,-0.1f,0 ), 0.2f, red, new metal(1.0f, 1.0f));				// 1: bouncing ball
 		//sphere3 = Sphere( 3, float3( -0.3f,-0.1f,-0.2f ), 0.2f, white, new glass(0.1f));				// 1: bouncing ball
 		//sphere2 = Sphere( 2, float3( 0, 2.5f, -3.07f ), 8, blue, new diffuse(float3(0.2f)));	// 2: rounded corners
 		//cube = Cube( 3, float3( 0 ), float3( 1.15f ) , green, new diffuse(float3(0.5f)));		// 3: cube
@@ -531,7 +530,7 @@ public:
 		plane[3] = Plane( 7, float3( 0, -1, 0 ), 2, white, new diffuse(0.8f));			// 7: ceiling
 		plane[4] = Plane( 8, float3( 0, 0, 1 ), 3, red, new diffuse(0.8f));				// 8: front wall
 		plane[5] = Plane( 9, float3( 0, 0, -1 ), 3.99f, green, new diffuse(0.8f));		// 9: back wall
-		triangle = Triangle(10, float3(0.0f, 0.0f, 0), float3(0.2f, 0, 0.2f), float3(0.1f, 0.2f, 0), blue);
+		triangle = Triangle(10, float3(0.0f, 0.0f, -0.9f), float3(0.2f, 0, -0.6f), float3(0.1f, 0.2f, -0.9f), blue, new diffuse(0.8f));
 		SetTime( 0 );
 		// Note: once we have triangle support we should get rid of the class
 		// hierarchy: virtuals reduce performance somewhat.
@@ -575,6 +574,7 @@ public:
 		quad.Intersect( ray , t_min);
 		sphere.Intersect( ray, t_min );
 		sphere2.Intersect( ray, t_min );
+		triangle.Intersect(ray, t_min);
 		//cube.Intersect( ray, t_min);
 		//triangle.Intersect(ray, t_min);
 		//triangle2.Intersect(ray, t_min);
@@ -586,6 +586,8 @@ public:
 		quad.Intersect( ray, t_min );
 		sphere.Intersect( ray, t_min);
 		sphere2.Intersect( ray, t_min);
+		triangle.Intersect(ray, t_min);
+
 		//cube.Intersect( ray , t_min);
 		//triangle.Intersect(ray, t_min);
 		//triangle2.Intersect(ray, t_min);
