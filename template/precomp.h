@@ -1524,7 +1524,6 @@ public:
 
 // Add your headers here; they will be able to use all previously defined classes and namespaces.
 // In your own .cpp files just add #include "precomp.h".
-// #include "my_include.h"
 #include <cmath>
 
 // InstructionSet.cpp

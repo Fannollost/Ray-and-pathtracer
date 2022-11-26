@@ -410,7 +410,7 @@ public:
 class material {
 public:
 	virtual bool scatter(
-		Ray& ray, float3& att, Ray& scattered, float3 normal
+		Ray& ray, float3& att, Ray& scattered, float3 normal, float& energy
 	) {
 		return false;
 	}
@@ -420,12 +420,15 @@ class diffuse : public material {
 public:
 	diffuse(float3 a) : albedo(a) {}
 
-	virtual bool scatter(Ray& ray, float3& att, Ray& scattered, float3 normal) override {
+	virtual bool scatter(Ray& ray, float3& att, Ray& scattered, float3 normal, float& energy) override {
 		
 		float3 dir = ray.IntersectionPoint() + normal + RandomInHemisphere(normal);
 		if (isZero(dir)) dir = normal;
 		scattered = Ray(ray.IntersectionPoint(), normalize(dir - ray.IntersectionPoint()), ray.color);
 		att = albedo;
+		float retention = 1 - albedo.x;
+		float newEnergy(energy - retention);
+		energy = newEnergy > 0 ? newEnergy : 0;
 		return true;
 	}
 
@@ -436,10 +439,11 @@ public:
 class metal : public material {
 public:
 	metal(float3 a, float f) : albedo(a), fuzzy(f < 1 ? f : 1){}
-	virtual bool scatter(Ray& ray, float3& att, Ray& scattered, float3 normal) override {
+	virtual bool scatter(Ray& ray, float3& att, Ray& scattered, float3 normal, float& energy) override {
 		float3 dir = reflect(ray.D, normal); //add fuzzy
 		scattered = Ray(ray.IntersectionPoint(), dir, ray.color);
 		att = albedo;
+		energy = energy;
 		return dot(scattered.D, normal) > 0;
 	}
 
@@ -451,7 +455,7 @@ public:
 class glass : public material {
 public:
 	 glass(float refIndex) : ir(refIndex){}
-	 virtual bool scatter(Ray& ray, float3& att, Ray& scattered, float3 normal) override {
+	 virtual bool scatter(Ray& ray, float3& att, Ray& scattered, float3 normal, float& energy) override {
 		 att = float3(1.0f);
 		 float refrRatio = ray.inside ? (1.0 / ir) : ir;
 		 float3 uDir = UnitVector(ray.D);
@@ -465,7 +469,8 @@ public:
 		 else {
 			 refDir = refractRay(uDir, ray.hitNormal, refrRatio);
 		 };
-		 scattered = Ray(ray.IntersectionPoint(), refDir, ray.color);
+		 scattered = Ray(ray.IntersectionPoint(),refDir, ray.color);
+		 energy = energy; //beers law
 		 return true;
 	 }
 	 float3 refractRay(float3 oRayDir, float3 normal, float refRatio) {
@@ -475,6 +480,24 @@ public:
 		 return perpendicular + parallel;
 	 }
 	 float ir;
+
+	 float3 fresnel(float3 I, float3 normal, float ior, float &kr) {
+		 float cosi = clamp(-1.0f, 1.0f, dot(I, normal));
+		 float etai = 1, etat = ior;
+		 if (cosi > 0) { std::swap(etai, etat); }
+		 float sint = etai / etat * sqrtf(std::max(0.0f, 1 - cosi * cosi));
+		 if (sint >= 1) {
+			 kr = 1;
+		 }
+		 else {
+			 float cost = sqrtf(std::max(0.0f, 1 - sint * sint));
+			 cosi = fabsf(cosi);
+			 float Rs = ((etat * cosi) - (etai * cost)) / ((etat * cosi) + (etai * cost));
+			 float Rp = ((etai * cosi) - (etat * cost)) / ((etai * cosi) + (etat * cost));
+			 kr = (Rs * Rs + Rp * Rp) / 2;
+		 }
+
+	 }//scratchapixel
 };
 
 // -----------------------------------------------------------
@@ -497,14 +520,15 @@ public:
 		quad = Quad(0, 1, white, new diffuse(float3(0.8f)));									// 0: light source
 		light[0] = new AreaLight(11, float3(0.1f, 1, 0), 1.0f,  white, 0.1f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
 		light[1] = new AreaLight(12, float3(0.1f, -1, 0), 1.0f,  white, 0.1f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
-		sphere = Sphere( 1, float3( 0 ), 0.5f, red,  new glass(1.4f));				// 1: bouncing ball
-		sphere2 = Sphere( 2, float3( 0,-0.1f,0 ), 0.2f, red,  new metal(float3(1.0f), 0.4f));				// 1: bouncing ball
+		sphere = Sphere( 1, float3( 0 ), 0.5f, white,  new glass(0.1f));				// 1: bouncing ball
+		sphere2 = Sphere( 2, float3( 0,-0.1f,0 ), 0.2f, red, new glass(0.1f));				// 1: bouncing ball
+		//sphere3 = Sphere( 3, float3( -0.3f,-0.1f,-0.2f ), 0.2f, white, new glass(0.1f));				// 1: bouncing ball
 		//sphere2 = Sphere( 2, float3( 0, 2.5f, -3.07f ), 8, blue, new diffuse(float3(0.2f)));	// 2: rounded corners
 		//cube = Cube( 3, float3( 0 ), float3( 1.15f ) , green, new diffuse(float3(0.5f)));		// 3: cube
 		plane[0] = Plane( 4, float3( 1, 0, 0 ), 3 , blue, new diffuse(0.8f));			// 4: left wall
 		plane[1] = Plane( 5, float3( -1, 0, 0 ), 2.99f, red, new diffuse(0.8f));		// 5: right wall
 		plane[2] = Plane( 6, float3( 0, 1, 0 ), 1 , white, new diffuse(0.8f));			// 6: floor
-		plane[3] = Plane( 7, float3( 0, -1, 0 ), 2, blue, new diffuse(0.8f));			// 7: ceiling
+		plane[3] = Plane( 7, float3( 0, -1, 0 ), 2, white, new diffuse(0.8f));			// 7: ceiling
 		plane[4] = Plane( 8, float3( 0, 0, 1 ), 3, red, new diffuse(0.8f));				// 8: front wall
 		plane[5] = Plane( 9, float3( 0, 0, -1 ), 3.99f, green, new diffuse(0.8f));		// 9: back wall
 		triangle = Triangle(10, float3(0.0f, 0.0f, 0), float3(0.2f, 0, 0.2f), float3(0.1f, 0.2f, 0), blue);
@@ -620,10 +644,12 @@ public:
 	Light* light[2];
 	Sphere sphere;
 	Sphere sphere2;
+	Sphere sphere3;
 	Cube cube;
 	Plane plane[6];
 	Triangle triangle;
 	Triangle triangle2;
 	int aaSamples = 1;
+	float mediumIr = 1.0f;
 };
 }

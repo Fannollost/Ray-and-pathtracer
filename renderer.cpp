@@ -38,9 +38,8 @@ float3 Renderer::Trace(Ray& ray, int depth, float energy)
 		totCol += ray.color * scene.light[i]->GetLightColor() * scene.light[i]->GetLightIntensityAt(ray.IntersectionPoint(), N) * energy;
 	}
 
-	if (m->scatter(ray, attenuation, scattered, N)) {
-		float maxEnergy = energy * attenuation.x;
-		totCol += (Trace(scattered, depth -1, maxEnergy)) *maxEnergy;
+	if (m->scatter(ray, attenuation, scattered, N, energy)) {
+		totCol += attenuation * (Trace(scattered, depth -1, energy)) * energy;
 		return totCol;
 	}
 
@@ -95,7 +94,7 @@ void Renderer::Tick( float deltaTime )
 			for (int s = 0; s < scene.aaSamples; ++s) {
 				float newX = x + RandomFloat();
 				float newY = y + RandomFloat();
-				totCol += Trace(camera.GetPrimaryRay(newX, newY), 2, 1);
+				totCol += Trace(camera.GetPrimaryRay(newX, newY), 5, 1);
 			}
 			accumulator[x + y * SCRWIDTH] = totCol / scene.aaSamples;
 		}
