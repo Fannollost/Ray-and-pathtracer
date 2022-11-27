@@ -460,29 +460,33 @@ public:
 	glass(float refIndex, float3 c, float spec, float3 a) : ir(refIndex), absorption(a), material(c, spec) { type = "glass"; }
 	 virtual bool scatter(Ray& ray, float3& att, Ray& scattered, float3 normal, float3& energy) override {
 		 att = float3(1.0f);
+		 float kr;
 		 float refrRatio = ray.inside ? (1.0 / ir) : ir;
+		 fresnel(ray.IntersectionPoint(), normal, ir, kr);
 		 float3 uDir = UnitVector(ray.D);
-
 		 float ctheta = fmin(dot(-uDir, ray.hitNormal), 1.0);			//maybe use normal
 		 float stheta = sqrt(1.0 - ctheta * ctheta);
 		 float3 refDir;
-		 if ((refrRatio * stheta) > 1.0) {
+		 bool reflected = (refrRatio * stheta) > 1.0;
+		 if (reflected) {
 			 refDir = reflect(uDir, ray.hitNormal);
 		 }
 		 else {
 			 refDir = refractRay(uDir, ray.hitNormal, refrRatio);
-		 };
+		 }
 
 		 if (ray.inside)
 		 {
 			 energy.x *= exp(-absorption.x * ray.t);
 			 energy.y *= exp(-absorption.y * ray.t);
 			 energy.z *= exp(-absorption.z * ray.t);
-		 }
+		 }																																
 		 else {
 			 energy = energy;
 		 }
-		 scattered = Ray(ray.IntersectionPoint(),refDir, ray.color);
+		 specularity = reflected ? kr : (1 - kr);
+		 float3 col = reflected ? ray.color * kr : ray.color * (1 - kr);
+		 scattered = Ray(ray.IntersectionPoint(),refDir, col);
 		 return true;
 	 }
 	 float3 refractRay(float3 oRayDir, float3 normal, float refRatio) {
@@ -493,11 +497,11 @@ public:
 	 }
 	 float ir;
 
-	 float3 fresnel(float3 I, float3 normal, float ior, float &kr) {
+	 void fresnel(float3 I, float3 normal, float ior, float &kr) {
 		 float cosi = clamp(-1.0f, 1.0f, dot(I, normal));
 		 float etai = 1, etat = ior;
 		 if (cosi > 0) { std::swap(etai, etat); }
-		 float sint = etai / etat * sqrtf(std::max(0.0f, 1 - cosi * cosi));
+		 float sint = etat * sqrtf(std::max(0.0f, 1 - cosi * cosi));
 		 if (sint >= 1) {
 			 kr = 1;
 		 }
@@ -539,14 +543,14 @@ public:
 		sphere2 = Sphere( 2, float3( 1,-0.1f,0 ), 0.2f, new metal(1.0f, 1.0f, white, 0.8f));				// 1: bouncing ball
 		//sphere3 = Sphere( 3, float3( -0.3f,-0.1f,-0.2f ), 0.2f, white, new glass(0.1f));				// 1: bouncing ball
 		//sphere2 = Sphere( 2, float3( 0, 2.5f, -3.07f ), 8, blue, new diffuse(float3(0.2f)));	// 2: rounded corners
-		//cube = Cube( 3, float3( 0 ), float3( 1.15f ) , green, new diffuse(float3(0.5f)));		// 3: cube
+		cube = Cube( 3, float3( 0 ), float3( 1.15f ) , new diffuse(float3(0.8f), white, 0));		// 3: cube
 		plane[0] = Plane( 4, float3( 1, 0, 0 ), 3, new diffuse(0.8f, blue, 0.0f));			// 4: left wall
 		plane[1] = Plane( 5, float3( -1, 0, 0 ), 2.99f, new diffuse(0.8f, red, 0.0f));		// 5: right wall
 		plane[2] = Plane( 6, float3( 0, 1, 0 ), 1, new diffuse(0.8f, white, 0.0f));			// 6: floor
 		plane[3] = Plane( 7, float3( 0, -1, 0 ), 2, new diffuse(0.8f, white, 0.0f));			// 7: ceiling
 		plane[4] = Plane( 8, float3( 0, 0, 1 ), 3, new diffuse(0.8f, red, 0.0f));				// 8: front wall
 		plane[5] = Plane( 9, float3( 0, 0, -1 ), 3.99f, new diffuse(0.8f, green, 0.0f));		// 9: back wall
-		triangle = Triangle(10, float3(0.0f, 0.0f, 1.0f), float3(0.2f, 0, 1.0f), float3(0.1f, 0.2f, 1.0f), new diffuse(0.8f, blue, 0.0f));
+		//triangle = Triangle(10, float3(0.0f, 0.0f, 1.0f), float3(0.2f, 0, 1.0f), float3(0.1f, 0.2f, 1.0f), new diffuse(0.8f, blue, 0.0f));
 		SetTime( 0 );
 		// Note: once we have triangle support we should get rid of the class
 		// hierarchy: virtuals reduce performance somewhat.
@@ -590,8 +594,8 @@ public:
 		quad.Intersect( ray , t_min);
 		sphere.Intersect( ray, t_min );
 		sphere2.Intersect( ray, t_min );
-		triangle.Intersect(ray, t_min);
-		//cube.Intersect( ray, t_min);
+		//triangle.Intersect(ray, t_min);
+		cube.Intersect( ray, t_min);
 		//triangle.Intersect(ray, t_min);
 		//triangle2.Intersect(ray, t_min);
 	}
@@ -602,9 +606,9 @@ public:
 		quad.Intersect( ray, t_min );
 		sphere.Intersect( ray, t_min);
 		sphere2.Intersect( ray, t_min);
-		triangle.Intersect(ray, t_min);
+		//triangle.Intersect(ray, t_min);
 
-		//cube.Intersect( ray , t_min);
+		cube.Intersect( ray , t_min);
 		//triangle.Intersect(ray, t_min);
 		//triangle2.Intersect(ray, t_min);
 
@@ -623,7 +627,7 @@ public:
 		if (objIdx == 0) N = quad.GetNormal(I);
 		else if (objIdx == 1) N = sphere.GetNormal(I);
 		else if (objIdx == 2) N = sphere2.GetNormal(I);
-		//else if (objIdx == 3) N = cube.GetNormal(I);
+		else if (objIdx == 3) N = cube.GetNormal(I);
 		else if (objIdx == 10) N = triangle.GetNormal(I);
 		else 
 		{
@@ -640,7 +644,7 @@ public:
 		if (objIdx == 0) return quad.GetAlbedo( I );
 		if (objIdx == 1) return sphere.GetAlbedo( I );
 		if (objIdx == 2) return sphere2.GetAlbedo( I );
-		//if (objIdx == 3) return cube.GetAlbedo( I );
+		if (objIdx == 3) return cube.GetAlbedo( I );
 		return plane[objIdx - 4].GetAlbedo( I );
 		// once we have triangle support, we should pass objIdx and the bary-
 		// centric coordinates of the hit, instead of the intersection location.
