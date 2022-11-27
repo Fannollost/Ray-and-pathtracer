@@ -14,7 +14,7 @@ void Renderer::Init()
 // -----------------------------------------------------------
 // Evaluate light transport
 // -----------------------------------------------------------
-float3 Renderer::Trace(Ray& ray, int depth, float energy)
+float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 {
 	if (depth <= 0) return float3(0, 0, 0);
 
@@ -24,25 +24,26 @@ float3 Renderer::Trace(Ray& ray, int depth, float energy)
 
 	float3 totCol = float3(0);
 	float3 attenuation;
-	material* m = ray.GetMaterial();
 	Ray scattered;
+
+	material* m = ray.GetMaterial();
 	float3 I = ray.O + ray.t * ray.D;
 	float3 N = ray.hitNormal;// scene.GetNormal(ray.objIdx, I, ray.D);
+	bool s = m->scatter(ray, attenuation, scattered, N, energy);
 	for(int i = 0; i < sizeof(scene.light) / sizeof(scene.light[0]); i++){
-	
-		float3 lightRayDirection = scene.light[i]->GetLightPosition() - ray.IntersectionPoint();
-		float len = length(lightRayDirection);
-		Ray r = Ray(ray.IntersectionPoint(), normalize(lightRayDirection), ray.color, len);
-		if (scene.IsOccluded(r, t_min)) continue;
-
-		totCol += ray.color * scene.light[i]->GetLightColor() * scene.light[i]->GetLightIntensityAt(ray.IntersectionPoint(), N) * energy;
+		if(m->specularity != 1){
+			float3 lightRayDirection = scene.light[i]->GetLightPosition() - ray.IntersectionPoint();
+			float len = length(lightRayDirection);
+			Ray r = Ray(ray.IntersectionPoint(), normalize(lightRayDirection), ray.color, len);
+			if (scene.IsOccluded(r, t_min)) continue;
+			totCol += (1 - m->specularity) * m->col * scene.light[i]->GetLightIntensityAt(ray.IntersectionPoint(), N, *m) * energy;
+		}
 	}
 
-	if (m->scatter(ray, attenuation, scattered, N, energy)) {
-		totCol += attenuation * (Trace(scattered, depth -1, energy)) * energy;
-		return totCol;
-	}
+	if(m->specularity != 0)
+		totCol += m->specularity * attenuation * (Trace(scattered, depth - 1, energy)) * energy;
 
+	return totCol;
 }
 	//float3 albedo = scene.GetAlbedo(ray.objIdx, I);
 
@@ -94,7 +95,7 @@ void Renderer::Tick( float deltaTime )
 			for (int s = 0; s < scene.aaSamples; ++s) {
 				float newX = x + RandomFloat();
 				float newY = y + RandomFloat();
-				totCol += Trace(camera.GetPrimaryRay(newX, newY), 5, 1);
+				totCol += Trace(camera.GetPrimaryRay(newX, newY), 6, float3(1));
 			}
 			accumulator[x + y * SCRWIDTH] = totCol / scene.aaSamples;
 		}
