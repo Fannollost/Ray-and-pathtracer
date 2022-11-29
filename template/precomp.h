@@ -458,6 +458,7 @@ float3 RandomInHemisphere(float3 normal);
 float3 RandomUnitVector();
 float Rand( float range );
 float3 RandomVectorInUnitSphere();
+int RandomIntRange(int a, int b);
 
 
 // Perlin noise
@@ -1525,6 +1526,7 @@ public:
 // Add your headers here; they will be able to use all previously defined classes and namespaces.
 // In your own .cpp files just add #include "precomp.h".
 #include <cmath>
+#include <random>
 
 // InstructionSet.cpp
 // Compile by using: cl /EHsc /W4 InstructionSet.cpp

@@ -10,41 +10,79 @@ void Renderer::Init()
 
 }
 
-
+enum MAT_TYPE {
+	DIFFUSE = 1,
+	METAL = 2,
+	GLASS = 3,
+};
 // -----------------------------------------------------------
 // Evaluate light transport
 // -----------------------------------------------------------
 float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 {
 	if (depth <= 0) return float3(0, 0, 0);
-
 	float t_min = 0.001f;
 	scene.FindNearest(ray, t_min);
 	if (ray.objIdx == -1) return 0; // or a fancy sky color	
 
 	float3 totCol = float3(0);
-	float3 attenuation;
-	Ray scattered;
-
 	material* m = ray.GetMaterial();
 	float3 I = ray.O + ray.t * ray.D;
 	float3 N = ray.hitNormal;// scene.GetNormal(ray.objIdx, I, ray.D);
-	bool s = m->scatter(ray, attenuation, scattered, N, energy);
-	for(int i = 0; i < sizeof(scene.light) / sizeof(scene.light[0]); i++){
-		if(m->specularity != 1){
+	
+	switch (m->type) {
+	case GLASS:	{
+		glass* g = (glass*)m;
+		Ray reflected, refracted;
+		g->scatter(ray, reflected, refracted, N, energy);
+		totCol += g->col * g->kr * Trace(reflected, depth - 1, energy) * energy;
+		totCol += g->col * (1- g->kr) * Trace(refracted, depth - 1, energy) * energy;
+		break;
+	}
+	case METAL:	{
+		Ray reflected;
+		((metal*)m)->scatter(ray, reflected, N, energy);
+		totCol += m->col * Trace(reflected, depth - 1, energy) * energy;
+		break;
+	}
+	case DIFFUSE:
+		for (int i = 0; i < sizeof(scene.light) / sizeof(scene.light[0]); i++)
+		{
+			Ray scattered;
+			float3 attenuation;
 			float3 lightRayDirection = scene.light[i]->GetLightPosition() - ray.IntersectionPoint();
-			float len = length(lightRayDirection);
-			Ray r = Ray(ray.IntersectionPoint(), normalize(lightRayDirection), ray.color, len);
+			float len2 = dot(lightRayDirection, lightRayDirection);
+			lightRayDirection = normalize(lightRayDirection);
+			Ray r = Ray(ray.IntersectionPoint(), lightRayDirection, ray.color, len2);
 			if (scene.IsOccluded(r, t_min)) continue;
-			totCol += (1 - m->specularity) * m->col * scene.light[i]->GetLightIntensityAt(ray.IntersectionPoint(), N, *m) * energy;
+			((diffuse*)m)->scatter(ray, attenuation, scattered, normalize(lightRayDirection),
+				scene.light[i]->GetLightIntensityAt(ray.IntersectionPoint(), N, *m), N, energy);
+			
+			totCol += m->col * attenuation * energy;
 		}
 	}
 
-	if(m->specularity != 0)
-		totCol += m->specularity * attenuation * (Trace(scattered, depth - 1, energy)) * energy;
+		/*
+		for(int i = 0; i < sizeof(scene.light) / sizeof(scene.light[0]); i++){
+			bool s = m->scatter(ray, attenuation, scattered, refracted, N, energy);
 
+			if(m->specularity != 1 && !refracted.exists){
+				float3 lightRayDirection = scene.light[i]->GetLightPosition() - ray.IntersectionPoint();
+				float len = length(lightRayDirection);
+				Ray r = Ray(ray.IntersectionPoint(), normalize(lightRayDirection), ray.color, len);
+				if (scene.IsOccluded(r, t_min)) continue;
+				totCol += (1 - m->specularity) * m->col * scene.light[i]->GetLightIntensityAt(ray.IntersectionPoint(), N, *m) * energy;
+			}
+		}
+		
+		if(m->specularity != 0)
+			totCol += m->specularity * attenuation * (Trace(scattered, depth - 1, energy)) * energy;
+		if (refracted.exists)
+			totCol += (1 - m->specularity) * attenuation * (Trace(refracted, depth - 1, energy)) * energy;*/
+	
 	return totCol;
 }
+
 	//float3 albedo = scene.GetAlbedo(ray.objIdx, I);
 
 	//RandomInHemisphere(N));
@@ -77,7 +115,7 @@ void Renderer::Tick( float deltaTime )
 {
 	
 	// animation
-	if (!camera.paused) {
+	if (!camera.paused && scene.raytracer) {
 		static float animTime = 0;
 		scene.SetTime(animTime += deltaTime * 0.002f);
 	}
@@ -85,6 +123,7 @@ void Renderer::Tick( float deltaTime )
 	camera.FOVTick();
 	// pixel loop
 	Timer t;
+	int iteration = 0;
 	// lines are executed as OpenMP parallel tasks (disabled in DEBUG)
 	#pragma omp parallel for schedule(dynamic)
 	for (int y = 0; y < SCRHEIGHT; y++)
@@ -92,17 +131,19 @@ void Renderer::Tick( float deltaTime )
 		// trace a primary ray for each pixel on the line
 		for (int x = 0; x < SCRWIDTH; x++) {
 			float3 totCol = float3(0);				//antialiassing
-			for (int s = 0; s < scene.aaSamples; ++s) {
+			for (int s = 0; s < 1; ++s) {
 				float newX = x + RandomFloat();
 				float newY = y + RandomFloat();
 				totCol += Trace(camera.GetPrimaryRay(newX, newY), 6, float3(1));
 			}
 			accumulator[x + y * SCRWIDTH] = totCol / scene.aaSamples;
 		}
+		iteration++;
+		if(scene.raytracer)
+			iteration = 1;
 		// translate accumulator contents to rgb32 pixels
 		for (int dest = y * SCRWIDTH, x = 0; x < SCRWIDTH; x++)
-			screen->pixels[dest + x] = 
-				RGBF32_to_RGB8( &accumulator[x + y * SCRWIDTH] );
+			screen->pixels[dest + x] = 	RGBF32_to_RGB8(&accumulator[x + y * SCRWIDTH]);///iteration ;
 	}
 	// performance report - running average - ms, MRays/s
 	static float avg = 10, alpha = 1;
