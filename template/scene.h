@@ -119,7 +119,7 @@ namespace Tmpl8 {
 	class DirectionalLight : public Light {
 	public:
 		DirectionalLight() = default;
-		DirectionalLight(int idx, float3 p, float str, float3 c, float3 n, int r, bool rt) : Light(idx, p, str, c, n, rt) {
+		DirectionalLight(int idx, float3 p, float str, float3 c, float3 n, float r, bool rt) : Light(idx, p, str, c, n, rt) {
 			sinAngle = sin(r * PI / 2);
 		}
 		float3 GetLightPosition() override {
@@ -133,7 +133,9 @@ namespace Tmpl8 {
 			}
 			float dis = length(dir);
 			float str = sinAngle - sTheta > 0 ? asin(sinAngle) - asin(sTheta) : 0;
-			//return str > 0 ? 1 : 0;
+			
+			return str > 0 ? 1 : 0;
+
 			return 1 / dis * str * strength;
 		}
 
@@ -601,8 +603,8 @@ namespace Tmpl8 {
 			// we store all primitives in one continuous buffer
 
 			light[0] = new DirectionalLight(11, float3(0, 1.75, 0), 8.0f, white, float3(0, -1, 0.5), 0.9, raytracer);			//DIT FF CHECKEN!
-			light[1] = new AreaLight(12, float3(0), 2.0f, white, 0.1f, float3(0, -1, -1), 4, raytracer);
-			light[0] = new AreaLight(11, float3(0.1f, 1, 0), 2.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
+			//light[1] = new AreaLight(12, float3(0), 2.0f, white, 0.1f, float3(0, -1, -1), 4, raytracer);
+			//light[0] = new AreaLight(11, float3(0.1f, 1, 0), 2.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
 			//light[1] = new AreaLight(12, float3(0.1f, -1, 0), 1.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
 
 			plane[0] = Plane(0, specularDiff, float3(1, 0, 0), 3);			// 0: left wall
@@ -724,7 +726,7 @@ namespace Tmpl8 {
 		__declspec(align(64)) // start a new cacheline here
 			float animTime = 0;
 
-		Light* light[2];
+		Light* light[1];
 		Object* obj[4];
 		Quad quad;
 		Plane plane[6];
