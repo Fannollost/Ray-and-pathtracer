@@ -591,17 +591,20 @@ public:
 		plane[5] = Plane( 5, new diffuse(0.8f, green, 0), float3( 0, 0, -1 ), 3.99f );		// 5: back wall
 		quad = Quad(6, new diffuse(0.8f, white, 0), 1);							// 6: light source
 
-		obj[0] = new Sphere( 7, new diffuse(0.8f, red, 0), float3( 0 ), 0.5f );			// 1: bouncing ball
-		//sphere = Sphere(1, float3(0), 0.5f, new glass(1.5f, red, 1.0f, 0.0f));
+		//obj[0] = new Sphere( 7, new diffuse(0.8f, red, 0), float3( 0 ), 0.5f );			// 1: bouncing ball
+		obj[0] = new Sphere(7, new glass(1.5f, red, 1.0f, 0.0f), float3(0), 0.5f );
 		//obj[0] = new Sphere(7, red, new metal(1.0f, 1.0f), float3(-1.5f, 0, 2), 0.5f);		// 1: static ball => set animOn to false
 		obj[1] = new Sphere(8, new diffuse(0.8f, green, 0), float3(0, 2.5f, -3.07f), 8);		// 2: rounded corners
-		//obj[2] = new Sphere(9, white, new glass(0.1f), float3(1.5f, 0, 2), 0.5f);			// 3: static glass sphere => set animOn to false
+		//obj[1] = new Sphere(8, new glass(1.5f, white, 1.0f, 0.0f), float3(1.5f, 0, 2), 0.5f);			// 3: static glass sphere => set animOn to false
 		obj[2] = new Cube(9, new diffuse(0.8f, blue, 0), float3(0), float3(1.15f));		// 3: spinning cube
-		/*Mesh m = Mesh(white, new diffuse(0.1f), "C:\\Users\\fabie\\3D Objects\\ico.obj");
+		//obj[3] = new Triangle(10, new diffuse(0.8f, blue, 0), float3(0.0f, 0.0f, -0.9f), float3(0.2f, 0, -0.6f), float3(0.1f, 0.2f, -0.9f));	// 4: Triangle
+		Mesh m = Mesh(new diffuse(0.1f, white,0), "C:\\Users\\fabie\\3D Objects\\ico.obj");
 		for (int i = 0; i < m.faces.size(); i++) {
-			obj[3+i] = new Triangle(10+i, blue, new diffuse(0.0f), m.vertices[(m.faces[i]-1).x]/2, m.vertices[(m.faces[i] - 1).y]/2, m.vertices[(m.faces[i] - 1).z]/2);
-		}*/
-		obj[3] = new Triangle(10, new diffuse(0.8f, blue, 0), float3(0.0f, 0.0f, -0.9f), float3(0.2f, 0, -0.6f), float3(0.1f, 0.2f, -0.9f));	// 4: Triangle
+			obj[3+i] = new Triangle(10+i, new diffuse(0.0f, blue, 0), m.vertices[(m.faces[i]-1).x]/2, m.vertices[(m.faces[i] - 1).y]/2, m.vertices[(m.faces[i] - 1).z]/2);
+		}
+		for (int i = 0; i < m.vertices.size(); i++) {
+			obj[3 + m.faces.size() +i] = new Sphere(8, new diffuse(0.8f, red, 0), m.vertices[i]/2, 0.05f);
+		}
 
 		SetTime( 0 );
 		// Note: once we have triangle support we should get rid of the class
@@ -703,7 +706,8 @@ public:
 	float animTime = 0;
 	
 	Light* light[1];
-	Object* obj[4];
+	//Object* obj[3];
+	Object* obj[3+32];
 	Quad quad;
 	Plane plane[6];
 	int aaSamples = 1;
