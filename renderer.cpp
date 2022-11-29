@@ -53,7 +53,7 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 			float3 lightRayDirection = scene.light[i]->GetLightPosition() - ray.IntersectionPoint();
 			float len2 = dot(lightRayDirection, lightRayDirection);
 			lightRayDirection = normalize(lightRayDirection);
-			Ray r = Ray(ray.IntersectionPoint(), lightRayDirection, ray.color, len2);
+			Ray r = Ray(ray.IntersectionPoint(), lightRayDirection, ray.color, sqrt(len2));
 			if (scene.IsOccluded(r, t_min)) continue;
 			((diffuse*)m)->scatter(ray, attenuation, scattered, normalize(lightRayDirection),
 				scene.light[i]->GetLightIntensityAt(ray.IntersectionPoint(), N, *m), N, energy);
@@ -131,7 +131,7 @@ void Renderer::Tick( float deltaTime )
 		// trace a primary ray for each pixel on the line
 		for (int x = 0; x < SCRWIDTH; x++) {
 			float3 totCol = float3(0);				//antialiassing
-			for (int s = 0; s < 1; ++s) {
+			for (int s = 0; s < scene.aaSamples; ++s) {
 				float newX = x + RandomFloat();
 				float newY = y + RandomFloat();
 				totCol += Trace(camera.GetPrimaryRay(newX, newY), 6, float3(1));

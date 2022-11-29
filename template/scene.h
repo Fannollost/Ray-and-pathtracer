@@ -95,14 +95,8 @@ public:
 		samples = s;
 	}
 	float3 GetLightIntensityAt(float3 p, float3 n, const material& m) override {
-	/*	float3 lightRayDirection = GetLightPosition() - p;*/
-		float dis = abs(length(pos - p));
-
-		//if (m.type == "diff") {
-		//	Ray r = Ray(p, normalize(lightRayDirection), m.col, dis);
-		//}				   
-		float relStr =  1 / (dis) * strength;
-		float totCol = 0; 
+		float dis = abs(length(pos - p));			   
+		float relStr =  1 / (dis) * strength; 
 		float3 dir = pos - p;
 		float str = dot(n, normalize(dir));
 		if (str < 0.0f) str = 0.0f;
@@ -125,9 +119,8 @@ public:
 class DirectionalLight : public Light {
 public:
 	DirectionalLight() = default;
-	DirectionalLight(int idx, float3 p, float str, float3 c, float3 n, int s, float bs) : Light(idx, p, str, c, n) {
-		samples = s;
-		beamSize = bs;
+	DirectionalLight(int idx, float3 p, float str, float3 c, float3 n, int r, bool rt) : Light(idx, p, str, c, n, rt) {
+		sinAngle = sin(r * PI / 2);
 	}
 	float3 GetLightPosition() override {
 		return pos;
@@ -489,7 +482,7 @@ public:
 			dir = ray.IntersectionPoint() + normal + RandomInHemisphere(normal);
 		}
 		if (isZero(dir)) dir = normal;
-		scattered = Ray(ray.IntersectionPoint(), normalize(dir - ray.IntersectionPoint()), col);	  
+		scattered = Ray(ray.IntersectionPoint(), normalize(dir - ray.IntersectionPoint()), ray.color);	  
 		//att = albedo;  */
 		float3 retention = float3(1) - albedo;
 		float3 newEnergy(energy - retention);
@@ -508,7 +501,7 @@ public:
 	metal(float f, float3 c, bool rt) : fuzzy(f < 1 ? f : 1), material(c,rt) { type = METAL; }
 	virtual bool scatter(Ray& ray, Ray& reflected, float3 normal, float3& energy) {
 		float3 dir = reflect(ray.D, normal); //add fuzzy
-		reflected = Ray(ray.IntersectionPoint(), dir, ray.color * col);
+		reflected = Ray(ray.IntersectionPoint() + 0.05f * normal, dir, ray.color * col);
 		energy = energy;
 		return dot(reflected.D, normal) > 0;
 	}
@@ -529,17 +522,18 @@ public:
 		 float stheta = sqrt(1.0 - ctheta * ctheta);
 		 float3 refrDir, reflDir;
 		 bool reflected = (refrRatio * stheta) > 1.0;
-
+		  
+		 float3 absorbance = (1 - col) * absorption * -ray.t;
 		 if (ray.inside)
 		 {
-			 energy.x *= exp(-absorption.x * ray.t);
-			 energy.y *= exp(-absorption.y * ray.t);
-			 energy.z *= exp(-absorption.z * ray.t);
+			 energy.x *= exp(absorbance.x);
+			 energy.y *= exp(absorbance.y);
+			 energy.z *= exp(absorbance.z);  
 		 }																																
 		 else {
 			 energy = energy;
 		 }
-		 if (kr < 1) {
+		 if (kR < 1) {
 			 refrDir = refractRay(uDir, ray.hitNormal, refrRatio);
 			 refracted = Ray(ray.IntersectionPoint(), refrDir, col); //check for color of sphere itself
 		 }
@@ -557,6 +551,7 @@ public:
 	 float ir;
 	 float kr;
 
+	 //gotta check this/
 	 void fresnel(float3 I, float3 normal, float ior, float &kr) {
 		 float cosi = clamp(-1.0f, 1.0f, dot(I, normal));
 		 float etai = 1, etat = ior;
@@ -592,34 +587,36 @@ public:
 	Scene()
 	{
 		float3 white = float3(1.0, 1.0, 1.0);
-		float3 red = float3(1.0, 0, 0);
-		float3 blue = float3(0, 1.0, 0);
-		float3 green = float3(0, 0, 1.0);
+		float3 red = float3(199, 70, 123)/255;
+		float3 blue = float3(112, 66, 219) /255;
+		float3 green = float3(105, 250, 144) / 255;
+		diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.3f,0.7f, 1200);
 		diffuse* standardDiff = new diffuse(float3(0.8f), white, 0.2, 0.8f, 2, raytracer);
-
+		glass* standardGlass = new glass(1.5f, white, float3(0.10f), raytracer);
+		glass* blueGlass = new glass(1.5f, blue, float3(0.10f), raytracer);
+		diffuse* specularDiff = new diffuse(float3(0.8f), red, 0.3f, 0.7f, 7, raytracer);
+		metal* standardMetal = new metal(0.7f, white, raytracer);
 		// we store all primitives in one continuous buffer
 
-		light[0] = new DirectionalLight(11, float3(0, 1.75, 0), 2.0f,  white, float3(0,-1,0.5), 0.9);			//DIT FF CHECKEN!
-		//light[0] = new AreaLight(12, float3(0), 1.0f,  white, 0.1f, float3(0, -1, -1), 4);
-		//light[0] = new AreaLight(11, float3(0.1f, 1, 0), 1.0f, white, 0.1f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
-		//light[1] = new AreaLight(12, float3(0.1f, -1, 0), 1.0f, white, 0.1f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
-
-
-		
-		plane[0] = Plane( 0, new diffuse(0.8f, blue, 0), float3( 1, 0, 0 ), 3 );			// 0: left wall
+		light[0] = new DirectionalLight(11, float3(0, 1.75, 0), 8.0f,  white, float3(0,-1,0.5), 0.9, raytracer);			//DIT FF CHECKEN!
+		light[1] = new AreaLight(12, float3(0), 2.0f,  white, 0.1f, float3(0, -1, -1), 4, raytracer);
+		light[0] = new AreaLight(11, float3(0.1f, 1, 0), 2.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
+		//light[1] = new AreaLight(12, float3(0.1f, -1, 0), 1.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
+	
+		plane[0] = Plane( 0, specularDiff, float3( 1, 0, 0 ), 3 );			// 0: left wall
 		plane[1] = Plane( 1, new diffuse(0.8f, red, 0), float3( -1, 0, 0 ), 2.99f );		// 1: right wall
 		plane[2] = Plane( 2, new diffuse(0.8f, white, 0), float3( 0, 1, 0 ), 1 );			// 2: floor
 		plane[3] = Plane( 3, new diffuse(0.8f, white, 0), float3( 0, -1, 0 ), 2);			// 3: ceiling
 		plane[4] = Plane( 4, new diffuse(0.8f, red, 0), float3( 0, 0, 1 ), 3 );			// 4: front wall
 		plane[5] = Plane( 5, new diffuse(0.8f, green, 0), float3( 0, 0, -1 ), 3.99f );		// 5: back wall
-		quad = Quad(6, new diffuse(0.8f, white, 0), 1);							// 6: light source
+		//quad = Quad(6, new diffuse(0.8f, white, 0), 1);							// 6: light source
 
-		obj[0] = new Sphere( 7, new diffuse(0.8f, red, 0), float3( 0 ), 0.5f );			// 1: bouncing ball
+		obj[0] = new Sphere( 7, blueDiff, float3( 0 ), 0.5f );			// 1: bouncing ball
 		//sphere = Sphere(1, float3(0), 0.5f, new glass(1.5f, red, 1.0f, 0.0f));
 		//obj[0] = new Sphere(7, red, new metal(1.0f, 1.0f), float3(-1.5f, 0, 2), 0.5f);		// 1: static ball => set animOn to false
-		obj[1] = new Sphere(8, new diffuse(0.8f, green, 0), float3(0, 2.5f, -3.07f), 8);		// 2: rounded corners
+		obj[1] = new Sphere(8, specularDiff, float3(0, 2.5f, -3.07f), 8);		// 2: rounded corners
 		//obj[2] = new Sphere(9, white, new glass(0.1f), float3(1.5f, 0, 2), 0.5f);			// 3: static glass sphere => set animOn to false
-		obj[2] = new Cube(9, new diffuse(0.8f, blue, 0), float3(0), float3(1.15f));		// 3: spinning cube
+		obj[2] = new Cube(9, blueDiff, float3(0), float3(1.15f));		// 3: spinning cube
 		/*Mesh m = Mesh(white, new diffuse(0.1f), "C:\\Users\\fabie\\3D Objects\\ico.obj");
 		for (int i = 0; i < m.faces.size(); i++) {
 			obj[3+i] = new Triangle(10+i, blue, new diffuse(0.0f), m.vertices[(m.faces[i]-1).x]/2, m.vertices[(m.faces[i] - 1).y]/2, m.vertices[(m.faces[i] - 1).z]/2);
@@ -692,13 +689,13 @@ public:
 		// this way we prevent calculating it multiple times.
 		if (objIdx == -1) return float3( 0 ); // or perhaps we should just crash
 		float3 N;
-		if (objIdx == 0) N = quad.GetNormal(I);
+		if (objIdx == 6) N = quad.GetNormal(I);
 		else if (objIdx >= 7 && objIdx < 7+size(obj)) N = obj[objIdx-7]->GetNormal(I);
 		else 
 		{
 			// faster to handle the 6 planes without a call to GetNormal
 			N = float3( 0 );
-			N[(objIdx - 4) / 2] = 1 - 2 * (float)(objIdx & 1);
+			N[objIdx / 2] = 1 - 2 * (float)(objIdx + 4);
 		}
 		if (dot( N, wo ) > 0) N = -N; // hit backside / inside
 		return N;
@@ -725,7 +722,7 @@ public:
 	__declspec(align(64)) // start a new cacheline here
 	float animTime = 0;
 	
-	Light* light[1];
+	Light* light[2];
 	Object* obj[4];
 	Quad quad;
 	Plane plane[6];
