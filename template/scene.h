@@ -23,7 +23,6 @@
 #define PLANE_Y(o,i) {if((t=-(ray.O.y+o)*ray.rD.y)<ray.t)ray.t=t,ray.objIdx=i;}
 #define PLANE_Z(o,i) {if((t=-(ray.O.z+o)*ray.rD.z)<ray.t)ray.t=t,ray.objIdx=i;}
 
-
 namespace Tmpl8 {
 	class material;
 	class diffuse;
@@ -66,13 +65,54 @@ public:
 class Object {
 public:
 	Object() = default;
-	Object(int idx, float3 c, material* m) : objIdx(idx), col(c), mat(m) {}
+	Object(int idx, float3 c, material * m) : objIdx(idx), col(c), mat(m) {}
 	float3 GetIndex() { return objIdx; }
 	float3 GetColor() { return col; }
 	float3 GetMaterial() { return col; }
-	virtual void Intersect(Ray& ray, float t_min) { return; }
+	virtual void Intersect(Ray & ray, float t_min) { return; }
 	virtual float3 GetNormal(const float3 I) { return float3(); }
 	virtual float3 GetAlbedo(const float3 I) { return float3(); }
+	int objIdx = -1;
+	float3 col;
+	material* mat;
+};
+class Triangle {
+	public:
+	Triangle() = default;
+	Triangle(int idx, float3 ver0, float3 ver1, float3 ver2, material* m) : objIdx(idx), v0(ver0), v1(ver1), v2(ver2), mat(m) {
+		e1 = v1 - v0;
+		e2 = v2 - v0;
+		N = cross(e1, e2);
+	}
+	void Intersect(Ray& ray, float t_min) const {		 //scratchapixel implementation
+		float area = length(N);
+		float NdotRayDir = dot(N, ray.D);
+		if (fabs(NdotRayDir) < t_min) return;
+		float d = -dot(N, v0);
+		float t = -(dot(N, ray.O) + d) / NdotRayDir;
+		if (t < 0) return;
+		float3 p = ray.O + t * ray.D;
+		float3 c;
+
+		float3 vp0 = p - v0;
+		c = cross(e1, vp0);
+		if (dot(N, c) < 0) return;
+		float3 vp1 = p - v1;
+		float3 e3 = v2 - v1;
+		c = cross(e3, vp1);
+		if (dot(N, c) < 0) return;
+		float3 e4 = v0 - v2;
+		float3 vp2 = p - v2;
+		c = cross(e4, vp2);
+		if (dot(N, c) < 0) return;
+
+		ray.t = t, ray.objIdx = objIdx, ray.m = mat, ray.color = col;
+			//ray.SetInside(GetNormal(ray.IntersectionPoint()));
+
+		
+	}
+	float3 GetNormal(const float3 I) const { return N; }
+	float3 v0, v1, v2, e1, e2, N;
 	int objIdx = -1;
 	float3 col;
 	material* mat;
@@ -85,7 +125,7 @@ public:
 	float3 GetNormal() { return normal; }
 	virtual float3 GetLightPosition() { return pos; }
 	float3 GetLightColor() { return col; }
-	virtual float GetLightIntensityAt(float3 p, float3 n) { return 1; }
+	virtual float3 GetLightIntensityAt(float3 p, float3 n, const material& m) { return 1; }
 	float3 pos;
 	float3 col;
 	float strength;
@@ -100,10 +140,15 @@ public:
 		radius = r;
 		samples = s;
 	}
-	float GetLightIntensityAt(float3 p, float3 n) override {
+	float3 GetLightIntensityAt(float3 p, float3 n, const material& m) override {
+	/*	float3 lightRayDirection = GetLightPosition() - p;*/
 		float dis = abs(length(pos - p));
+
+		//if (m.type == "diff") {
+		//	Ray r = Ray(p, normalize(lightRayDirection), m.col, dis);
+		//}				   
 		float relStr =  1 / (dis) * strength;
-		float totCol = 0;
+		float totCol = 0; 
 		float3 dir = pos - p;
 		float str = dot(n, normalize(dir));
 		if (str < 0.0f) str = 0.0f;
@@ -111,13 +156,13 @@ public:
 		for (int i = 0; i < samples; i++) {
 		 //lerp between values then divide by samples  
 		}
-		return relStr * str;
+		return relStr * str * GetLightColor();
 	}
 	float3 GetLightPosition() override {
 		float newRad = radius * sqrt(RandomFloat());
 		float theta = RandomFloat() * 2 * PI;
-		return float3(pos.x + newRad * cos(theta), pos.y + newRad * sin(theta), pos.z);
-	   	//return pos;
+		//return float3(pos.x + newRad * cos(theta), pos.y + newRad * sin(theta), pos.z);
+	   	return pos;
 	}
 	int samples;
 	float radius;
@@ -132,7 +177,7 @@ public:
 	float3 GetLightPosition() override {
 		return pos;
 	}
-	float GetLightIntensityAt(float3 p, float3 n) override {
+	float3 GetLightIntensityAt(float3 p, float3 n, const material& m) override {
 		float3 dir = p - pos;
 		float sTheta = length(cross(dir, normal)) / length(dir) * length(normal);
 		if (dot(dir,normal) < 0) {
@@ -256,14 +301,14 @@ public:
 		d = sqrtf( d ), t = -b - d;
 		if (t < ray.t && t > t_min)
 		{
-			ray.t = t, ray.objIdx = objIdx, ray.color = col, ray.m = mat;
-			ray.SetInside(-GetNormal(ray.IntersectionPoint()));
+			ray.t = t, ray.objIdx = objIdx, ray.m = mat;
+			ray.SetInside(GetNormal(ray.IntersectionPoint()));
 			return;
 		}
 		t = d - b;
 		if (t < ray.t && t > t_min)
 		{
-			ray.t = t, ray.objIdx = objIdx, ray.color = col, ray.m = mat;
+			ray.t = t, ray.objIdx = objIdx, ray.m = mat;
 			ray.SetInside(GetNormal(ray.IntersectionPoint()));
 			return;
 		}
@@ -279,7 +324,6 @@ public:
 	float3 pos = 0;
 	float r2 = 0, invr = 0;
 	int objIdx = -1;
-	float3 col = 0;
 	material* mat;
 };
 
@@ -295,7 +339,7 @@ public:
 	void Intersect( Ray& ray, float t_min) const
 	{
 		float t = -(dot( ray.O, this->N ) + this->d) / (dot( ray.D, this->N ));
-		if (t < ray.t && t > t_min) ray.t = t, ray.objIdx = objIdx, ray.color = col, ray.m = mat,
+		if (t < ray.t && t > t_min) ray.t = t, ray.objIdx = objIdx, ray.m = mat,
 			ray.SetInside(N);
 	}
 	float3 GetNormal( const float3 I ) const
@@ -329,7 +373,6 @@ public:
 	float3 N;
 	float d;
 	int objIdx = -1;
-	float3 col = 0;
 	material* mat;
 };
 
@@ -344,7 +387,6 @@ public:
 	Cube() = default;
 	Cube( int idx, float3 c, material* m, float3 pos, float3 size,  mat4 transform = mat4::Identity() )
 	{
-		col = c;
 		objIdx = idx;
 		b[0] = pos - 0.5f * size, b[1] = pos + 0.5f * size;
 		mat = m;
@@ -369,12 +411,12 @@ public:
 		tmin = max( tmin, tzmin ), tmax = min( tmax, tzmax );
 		if (tmin > t_min)
 		{
-			if (tmin < ray.t) ray.t = tmin, ray.objIdx = objIdx, ray.color = col, ray.m = mat,
+			if (tmin < ray.t) ray.t = tmin, ray.objIdx = objIdx,  ray.m = mat,
 				ray.SetInside(GetNormal(ray.IntersectionPoint()));
 		}
 		else if (tmax > t_min)
 		{
-			if (tmax < ray.t) ray.t = tmax, ray.objIdx = objIdx, ray.color = col, ray.m = mat,
+			if (tmax < ray.t) ray.t = tmax, ray.objIdx = objIdx,  ray.m = mat,
 				ray.SetInside(GetNormal(ray.IntersectionPoint()));
 		}
 	}
@@ -402,8 +444,7 @@ public:
 	}
 	float3 b[2];
 	mat4 M, invM;
-	int objIdx = -1;
-	float3 col = 0;
+	int objIdx = -1; 
 	material* mat;
 };
 
@@ -418,7 +459,6 @@ public:
 	{
 		objIdx = idx;
 		size = s * 0.5f;
-		col = c;
 		mat = m;
 		T = transform, invT = transform.FastInvertedTransformNoScale();
 	}
@@ -452,25 +492,30 @@ public:
 
 class material {
 public:
+	material(float3 c, float spec) : col(c), specularity(spec) {}
 	virtual bool scatter(
-		Ray& ray, float3& att, Ray& scattered, float3 normal, float& energy
+		Ray& ray, float3& att, Ray& scattered, float3 normal, float3& energy
 	) {
 		return false;
 	}
+	float3 col;
+	string type;
+	float specularity;
 };
 
 class diffuse : public material {
 public:
-	diffuse(float3 a) : albedo(a) {}
+	diffuse(float3 a, float3 c, float spec) : albedo(a), material(c, spec) { type = "diff"; }
 
-	virtual bool scatter(Ray& ray, float3& att, Ray& scattered, float3 normal, float& energy) override {
-		float3 dir = ray.IntersectionPoint() + normal;// +RandomInHemisphere(normal);
+	virtual bool scatter(Ray& ray, float3& att, Ray& scattered, float3 normal, float3& energy) override {
+		
+		float3 dir = ray.IntersectionPoint() + normal; //+ RandomInHemisphere(normal);
 		if (isZero(dir)) dir = normal;
 		scattered = Ray(ray.IntersectionPoint(), normalize(dir - ray.IntersectionPoint()), ray.color);
 		att = albedo;
-		float retention = 1 - albedo.x;
-		float newEnergy(energy - retention);
-		energy = newEnergy > 0 ? newEnergy : 0;
+		float3 retention = float3(1) - albedo;
+		float3 newEnergy(energy - retention);
+		energy = newEnergy.x > 0 ? newEnergy : 0;
 		return true;
 	}
 
@@ -480,8 +525,8 @@ public:
 
 class metal : public material {
 public:
-	metal(float3 a, float f) : albedo(a), fuzzy(f < 1 ? f : 1){}
-	virtual bool scatter(Ray& ray, float3& att, Ray& scattered, float3 normal, float& energy) override {
+	metal(float3 a, float f, float3 c, float spec) : albedo(a), fuzzy(f < 1 ? f : 1), material(c, spec) { type = "metal"; }
+	virtual bool scatter(Ray& ray, float3& att, Ray& scattered, float3 normal, float3& energy) override {
 		float3 dir = reflect(ray.D, normal); //add fuzzy
 		scattered = Ray(ray.IntersectionPoint(), dir, ray.color);
 		att = albedo;
@@ -496,23 +541,36 @@ public:
 
 class glass : public material {
 public:
-	 glass(float refIndex) : ir(refIndex){}
-	 virtual bool scatter(Ray& ray, float3& att, Ray& scattered, float3 normal, float& energy) override {
+	glass(float refIndex, float3 c, float spec, float3 a) : ir(refIndex), absorption(a), material(c, spec) { type = "glass"; }
+	 virtual bool scatter(Ray& ray, float3& att, Ray& scattered, float3 normal, float3& energy) override {
 		 att = float3(1.0f);
+		 float kr;
 		 float refrRatio = ray.inside ? (1.0 / ir) : ir;
+		 fresnel(ray.IntersectionPoint(), normal, ir, kr);
 		 float3 uDir = UnitVector(ray.D);
-
 		 float ctheta = fmin(dot(-uDir, ray.hitNormal), 1.0);			//maybe use normal
 		 float stheta = sqrt(1.0 - ctheta * ctheta);
 		 float3 refDir;
-		 if ((refrRatio * stheta) > 1.0) {
+		 bool reflected = (refrRatio * stheta) > 1.0;
+		 if (reflected) {
 			 refDir = reflect(uDir, ray.hitNormal);
 		 }
 		 else {
 			 refDir = refractRay(uDir, ray.hitNormal, refrRatio);
-		 };
-		 scattered = Ray(ray.IntersectionPoint(),refDir, ray.color);
-		 energy = energy; //beers law
+		 }
+
+		 if (ray.inside)
+		 {
+			 energy.x *= exp(-absorption.x * ray.t);
+			 energy.y *= exp(-absorption.y * ray.t);
+			 energy.z *= exp(-absorption.z * ray.t);
+		 }																																
+		 else {
+			 energy = energy;
+		 }
+		 specularity = reflected ? kr : (1 - kr);
+		 float3 col = reflected ? ray.color * kr : ray.color * (1 - kr);
+		 scattered = Ray(ray.IntersectionPoint(),refDir, col);
 		 return true;
 	 }
 	 float3 refractRay(float3 oRayDir, float3 normal, float refRatio) {
@@ -523,23 +581,25 @@ public:
 	 }
 	 float ir;
 
-	 float3 fresnel(float3 I, float3 normal, float ior, float &kr) {
+	 void fresnel(float3 I, float3 normal, float ior, float &kr) {
 		 float cosi = clamp(-1.0f, 1.0f, dot(I, normal));
 		 float etai = 1, etat = ior;
 		 if (cosi > 0) { std::swap(etai, etat); }
-		 float sint = etai / etat * sqrtf(std::max(0.0f, 1 - cosi * cosi));
+		 float sint = etat * sqrtf(std::max(0.0f, 1 - cosi * cosi));
 		 if (sint >= 1) {
 			 kr = 1;
 		 }
 		 else {
 			 float cost = sqrtf(std::max(0.0f, 1 - sint * sint));
 			 cosi = fabsf(cosi);
-			 float Rs = ((etat * cosi) - (etai * cost)) / ((etat * cosi) + (etai * cost));
+			 float Rs = ((etat * cosi) - (etai * cost)) / ((etat * cosi) + (etai * cost));	    
 			 float Rp = ((etai * cosi) - (etat * cost)) / ((etai * cosi) + (etat * cost));
 			 kr = (Rs * Rs + Rp * Rp) / 2;
 		 }
 
 	 }//scratchapixel
+
+	 float3 absorption;
 };
 
 // -----------------------------------------------------------
@@ -562,6 +622,9 @@ public:
 
 		light[0] = new DirectionalLight(11, float3(0, 1.75, 0), 2.0f,  white, float3(0,-1,0.5), 0.9);			//DIT FF CHECKEN!
 		//light[0] = new AreaLight(12, float3(0), 1.0f,  white, 0.1f, float3(0, -1, -1), 4);
+		//light[0] = new AreaLight(11, float3(0.1f, 1, 0), 1.0f, white, 0.1f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
+		//light[1] = new AreaLight(12, float3(0.1f, -1, 0), 1.0f, white, 0.1f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
+
 
 		
 		plane[0] = Plane( 0, blue, new diffuse(0.8f), float3( 1, 0, 0 ), 3 );			// 0: left wall
@@ -573,7 +636,8 @@ public:
 		quad = Quad(6, white, new diffuse(float3(0.8f)), 1);							// 6: light source
 
 		obj[0] = new Sphere( 7, red, new diffuse(0.8f), float3( 0 ), 0.5f );			// 1: bouncing ball
-		obj[0] = new Sphere(7, red, new metal(1.0f, 1.0f), float3(-1.5f, 0, 2), 0.5f);		// 1: static ball => set animOn to false
+		//sphere = Sphere(1, float3(0), 0.5f, new glass(1.5f, red, 1.0f, 0.0f));
+		//obj[0] = new Sphere(7, red, new metal(1.0f, 1.0f), float3(-1.5f, 0, 2), 0.5f);		// 1: static ball => set animOn to false
 		obj[1] = new Sphere(8, blue, new diffuse(0.8f), float3(0, 2.5f, -3.07f), 8);		// 2: rounded corners
 		//obj[2] = new Sphere(9, white, new glass(0.1f), float3(1.5f, 0, 2), 0.5f);			// 3: static glass sphere => set animOn to false
 		obj[2] = new Cube(9, green, new diffuse(0.8f), float3(0), float3(1.15f));		// 3: spinning cube
