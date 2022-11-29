@@ -134,7 +134,7 @@ namespace Tmpl8 {
 			float dis = length(dir);
 			float str = sinAngle - sTheta > 0 ? asin(sinAngle) - asin(sTheta) : 0;
 			
-			return str > 0 ? 1 : 0;
+			//return str > 0 ? 1 : 0;
 
 			return 1 / dis * str * strength;
 		}
@@ -169,18 +169,17 @@ namespace Tmpl8 {
 			N = cross(e1, e2);
 		}
 		void Intersect(Ray& ray, float t_min) override {		 //scratchapixel implementation
-			float area = length(N);
 			float NdotRayDir = dot(N, ray.D);
 			if (fabs(NdotRayDir) < t_min) return;
 			float d = -dot(N, v0);
 			float t = -(dot(N, ray.O) + d) / NdotRayDir;
 			if (t < 0) return;
 			float3 p = ray.O + t * ray.D;
-			float3 c;
+			float3 c ;
 
 			float3 vp0 = p - v0;
 			c = cross(e1, vp0);
-			if (dot(N, c) < 0) return;
+			if (dot(N, c) < 0) return ;
 			float3 vp1 = p - v1;
 			float3 e3 = v2 - v1;
 			c = cross(e3, vp1);
@@ -190,8 +189,10 @@ namespace Tmpl8 {
 			c = cross(e4, vp2);
 			if (dot(N, c) < 0) return;
 
-			ray.t = t, ray.objIdx = objIdx, ray.m = mat,
-				ray.SetInside(GetNormal(ray.IntersectionPoint()));
+			if (t < ray.t) {
+				ray.t = t, ray.objIdx = objIdx, ray.m = mat,
+					ray.SetInside(GetNormal(ray.IntersectionPoint()));
+			}
 
 
 		}
@@ -207,10 +208,10 @@ namespace Tmpl8 {
 	// Basic sphere, with explicit support for rays that start
 	// inside it. Good candidate for a dielectric material.
 	// -----------------------------------------------------------
-	class Mesh {
+	class Mesh : public Object {
 	public:
 		Mesh() = default;
-		Mesh(material* m, const char* path) : mat(m), meshPath(path) {
+		Mesh(int idx,  material* m, const char* path, float3 pos, float scale) : objIdx(idx), mat(m), meshPath(path) {
 			ifstream file(meshPath, ios::in);
 			if (!file)
 			{
@@ -224,7 +225,7 @@ namespace Tmpl8 {
 				if (line.substr(0, 2) == "v ") {
 					istringstream v(line.substr(2));
 					v >> x; v >> y; v >> z;
-					vertices.push_back(float3(x, y, z));
+					vertices.push_back(float3(x*scale+pos.x, y * scale +pos.y, z * scale +pos.z));
 				}
 				else if (line.substr(0, 2) == "f ") {
 					int v0, v1, v2;
@@ -234,16 +235,47 @@ namespace Tmpl8 {
 					faces.push_back(int3(v0, v1, v2));
 				}
 			}
-			cout << "V : " << vertices.size() << endl << "F : " << faces.size() << endl;
+			for (int i = 0; i < faces.size(); i++) {
+				triangles.push_back(Triangle(objIdx*1000+i, mat, vertices[(faces[i] - 1).x] , vertices[(faces[i] - 1).y] , vertices[(faces[i] - 1).z]));
+			}
 		}
+
+		void Intersect(Ray& ray, float t_min) override {
+			for (int i = 0; i < triangles.size(); i++) {
+				triangles[i].Intersect(ray, t_min);
+			}
+			//triangles[0].Intersect(ray, t_min);
+		}
+		float3 GetNormal(const float3 I) const
+		{
+			float3 res;
+			int n = 0;
+			for (int i = 0; i < triangles.size(); i++) {
+				float3 p0 = I - triangles[i].v0;
+				float e1Coord = dot(triangles[i].e1, p0);
+				float e2Coord = dot(triangles[i].e2, p0);
+				if (fabs(dot(triangles[i].N, p0)) < 1 / LARGE_FLOAT && e1Coord > 0 && e1Coord < 1 && e2Coord > 0 && e2Coord < 1) {
+					res = triangles[i].N;
+					n++;
+				}	
+			}
+			return res;
+		}
+		float3 GetAlbedo(const float3 I) const
+		{
+			return float3(1.f);
+		}
+
 		const char* meshPath;
 		float3 col = 0;
+		int objIdx = -1;
 		material* mat;
 		int size = 0;
 		int vertexNb = 0;
 		int facesNb = 0;
 		vector<float3> vertices;
 		vector<int3> faces;
+		vector<Triangle> triangles;
 	};
 
 	// -----------------------------------------------------------
@@ -602,10 +634,10 @@ namespace Tmpl8 {
 			metal* standardMetal = new metal(0.7f, white, raytracer);
 			// we store all primitives in one continuous buffer
 
-			light[0] = new DirectionalLight(11, float3(0, 1.75, 0), 8.0f, white, float3(0, -1, 0.5), 0.9, raytracer);			//DIT FF CHECKEN!
-			//light[1] = new AreaLight(12, float3(0), 2.0f, white, 0.1f, float3(0, -1, -1), 4, raytracer);
+			light[0] = new DirectionalLight(11, float3(0, 2, 0), 8.0f, white, float3(0, -1, 1), 0.9, raytracer);			//DIT FF CHECKEN!
+			light[1] = new AreaLight(12, float3(0), 2.0f, white, 0.1f, float3(0, -1, -1), 4, raytracer);
 			//light[0] = new AreaLight(11, float3(0.1f, 1, 0), 2.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
-			//light[1] = new AreaLight(12, float3(0.1f, -1, 0), 1.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
+			light[2] = new AreaLight(12, float3(0.1f, -1, 0), 1.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
 
 			plane[0] = Plane(0, specularDiff, float3(1, 0, 0), 3);			// 0: left wall
 			plane[1] = Plane(1, new diffuse(0.8f, red, 0), float3(-1, 0, 0), 2.99f);		// 1: right wall
@@ -616,16 +648,13 @@ namespace Tmpl8 {
 			//quad = Quad(6, new diffuse(0.8f, white, 0), 1);							// 6: light source
 
 			obj[0] = new Sphere(7, blueDiff, float3(0), 0.5f);			// 1: bouncing ball
-			//sphere = Sphere(1, float3(0), 0.5f, new glass(1.5f, red, 1.0f, 0.0f));
 			//obj[0] = new Sphere(7, red, new metal(1.0f, 1.0f), float3(-1.5f, 0, 2), 0.5f);		// 1: static ball => set animOn to false
 			obj[1] = new Sphere(8, specularDiff, float3(0, 2.5f, -3.07f), 8);		// 2: rounded corners
 			//obj[2] = new Sphere(9, white, new glass(0.1f), float3(1.5f, 0, 2), 0.5f);			// 3: static glass sphere => set animOn to false
 			obj[2] = new Cube(9, blueDiff, float3(0), float3(1.15f));		// 3: spinning cube
-			/*Mesh m = Mesh(white, new diffuse(0.1f), "C:\\Users\\fabie\\3D Objects\\ico.obj");
-			for (int i = 0; i < m.faces.size(); i++) {
-				obj[3+i] = new Triangle(10+i, blue, new diffuse(0.0f), m.vertices[(m.faces[i]-1).x]/2, m.vertices[(m.faces[i] - 1).y]/2, m.vertices[(m.faces[i] - 1).z]/2);
-			}*/
-			obj[3] = new Triangle(10, new diffuse(0.8f, blue, 0), float3(0.0f, 0.0f, -0.9f), float3(0.2f, 0, -0.6f), float3(0.1f, 0.2f, -0.9f));	// 4: Triangle
+			obj[3] = new Mesh(10, specularDiff, "C:\\Users\\fabie\\3D Objects\\ico.obj", float3(0,0,2), 0.5f);
+			
+			//obj[3] = new Triangle(10, new diffuse(0.8f, blue, 0), float3(0.0f, 0.0f, 1.0f), float3(0.2f, 0, 1.0f), float3(0.2f, 0.2f, 1.0f));	// 4: Triangle
 
 			SetTime(0);
 			// Note: once we have triangle support we should get rid of the class
@@ -667,8 +696,7 @@ namespace Tmpl8 {
 		}
 		void FindNearest(Ray& ray, float t_min) const
 		{
-			// room walls - ugly shortcut for more speed
-			float t;
+
 			for (int i = 0; i < size(plane); i++) plane[i].Intersect(ray, t_min);
 
 			for (int i = 0; i < size(obj); i++) obj[i]->Intersect(ray, t_min);
@@ -679,7 +707,6 @@ namespace Tmpl8 {
 			// skip planes: it is not possible for the walls to occlude anything
 			quad.Intersect(ray, t_min);
 			for (int i = 0; i < size(obj); i++) obj[i]->Intersect(ray, t_min);
-
 
 			return ray.t < rayLength;
 			// technically this is wasteful: 
@@ -726,7 +753,7 @@ namespace Tmpl8 {
 		__declspec(align(64)) // start a new cacheline here
 			float animTime = 0;
 
-		Light* light[1];
+		Light* light[3];
 		Object* obj[4];
 		Quad quad;
 		Plane plane[6];

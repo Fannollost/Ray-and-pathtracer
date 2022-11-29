@@ -28,6 +28,8 @@ namespace Tmpl8
 			y > 0 ? camera.speed += 0.1f : camera.speed -= 0.1f;
 		}
 		void KeyUp(int key) {
+			cout << key << endl;
+			//aspectRatio(int value)
 			switch (key) {
 			case KEYBOARD_W:
 				camera.MoveCameraY(-1);
@@ -46,6 +48,12 @@ namespace Tmpl8
 				break;
 			case KEYBOARD_MINUS:
 				camera.FOV(1.f);
+				break;
+			case KEYBOARD_MULT:
+				camera.aspectRatio(-1);
+				break;
+			case KEYBOARD_DIV:
+				camera.aspectRatio(1);
 				break;
 			}
 		}
@@ -72,6 +80,12 @@ namespace Tmpl8
 			case KEYBOARD_MINUS:
 				camera.FOV(-1.f);
 				break;
+			case KEYBOARD_MULT:
+				camera.aspectRatio(1);
+				break;
+			case KEYBOARD_DIV:
+				camera.aspectRatio(-1);
+				break;
 			}
 			/* implement if you want to handle keys */
 		}
@@ -89,7 +103,9 @@ namespace Tmpl8
 			KEYBOARD_A = 65,
 			KEYBOARD_SPACE = 32,
 			KEYBOARD_PLUS = 334,
-			KEYBOARD_MINUS = 333
+			KEYBOARD_MINUS = 333,
+			KEYBOARD_MULT = 332,
+			KEYBOARD_DIV = 331
 		};
 	};
 };

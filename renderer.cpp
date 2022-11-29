@@ -24,7 +24,6 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 	float t_min = 0.001f;
 	scene.FindNearest(ray, t_min);
 	if (ray.objIdx == -1) return 0; // or a fancy sky color	
-
 	float3 totCol = float3(0);
 	material* m = ray.GetMaterial();
 	float3 I = ray.O + ray.t * ray.D;
@@ -53,7 +52,7 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 			float3 lightRayDirection = scene.light[i]->GetLightPosition() - ray.IntersectionPoint();
 			float len2 = dot(lightRayDirection, lightRayDirection);
 			lightRayDirection = normalize(lightRayDirection);
-			Ray r = Ray(ray.IntersectionPoint(), lightRayDirection, ray.color, sqrt(len2));
+			Ray r = Ray(ray.IntersectionPoint() + lightRayDirection * 1e-4f ,lightRayDirection, ray.color, sqrt(len2));
 			if (scene.IsOccluded(r, t_min)) continue;
 			((diffuse*)m)->scatter(ray, attenuation, scattered, normalize(lightRayDirection),
 				scene.light[i]->GetLightIntensityAt(ray.IntersectionPoint(), N, *m), N, energy);
@@ -121,6 +120,7 @@ void Renderer::Tick( float deltaTime )
 	}
 	camera.MoveTick();
 	camera.FOVTick();
+	camera.aspectTick();
 	// pixel loop
 	Timer t;
 	int iteration = 0;
