@@ -69,54 +69,6 @@ public:
 	material* m;
 };
 
-
-// -----------------------------------------------------------
-// Triangle Primitive
-// 
-// 
-// -----------------------------------------------------------
-class Triangle {
-public:
-	Triangle() = default;
-	Triangle(int idx, float3 ver0, float3 ver1, float3 ver2, material* m) : objIdx(idx), v0(ver0), v1(ver1), v2(ver2), mat(m) {
-		e1 = v1 - v0;
-		e2 = v2 - v0;
-		N = cross(e1, e2);
-	}
-	void Intersect(Ray& ray, float t_min) const {		 //scratchapixel implementation
-		float area = length(N);
-		float NdotRayDir = dot(N, ray.D);
-		if (fabs(NdotRayDir) < t_min) return;
-		float d = -dot(N, v0);
-		float t = -(dot(N, ray.O) + d) / NdotRayDir;
-		if (t < 0) return;
-		float3 p = ray.O + t * ray.D;
-		float3 c;
-
-		float3 vp0 = p - v0;
-		c = cross(e1, vp0);
-		if (dot(N, c) < 0) return;
-		float3 vp1 = p - v1;
-		float3 e3 = v2 - v1;
-		c = cross(e3, vp1);
-		if (dot(N, c) < 0) return;
-		float3 e4 = v0 - v2;
-		float3 vp2 = p - v2;
-		c = cross(e4, vp2);
-		if (dot(N, c) < 0) return;
-
-		ray.t = t, ray.objIdx = objIdx, ray.m = mat, ray.color = col;
-			//ray.SetInside(GetNormal(ray.IntersectionPoint()));
-
-		
-	}
-	float3 GetNormal(const float3 I) const { return N; }
-	float3 v0, v1, v2, e1, e2, N;
-	int objIdx = -1;
-	float3 col;
-	material* mat;
-};
-
 class Light {
 public: 
 	Light() = default;
@@ -173,48 +125,142 @@ public:
 class DirectionalLight : public Light {
 public:
 	DirectionalLight() = default;
-	DirectionalLight(int idx, float3 p, float str, float3 c, float3 n, int s, float bs,  bool rt) 
-		: Light(idx, p, str, c, n, rt) {
+	DirectionalLight(int idx, float3 p, float str, float3 c, float3 n, int s, float bs) : Light(idx, p, str, c, n) {
 		samples = s;
 		beamSize = bs;
 	}
 	float3 GetLightPosition() override {
-		//float3 r = dot(pos), -normal) / length(normal);
-		//pos - r;
+		return pos;
 	}
 	float3 GetLightIntensityAt(float3 p, float3 n, const material& m) override {
 		float3 dir = p - pos;
+		float sTheta = length(cross(dir, normal)) / length(dir) * length(normal);
+		if (dot(dir,normal) < 0) {
+			return 0;
+		}
 		float dis = length(dir);
-		float str = abs(dot(n, dir) / (length(n) * length(dir)));
-		return (1 / dis * str * strength) * GetLightColor();
-
-		/*float3 str = dot(normal, n);
-		float distDiff = length(str - p);
-		if(distDiff > 0)
-		return 0.0f;*/
-		//float3 diff = p - pos;
-		//float angle = asin(cross(normal, diff) / (length(normal) * length(diff))) * 180.0f / PI;
-		//float dis = abs(length(pos - p));
-		//float relStr = 1 / (dis)*strength;
-		//return relStr * sqrt(fmaxf(normal / 2.0f) - angle) / (normal / 2), 0)));
+		float str = sinAngle - sTheta > 0 ? asin(sinAngle) - asin(sTheta) : 0;
+		//return str > 0 ? 1 : 0;
+		return 1/dis * str * strength;
 	}
 
-	int samples;
-	float beamSize;
+	float sinAngle;
 };
+
+class Object {
+public:
+	Object() = default;
+	Object(int idx, material* m) : objIdx(idx), mat(m) {}
+	float3 GetIndex() { return objIdx; }
+	material* GetMaterial() { return mat; }
+	virtual void Intersect(Ray& ray, float t_min) { return; }
+	virtual float3 GetNormal(const float3 I) { return float3(); }
+	virtual float3 GetAlbedo(const float3 I) { return float3(); }
+	int objIdx = -1;
+	material* mat;
+};
+
+// -----------------------------------------------------------
+// Triangle Primitive
+// 
+// 
+// -----------------------------------------------------------
+class Triangle : public Object {
+public:
+	Triangle() = default;
+	Triangle(int idx, material* m, float3 ver0, float3 ver1, float3 ver2) : objIdx(idx), v0(ver0), v1(ver1), v2(ver2), mat(m) {
+		e1 = v1 - v0;
+		e2 = v2 - v0;
+		N = cross(e1, e2);
+	}
+	void Intersect(Ray& ray, float t_min) override {		 //scratchapixel implementation
+		float area = length(N);
+		float NdotRayDir = dot(N, ray.D);
+		if (fabs(NdotRayDir) < t_min) return;
+		float d = -dot(N, v0);
+		float t = -(dot(N, ray.O) + d) / NdotRayDir;
+		if (t < 0) return;
+		float3 p = ray.O + t * ray.D;
+		float3 c;
+
+		float3 vp0 = p - v0;
+		c = cross(e1, vp0);
+		if (dot(N, c) < 0) return;
+		float3 vp1 = p - v1;
+		float3 e3 = v2 - v1;
+		c = cross(e3, vp1);
+		if (dot(N, c) < 0) return;
+		float3 e4 = v0 - v2;
+		float3 vp2 = p - v2;
+		c = cross(e4, vp2);
+		if (dot(N, c) < 0) return;
+
+		ray.t = t, ray.objIdx = objIdx, ray.m = mat,
+			ray.SetInside(GetNormal(ray.IntersectionPoint()));
+
+
+	}
+	float3 GetNormal(const float3 I) const { return N; }
+	float3 v0, v1, v2, e1, e2, N;
+	int objIdx = -1;
+	float3 col;
+	material* mat;
+};
+
 // -----------------------------------------------------------
 // Sphere primitive
 // Basic sphere, with explicit support for rays that start
 // inside it. Good candidate for a dielectric material.
 // -----------------------------------------------------------
-class Sphere
-{
+class Mesh {
+public:
+	Mesh() = default;
+	Mesh(material* m, const char *path) : mat(m), meshPath (path){
+		ifstream file(meshPath, ios::in);
+		if (!file)
+		{
+			std::cerr << "Cannot open " << meshPath << std::endl;
+			exit(1);
+		}
+		string line;
+		float x, y, z;
+		while (getline(file, line))
+		{
+			if (line.substr(0, 2) == "v ") {
+				istringstream v(line.substr(2));
+				v >> x; v >> y; v >> z;
+				vertices.push_back(float3(x, y, z));
+			}
+			else if (line.substr(0, 2) == "f ") {
+				int v0, v1, v2;
+				int temp;
+				const char* constL = line.c_str();
+				sscanf(constL, "f %i//%i %i//%i %i//%i", &v0, &temp, &v1, &temp, &v2, &temp);
+				faces.push_back(int3(v0, v1, v2));
+			}
+		}
+		cout << "V : " << vertices.size() << endl << "F : " << faces.size() << endl;
+	}
+	const char* meshPath;
+	float3 col = 0;
+	material* mat;
+	int size = 0;
+	int vertexNb = 0;
+	int facesNb = 0;
+	vector<float3> vertices;
+	vector<int3> faces;
+};
+
+// -----------------------------------------------------------
+// Sphere primitive
+// Basic sphere, with explicit support for rays that start
+// inside it. Good candidate for a dielectric material.
+// -----------------------------------------------------------
+class Sphere : public Object {
 public:
 	Sphere() = default;
-	Sphere( int idx, float3 p, float r, material* m) : 
-		pos( p ), r2( r* r ), invr( 1 / r ), objIdx( idx ),  mat(m) {}
-	void Intersect( Ray& ray , float t_min) const
-	{
+	Sphere( int idx,  material* m, float3 p, float r) : pos( p ), r2( r* r ), invr( 1 / r ), objIdx( idx ), mat(m) {}
+	void Intersect( Ray& ray , float t_min) override {
 		float3 oc = ray.O - this->pos;
 		float b = dot( oc, ray.D );
 		float c = dot( oc, oc ) - this->r2;
@@ -254,11 +300,10 @@ public:
 // Basic infinite plane, defined by a normal and a distance
 // from the origin (in the direction of the normal).
 // -----------------------------------------------------------
-class Plane
-{
+class Plane : public Object{
 public:
 	Plane() = default;
-	Plane( int idx, float3 normal, float dist, material* m) : N( normal ), d( dist ), objIdx( idx ), mat(m) {}
+	Plane( int idx, material* m, float3 normal, float dist) : N( normal ), d( dist ), objIdx( idx ), mat(m) {}
 	void Intersect( Ray& ray, float t_min) const
 	{
 		float t = -(dot( ray.O, this->N ) + this->d) / (dot( ray.D, this->N ));
@@ -305,19 +350,17 @@ public:
 // start inside it; maybe not the best candidate for testing
 // dielectrics.
 // -----------------------------------------------------------
-class Cube
-{
+class Cube : public Object {
 public:
 	Cube() = default;
-	Cube( int idx, float3 pos, float3 size, material* m, mat4 transform = mat4::Identity() )
+	Cube( int idx, material* m, float3 pos, float3 size,  mat4 transform = mat4::Identity() )
 	{
 		objIdx = idx;
 		b[0] = pos - 0.5f * size, b[1] = pos + 0.5f * size;
 		mat = m;
 		M = transform, invM = transform.FastInvertedTransformNoScale();
 	}
-	void Intersect( Ray& ray, float t_min ) const
-	{
+	void Intersect( Ray& ray, float t_min ) override {
 		// 'rotate' the cube by transforming the ray into object space
 		// using the inverse of the cube transform.
 		float3 O = TransformPosition( ray.O, invM );
@@ -377,19 +420,17 @@ public:
 // Quad primitive
 // Oriented quad, intended to be used as a light source.
 // -----------------------------------------------------------
-class Quad
-{
+class Quad {
 public:
 	Quad() = default;
-	Quad(int idx, float s, material* m, mat4 transform = mat4::Identity())
+	Quad(int idx, material* m, float s,  mat4 transform = mat4::Identity())
 	{
 		objIdx = idx;
 		size = s * 0.5f;
 		mat = m;
 		T = transform, invT = transform.FastInvertedTransformNoScale();
 	}
-	void Intersect( Ray& ray, float t_min ) const
-	{
+	void Intersect( Ray& ray, float t_min ) const {
 		const float3 O = TransformPosition( ray.O, invT );
 		const float3 D = TransformVector( ray.D, invT );
 		const float t = O.y / -D.y;
@@ -413,7 +454,6 @@ public:
 	float size;
 	mat4 T, invT;
 	int objIdx = -1;
-	float3 col; 
 	material* mat;
 };
 
@@ -558,22 +598,34 @@ public:
 		diffuse* standardDiff = new diffuse(float3(0.8f), white, 0.2, 0.8f, 2, raytracer);
 
 		// we store all primitives in one continuous buffer
-		quad = Quad(0, 1, standardDiff);									// 0: light source
-		light[0] = new AreaLight(11, float3(0.1f, 1, 0), 3.0f,  white, 0.1f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
-		light[1] = new AreaLight(12, float3(0.1f, -1, 0), 3.0f,  white, 0.1f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
-		//sphere = Sphere( 1, float3( 0 ), 0.5f, new diffuse(1.0f, blue, 0.0f, raytracer));				// 1: bouncing ball
-		sphere = Sphere( 1, float3( 0 ), 0.5f, new metal(1.4f, white, raytracer));				// 1: bouncing ball
-		sphere2 = Sphere( 2, float3( 1,-0.1f,0 ), 0.2f, new glass(1.4f, white, 0.1f, raytracer));				// 1: bouncing ball
-		//sphere3 = Sphere( 3, float3( -0.3f,-0.1f,-0.2f ), 0.2f, white, new glass(0.1f));				// 1: bouncing ball
-		//sphere2 = Sphere( 2, float3( 0, 2.5f, -3.07f ), 8, blue, new diffuse(float3(0.2f)));	// 2: rounded corners
-		cube = Cube( 3, float3( 0 ), float3( 1.15f ) , new glass(1.4f, red, 0.1f, raytracer));		// 3: cube
-		plane[0] = Plane( 4, float3( 1, 0, 0 ), 3,		new diffuse(float3(0.8f), blue, 0.2, 0.8f, 2, raytracer));		// 4: left wall
-		plane[1] = Plane( 5, float3( -1, 0, 0 ), 2.99f, new diffuse(float3(0.8f), green, 0.2, 0.8f, 2, raytracer));// 5: right wall
-		plane[2] = Plane( 6, float3( 0, 1, 0 ), 1,		new diffuse(float3(0.8f), white, 0.2, 0.8f, 2, raytracer));		// 6: floor
-		plane[3] = Plane( 7, float3( 0, -1, 0 ), 2,		new diffuse(float3(0.8f), white, 0.2, 0.8f, 2, raytracer));		// 7: ceiling
-		plane[4] = Plane( 8, float3( 0, 0, 1 ), 3,		new diffuse(float3(0.8f), white, 0.2, 0.8f, 2, raytracer));			// 8: front wall
-		plane[5] = Plane( 9, float3( 0, 0, -1 ), 3.99f, new diffuse(float3(0.8f), white, 0.2, 0.8f, 2, raytracer));	// 9: back wall
-		//triangle = Triangle(10, float3(0.0f, 0.0f, 1.0f), float3(0.2f, 0, 1.0f), float3(0.1f, 0.2f, 1.0f), new diffuse(0.8f, blue, 0.0f));
+
+		light[0] = new DirectionalLight(11, float3(0, 1.75, 0), 2.0f,  white, float3(0,-1,0.5), 0.9);			//DIT FF CHECKEN!
+		//light[0] = new AreaLight(12, float3(0), 1.0f,  white, 0.1f, float3(0, -1, -1), 4);
+		//light[0] = new AreaLight(11, float3(0.1f, 1, 0), 1.0f, white, 0.1f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
+		//light[1] = new AreaLight(12, float3(0.1f, -1, 0), 1.0f, white, 0.1f, float3(0, -1, 0), 4);			//DIT FF CHECKEN!
+
+
+		
+		plane[0] = Plane( 0, new diffuse(0.8f, blue, 0), float3( 1, 0, 0 ), 3 );			// 0: left wall
+		plane[1] = Plane( 1, new diffuse(0.8f, red, 0), float3( -1, 0, 0 ), 2.99f );		// 1: right wall
+		plane[2] = Plane( 2, new diffuse(0.8f, white, 0), float3( 0, 1, 0 ), 1 );			// 2: floor
+		plane[3] = Plane( 3, new diffuse(0.8f, white, 0), float3( 0, -1, 0 ), 2);			// 3: ceiling
+		plane[4] = Plane( 4, new diffuse(0.8f, red, 0), float3( 0, 0, 1 ), 3 );			// 4: front wall
+		plane[5] = Plane( 5, new diffuse(0.8f, green, 0), float3( 0, 0, -1 ), 3.99f );		// 5: back wall
+		quad = Quad(6, new diffuse(0.8f, white, 0), 1);							// 6: light source
+
+		obj[0] = new Sphere( 7, new diffuse(0.8f, red, 0), float3( 0 ), 0.5f );			// 1: bouncing ball
+		//sphere = Sphere(1, float3(0), 0.5f, new glass(1.5f, red, 1.0f, 0.0f));
+		//obj[0] = new Sphere(7, red, new metal(1.0f, 1.0f), float3(-1.5f, 0, 2), 0.5f);		// 1: static ball => set animOn to false
+		obj[1] = new Sphere(8, new diffuse(0.8f, green, 0), float3(0, 2.5f, -3.07f), 8);		// 2: rounded corners
+		//obj[2] = new Sphere(9, white, new glass(0.1f), float3(1.5f, 0, 2), 0.5f);			// 3: static glass sphere => set animOn to false
+		obj[2] = new Cube(9, new diffuse(0.8f, blue, 0), float3(0), float3(1.15f));		// 3: spinning cube
+		/*Mesh m = Mesh(white, new diffuse(0.1f), "C:\\Users\\fabie\\3D Objects\\ico.obj");
+		for (int i = 0; i < m.faces.size(); i++) {
+			obj[3+i] = new Triangle(10+i, blue, new diffuse(0.0f), m.vertices[(m.faces[i]-1).x]/2, m.vertices[(m.faces[i] - 1).y]/2, m.vertices[(m.faces[i] - 1).z]/2);
+		}*/
+		obj[3] = new Triangle(10, new diffuse(0.8f, blue, 0), float3(0.0f, 0.0f, -0.9f), float3(0.2f, 0, -0.6f), float3(0.1f, 0.2f, -0.9f));	// 4: Triangle
+
 		SetTime( 0 );
 		// Note: once we have triangle support we should get rid of the class
 		// hierarchy: virtuals reduce performance somewhat.
@@ -582,18 +634,24 @@ public:
 	{
 		// default time for the scene is simply 0. Updating/ the time per frame 
 		// enables animation. Updating it per ray can be used for motion blur.
-		animTime = t;
 		// light source animation: swing
-		mat4 M1base = mat4::Translate( float3( 0, 2.6f, 2 ) );
-		mat4 M1 = M1base * mat4::RotateZ( sinf( animTime * 0.6f ) * 0.1f ) * mat4::Translate( float3( 0, -0.9, 0 ) );
+		animTime = t;
+
+		mat4 M1base = mat4::Translate(float3(0, 2.6f, 2));
+		mat4 M1 = M1base * mat4::RotateZ(sinf(animTime * 0.6f) * 0.1f) * mat4::Translate(float3(0, -0.9, 0));
 		quad.T = M1, quad.invT = M1.FastInvertedTransformNoScale();
-		// cube animation: spin
-		mat4 M2base = mat4::RotateX( PI / 4 ) * mat4::RotateZ( PI / 4 );
-		mat4 M2 = mat4::Translate( float3( 1.4f, 0, 2 ) ) * mat4::RotateY( animTime * 0.5f ) * M2base;
-		cube.M = M2, cube.invM = M2.FastInvertedTransformNoScale();
-		// sphere animation: bounce
-		float tm = 1 - sqrf( fmodf( animTime, 2.0f ) - 1 );
-		sphere.pos = float3( -1.4f, -0.5f + tm, 2 );
+
+		if (animOn) {
+			// cube animation: spin
+			mat4 M2base = mat4::RotateX(PI / 4) * mat4::RotateZ(PI / 4);
+			mat4 M2 = mat4::Translate(float3(1.4f, 0, 2)) * mat4::RotateY(animTime * 0.5f) * M2base;
+			if (size(obj) >= 3)((Cube*)obj[2])->M = M2, ((Cube*)obj[2])->invM = M2.FastInvertedTransformNoScale();
+
+			// sphere animation: bounce
+			float tm = 1 - sqrf(fmodf(animTime, 2.0f) - 1);
+			if (size(obj) >= 1)((Sphere*)obj[0])->pos = float3(-1.4f, -0.5f + tm, 2);
+		}
+		
 	}
 	float3 GetLightPos() const
 	{
@@ -604,36 +662,23 @@ public:
 	}
 	float3 GetLightColor() const
 	{
-		return quad.col;
+		return quad.mat->col;
 	}
 	void FindNearest( Ray& ray, float t_min) const
 	{
 		// room walls - ugly shortcut for more speed
 		float t;
 		for (int i = 0; i < size(plane); i++) plane[i].Intersect(ray, t_min);
-		//if (ray.D.x < 0) PLANE_X( 3, 4 ) else PLANE_X( -2.99f, 5 );
-		//if (ray.D.y < 0) PLANE_Y( 1, 6 ) else PLANE_Y( -2, 7 );
-		//if (ray.D.z < 0) PLANE_Z( 3, 8 ) else PLANE_Z( -3.99f, 9 );
-		quad.Intersect( ray , t_min);
-		sphere.Intersect( ray, t_min );
-		sphere2.Intersect( ray, t_min );
-		//triangle.Intersect(ray, t_min);
-		cube.Intersect( ray, t_min);
-		//triangle.Intersect(ray, t_min);
-		//triangle2.Intersect(ray, t_min);
+		
+		for (int i = 0; i < size(obj); i++) obj[i]->Intersect(ray, t_min);
 	}
 	bool IsOccluded( Ray& ray, float t_min) const
 	{
 		float rayLength = ray.t;
 		// skip planes: it is not possible for the walls to occlude anything
 		quad.Intersect( ray, t_min );
-		sphere.Intersect( ray, t_min);
-		sphere2.Intersect( ray, t_min);
-		//triangle.Intersect(ray, t_min);
+		for (int i = 0; i < size(obj); i++) obj[i]->Intersect(ray, t_min);
 
-		cube.Intersect( ray , t_min);
-		//triangle.Intersect(ray, t_min);
-		//triangle2.Intersect(ray, t_min);
 
 		return ray.t < rayLength;
 		// technically this is wasteful: 
@@ -648,10 +693,7 @@ public:
 		if (objIdx == -1) return float3( 0 ); // or perhaps we should just crash
 		float3 N;
 		if (objIdx == 0) N = quad.GetNormal(I);
-		else if (objIdx == 1) N = sphere.GetNormal(I);
-		else if (objIdx == 2) N = sphere2.GetNormal(I);
-		else if (objIdx == 3) N = cube.GetNormal(I);
-		else if (objIdx == 10) N = triangle.GetNormal(I);
+		else if (objIdx >= 7 && objIdx < 7+size(obj)) N = obj[objIdx-7]->GetNormal(I);
 		else 
 		{
 			// faster to handle the 6 planes without a call to GetNormal
@@ -665,10 +707,8 @@ public:
 	{
 		if (objIdx == -1) return float3( 0 ); // or perhaps we should just crash
 		if (objIdx == 0) return quad.GetAlbedo( I );
-		if (objIdx == 1) return sphere.GetAlbedo( I );
-		if (objIdx == 2) return sphere2.GetAlbedo( I );
-		if (objIdx == 3) return cube.GetAlbedo( I );
-		return plane[objIdx - 4].GetAlbedo( I );
+		if (objIdx >= 7 && objIdx < 7 + size(obj)) return obj[objIdx-7]->GetAlbedo(I);
+		return plane[objIdx].GetAlbedo( I );
 		// once we have triangle support, we should pass objIdx and the bary-
 		// centric coordinates of the hit, instead of the intersection location.
 	}
@@ -684,18 +724,14 @@ public:
 	}
 	__declspec(align(64)) // start a new cacheline here
 	float animTime = 0;
-
+	
+	Light* light[1];
+	Object* obj[4];
 	Quad quad;
-	Light* light[2];
-	Sphere sphere;
-	Sphere sphere2;
-	Sphere sphere3;
-	Cube cube;
 	Plane plane[6];
-	Triangle triangle;
-	Triangle triangle2;
 	int aaSamples = 1;
 	bool raytracer = true;
 	float mediumIr = 1.0f;
+	bool animOn = true; // set to false while debugging to prevent some cast error from primitive object type
 };
 }

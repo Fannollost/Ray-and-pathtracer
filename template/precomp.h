@@ -13,6 +13,7 @@
 #include <vector>
 #include <list>
 #include <string>
+#include <sstream>
 #include <thread>
 #include <math.h>
 #include <algorithm>
