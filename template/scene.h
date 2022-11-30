@@ -536,6 +536,7 @@ namespace Tmpl8 {
 			specularColor = powf(fmax(0.0f, -dot(reflectionDirection, ray.D)), N) * lightIntensity;
 			lightAttenuation = lightIntensity;
 
+			//cout << diffu;
 			att = albedo * lightAttenuation * diffu + specularColor * specu;
 			float3 dir;
 			if (raytracer) {
@@ -545,7 +546,7 @@ namespace Tmpl8 {
 				dir = ray.IntersectionPoint() + normal + RandomInHemisphere(normal);
 			}
 			if (isZero(dir)) dir = normal;
-			scattered = Ray(ray.IntersectionPoint(), normalize(dir - ray.IntersectionPoint()), ray.color);
+			scattered = Ray(ray.IntersectionPoint() + 0.001 * RandomInHemisphere(normal) , normalize(dir - ray.IntersectionPoint()), ray.color);
 			//att = albedo;  */
 			float3 retention = float3(1) - albedo;
 			float3 newEnergy(energy - retention);
@@ -607,6 +608,7 @@ namespace Tmpl8 {
 			scattered = Ray(reflOrig, reflDir, col);
 			return true;
 		}
+		
 		float3 refractRay(float3 oRayDir, float3 normal, float refRatio) {
 			float theta = fmin(dot(-oRayDir, normal), 1.0);
 			float3 perpendicular = refRatio * (oRayDir + theta * normal);
@@ -666,7 +668,7 @@ namespace Tmpl8 {
 			float3 blue = float3(112, 66, 219) / 255;
 			float3 babyblue = float3(0, 0, 1.0f);
 			float3 green = float3(105, 250, 144) / 255;
-			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.3f, 0.7f, 1200);
+			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.3f, 0.7f, 1200, raytracer);
 			diffuse* standardDiff = new diffuse(float3(0.8f), white, 0.2, 0.8f, 2, raytracer);
 			glass* standardGlass = new glass(1.5f, white, float3(0.0f), raytracer);
 			glass* blueGlass = new glass(1.5f, blue, float3(0.00f), raytracer);
@@ -677,19 +679,19 @@ namespace Tmpl8 {
 			// we store all primitives in one continuous buffer
 
 			//light[0] = new DirectionalLight(11, float3(0, 2, 0), 8.0f, white, float3(0, -1, 1), 0.9, raytracer);			//DIT FF CHECKEN!
-			light[1] = new AreaLight(12, float3(0,1,0), 3.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);
-			light[0] = new AreaLight(11, float3(0.1f,-0.9f, 0), 3.0f, white, 0.1f, float3(0, 1, 0), 4, raytracer);			//DIT FF CHECKEN!
+			light[1] = new AreaLight(12, float3(0,1,0), 2.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);
+			light[0] = new AreaLight(11, float3(0.1f,-0.9f, 0), 2.0f, white, 0.1f, float3(0, 1, 0), 4, raytracer);			//DIT FF CHECKEN!
 			//light[2] = new AreaLight(13, float3(0.1f, -1, 0), 2.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
 
 			plane[0] = Plane(0, specularDiff, float3(1, 0, 0), 3);			// 0: left wall
-			plane[1] = Plane(1, new diffuse(0.8f, red, 0), float3(-1, 0, 0), 2.99f);		// 1: right wall
-			plane[2] = Plane(2, new diffuse(0.8f, white, 0), float3(0, 1, 0), 1);			// 2: floor
-			plane[3] = Plane(3, new diffuse(0.8f, white, 0), float3(0, -1, 0), 2);			// 3: ceiling
-			plane[4] = Plane(4, new diffuse(0.8f, red, 0), float3(0, 0, 1), 3);			// 4: front wall
-			plane[5] = Plane(5, new diffuse(0.8f, green, 0), float3(0, 0, -1), 3.99f);		// 5: back wall
+			plane[1] = Plane(1, new diffuse(0.8f, red, 0	, 0.3f, 0.7f,raytracer), float3(-1, 0, 0), 2.99f);		// 1: right wall
+			plane[2] = Plane(2, new diffuse(0.8f, white, 0	, 0.3f, 0.7f,raytracer), float3(0, 1, 0), 1);			// 2: floor
+			plane[3] = Plane(3, new diffuse(0.8f, white, 0	, 0.3f, 0.7f,raytracer), float3(0, -1, 0), 2);			// 3: ceiling
+			plane[4] = Plane(4, new diffuse(0.8f, red, 0	, 0.3f, 0.7f,raytracer), float3(0, 0, 1), 3);			// 4: front wall
+			plane[5] = Plane(5, new diffuse(0.8f, green, 0	, 0.3f, 0.7f,raytracer), float3(0, 0, -1), 3.99f);		// 5: back wall
 			//quad = Quad(6, new diffuse(0.8f, white, 0), 1);							// 6: light source
 
-			obj[0] = new Sphere(7, standardMetal, float3(0), 0.5f);			// 1: bouncing ball
+			obj[0] = new Sphere(7, standardGlass, float3(0), 0.5f);			// 1: bouncing ball
 			//obj[0] = new Sphere(7, red, new metal(1.0f, 1.0f), float3(-1.5f, 0, 2), 0.5f);		// 1: static ball => set animOn to false
 			obj[1] = new Sphere(8, specularDiff, float3(0, 2.5f, -3.07f), 8);		// 2: rounded corners
 			//obj[2] = new Sphere(9, white, new glass(0.1f), float3(1.5f, 0, 2), 0.5f);			// 3: static glass sphere => set animOn to false

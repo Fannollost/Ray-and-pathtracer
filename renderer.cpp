@@ -52,7 +52,7 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 		Ray reflected, refracted;
 		g->scatter(ray, reflected, refracted, N, energy);
 
-		totCol += g->col * g->kr * Trace(reflected, depth - 1, energy) * energy;
+		//totCol += g->col * g->kr * Trace(reflected, depth - 1, energy) * energy;
 		totCol += g->col * (1- g->kr) * Trace(refracted, depth - 1, energy) * energy;
 		break;
 	}
@@ -71,10 +71,18 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 			float len2 = dot(lightRayDirection, lightRayDirection);
 			lightRayDirection = normalize(lightRayDirection);
 			Ray r = Ray(ray.IntersectionPoint() + lightRayDirection * 1e-4f ,lightRayDirection, ray.color, sqrt(len2));
-			if (scene.IsOccluded(r, t_min)) continue;
+			if (scene.IsOccluded(r, t_min)){
+				if (scene.raytracer)
+					continue;
+				else if(r.m->type != GLASS)
+					continue;
+			}
 			((diffuse*)m)->scatter(ray, attenuation, scattered, normalize(lightRayDirection),
 				scene.light[i]->GetLightIntensityAt(ray.IntersectionPoint(), N, *m), N, energy);
 			
+			if (!scene.raytracer)
+				totCol += Trace(scattered, depth - 1, energy) * energy;
+
 			totCol += m->col * attenuation * energy;
 
 			/*if (scene.raytracer)
@@ -150,7 +158,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
 		Ray scattered;
 		float3 attenuation;
 		((diffuse*)m)->scatter(r, attenuation, scattered, L, 1, ray.hitNormal, energy);
-		totCol += BRDF * size(scene.light) * light->col * solidAngle * cos_i; //* Sample(scattered,depth-1, energy);
+		totCol += BRDF * size(scene.light) * light->col * solidAngle * cos_i;
 	}
 
 	if (m->type == METAL) {
@@ -305,15 +313,17 @@ void Renderer::Tick( float deltaTime )
 		for (int x = 0; x < SCRWIDTH; x++) {
 			float3 totCol = float3(0);				//antialiassing
 			for (int s = 0; s < scene.aaSamples; ++s) {
-				float newX = x + RandomFloat(); //+ random(-1.0f, 1.0f);
-				float newY = y + RandomFloat(); //+ random(-1.0f, 1.0f);
 				if (scene.raytracer){
+					float newX = x + RandomFloat(); //+ random(-1.0f, 1.0f);
+					float newY = y + RandomFloat(); //+ random(-1.0f, 1.0f);
 					totCol += Trace(camera.GetPrimaryRay(newX, newY), 6, float3(1));
 					accumulator[x + y * SCRWIDTH] = (totCol / scene.aaSamples);
 				}	 
 				else {
-					totCol += Sample(camera.GetPrimaryRay(newX, newY), 4, float3(1));
-					accumulator[x + y * SCRWIDTH] += (totCol / scene.aaSamples);
+					float newX = x + random(-1.0f, 1.0f);
+					float newY = y + random(-1.0f, 1.0f);
+					totCol += Trace(camera.GetPrimaryRay(newX, newY), 2, float3(1));
+					accumulator[x + y * SCRWIDTH] += totCol;
 				}
 			}
 			//accumulator[x + y * SCRWIDTH] = totCol;
@@ -323,7 +333,7 @@ void Renderer::Tick( float deltaTime )
 			iteration = 1;
 		// translate accumulator contents to rgb32 pixels
 		for (int dest = y * SCRWIDTH, x = 0; x < SCRWIDTH; x++)	{
-			float4 acc = accumulator[x + y * SCRWIDTH]; /// iteration;
+			float4 acc = accumulator[x + y * SCRWIDTH] / iteration; /// iteration;
 			screen->pixels[dest + x] = (RGBF32_to_RGB8(&acc));///iteration ;
 		}
 	}
