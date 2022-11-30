@@ -701,22 +701,27 @@ uint RandomUInt(uint& seed)
 }
 float RandomFloat(uint& seed) { return RandomUInt(seed) * 2.3283064365387e-10f; }
 
+float random(float min, float max) //range : [min, max]
+{
+	return min + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (max - min)));
+}
+
 float3 RandomVectorInUnitSphere() {
 	while (true) {
-		auto a = float3(Rand(1),Rand(1),Rand(1));
-		if (sqrLength(a) >= 1) continue;
+		auto a = float3(random(-1.0f,1.0f), random(-1.0f, 1.0f), random(-1.0f, 1.0f));
+		if (sqrLength(a) > 1) continue;
 		return a;
 	}
 }
 
+
 float3 RandomInHemisphere(float3 normal) {
 	float3 a = RandomVectorInUnitSphere();
 	if (dot(a, normal) > 0.0) {
-		return a;
+		return normalize(a);
 	}
-	else {
-		return -a;
-	}
+	else
+		return normalize(a);
 }
 float3 UnitVector(float3 v) { return v / length(v); }
 float3 RandomUnitVector() { return UnitVector(RandomVectorInUnitSphere()); }

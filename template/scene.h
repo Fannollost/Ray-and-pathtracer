@@ -47,6 +47,7 @@ namespace Tmpl8 {
 #endif
 		}
 		float3 IntersectionPoint() { return O + t * D; }
+		void SetMaterial(material* mat) { m = mat; }
 		material* GetMaterial() { return m; }
 		void SetInside(float3 normal) {
 			inside = dot(normalize(D), normal) < 0;
@@ -78,6 +79,7 @@ namespace Tmpl8 {
 		virtual float3 GetLightPosition() { return pos; }
 		float3 GetLightColor() { return col; }
 		virtual float3 GetLightIntensityAt(float3 p, float3 n, const material& m) { return 1; }
+		virtual void Intersect(Ray& ray, float t_min) { return; }
 		float3 pos;
 		bool raytracer;
 		float3 col;
@@ -92,11 +94,32 @@ namespace Tmpl8 {
 		AreaLight(int idx, float3 p, float str, float3 c, float r, float3 n, int s, bool rt)
 			: Light(idx, p, str, c, n, rt) {
 			radius = r;
+			radius2 = r * r;
 			samples = s;
+			area = 2 * radius2 * PI;
+		}
+
+		void Intersect(Ray& ray, float t_min) override {
+			float d = dot(normal, ray.D);
+			//cout << ray.O.x << ", " << ray.O.y << ", " << ray.O.z << endl;
+			////cout << "normal" <<  ray.D.x << ", " << ray.D.y << ", " << ray.D.z << endl;
+			float3 dir = pos - ray.O;
+			float t = dot(dir, normal) / d;
+				if (t >= t_min) {
+					float3 intersection = ray.O +ray.D * t;
+					float3 v = intersection - pos;
+					float dis2 = dot(v, v);
+					if (sqrtf(dis2) <= radius) {
+						ray.t = t, ray.SetInside(normal), ray.color = col;
+							ray.objIdx = objIdx;
+					}
+			}
+
+
 		}
 		float3 GetLightIntensityAt(float3 p, float3 n, const material& m) override {
 			float dis = abs(length(pos - p));
-			float relStr = 1 / (dis)*strength;
+			float relStr = 1 / (dis) * strength;
 			float3 dir = pos - p;
 			float str = dot(n, normalize(dir));
 			if (str < 0.0f) str = 0.0f;
@@ -109,11 +132,12 @@ namespace Tmpl8 {
 		float3 GetLightPosition() override {
 			if (raytracer) return pos;
 			float newRad = radius * sqrt(RandomFloat());
-			float theta = RandomFloat() * 2 * PI;
+			float theta = random(-1.0f, 1.0f) * 2 * PI;
 			return float3(pos.x + newRad * cos(theta), pos.y + newRad * sin(theta), pos.z);
 		}
 		int samples;
-		float radius;
+		float radius, radius2;
+		float area;
 	};
 
 	class DirectionalLight : public Light {
@@ -121,6 +145,9 @@ namespace Tmpl8 {
 		DirectionalLight() = default;
 		DirectionalLight(int idx, float3 p, float str, float3 c, float3 n, float r, bool rt) : Light(idx, p, str, c, n, rt) {
 			sinAngle = sin(r * PI / 2);
+		}
+		void Intersect(Ray& ray, float t_min) override {
+			return;
 		}
 		float3 GetLightPosition() override {
 			return pos;
@@ -526,7 +553,7 @@ namespace Tmpl8 {
 			return true;
 		}
 
-	private:
+	public:
 		float3 albedo;
 		float specu, diffu;
 		int N;
@@ -641,17 +668,18 @@ namespace Tmpl8 {
 			float3 green = float3(105, 250, 144) / 255;
 			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.3f, 0.7f, 1200);
 			diffuse* standardDiff = new diffuse(float3(0.8f), white, 0.2, 0.8f, 2, raytracer);
-			glass* standardGlass = new glass(1.5f, red, float3(0.0f), raytracer);
+			glass* standardGlass = new glass(1.5f, white, float3(0.0f), raytracer);
 			glass* blueGlass = new glass(1.5f, blue, float3(0.00f), raytracer);
 			glass* diamond = new glass(2.4f, white, float3(0.00f), raytracer);
 			diffuse* specularDiff = new diffuse(float3(0.8f), red, 0.3f, 0.7f, 7, raytracer);
+			diffuse* greenDiff = new diffuse(float3(0.8f), green, 0.6f, 0.4f, 1250, raytracer);
 			metal* standardMetal = new metal(0.7f, white, raytracer);
 			// we store all primitives in one continuous buffer
 
 			//light[0] = new DirectionalLight(11, float3(0, 2, 0), 8.0f, white, float3(0, -1, 1), 0.9, raytracer);			//DIT FF CHECKEN!
-			light[1] = new AreaLight(12, float3(0), 2.0f, white, 0.1f, float3(0, -1, -1), 4, raytracer);
-			light[0] = new AreaLight(11, float3(0.1f, 1, 0), 2.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
-			light[2] = new AreaLight(12, float3(0.1f, -1, 0), 1.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
+			light[1] = new AreaLight(12, float3(0,1,0), 3.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);
+			light[0] = new AreaLight(11, float3(0.1f,-0.9f, 0), 3.0f, white, 0.1f, float3(0, 1, 0), 4, raytracer);			//DIT FF CHECKEN!
+			//light[2] = new AreaLight(13, float3(0.1f, -1, 0), 2.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
 
 			plane[0] = Plane(0, specularDiff, float3(1, 0, 0), 3);			// 0: left wall
 			plane[1] = Plane(1, new diffuse(0.8f, red, 0), float3(-1, 0, 0), 2.99f);		// 1: right wall
@@ -666,7 +694,7 @@ namespace Tmpl8 {
 			obj[1] = new Sphere(8, specularDiff, float3(0, 2.5f, -3.07f), 8);		// 2: rounded corners
 			//obj[2] = new Sphere(9, white, new glass(0.1f), float3(1.5f, 0, 2), 0.5f);			// 3: static glass sphere => set animOn to false
 			obj[2] = new Cube(9, blueDiff, float3(0), float3(1.15f));		// 3: spinning cube
-			obj[3] = new Mesh(10, standardGlass, "shape.obj", float3(0,0,2), 0.5f);
+			obj[3] = new Mesh(10, standardMetal, "shape.obj", float3(0,0,2), 0.5f);
 			
 			//obj[3] = new Triangle(10, new diffuse(0.8f, blue, 0), float3(0.0f, 0.0f, 1.0f), float3(0.2f, 0, 1.0f), float3(0.2f, 0.2f, 1.0f));	// 4: Triangle
 
@@ -767,12 +795,12 @@ namespace Tmpl8 {
 		__declspec(align(64)) // start a new cacheline here
 			float animTime = 0;
 
-		Light* light[3];
+		Light* light[2];
 		Object* obj[4];
 		Quad quad;
 		Plane plane[6];
 		int aaSamples = 1;
-		bool raytracer = true;
+		bool raytracer = false;
 		float mediumIr = 1.0f;
 		bool animOn = true; // set to false while debugging to prevent some cast error from primitive object type
 	};
