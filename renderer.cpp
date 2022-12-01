@@ -50,10 +50,12 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 	case GLASS:	{
 		glass* g = (glass*)m;
 		Ray reflected, refracted;
-		g->scatter(ray, reflected, refracted, N, energy);
+		if (g->scatter(ray, reflected, refracted, N, energy)) {
 
-		//totCol += g->col * g->kr * Trace(reflected, depth - 1, energy) * energy;
-		totCol += g->col * (1- g->kr) * Trace(refracted, depth - 1, energy) * energy;
+			totCol += g->col * g->kr * Trace(reflected, depth - 1, energy) * energy;
+			if (refracted.exists)
+				totCol += g->col * (1 - g->kr) * Trace(refracted, depth - 1, energy) * energy;
+		}
 		break;
 	}
 	case METAL:	{
@@ -80,8 +82,8 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 			((diffuse*)m)->scatter(ray, attenuation, scattered, normalize(lightRayDirection),
 				scene.light[i]->GetLightIntensityAt(ray.IntersectionPoint(), N, *m), N, energy);
 			
-			if (!scene.raytracer)
-				totCol += Trace(scattered, depth - 1, energy) * energy;
+			//if (!scene.raytracer)
+			//	totCol += Trace(scattered, depth - 1, energy) * energy;
 
 			totCol += m->col * attenuation * energy;
 
@@ -322,7 +324,7 @@ void Renderer::Tick( float deltaTime )
 				else {
 					float newX = x + random(-1.0f, 1.0f);
 					float newY = y + random(-1.0f, 1.0f);
-					totCol += Trace(camera.GetPrimaryRay(newX, newY), 2, float3(1));
+					totCol += Trace(camera.GetPrimaryRay(newX, newY),3, float3(1));
 					accumulator[x + y * SCRWIDTH] += totCol;
 				}
 			}

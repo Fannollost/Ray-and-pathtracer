@@ -586,8 +586,10 @@ namespace Tmpl8 {
 			float stheta = sqrt(1.0 - ctheta * ctheta);
 			float3 refrDir, reflDir;
 			bool reflected = (refrRatio * stheta) > 1.0;
-
+			if (1 - dot(normal, uDir) * dot(normal, uDir) < 0.001f)
+				return false;
 			float3 absorbance = (1 - col) * absorption * -ray.t;
+			float3& tempCol = col;
 			if (ray.inside)
 			{
 				energy.x *= exp(absorbance.x);
@@ -600,19 +602,19 @@ namespace Tmpl8 {
 			if (kR < 1) {
 				refrDir = normalize(refractRay(uDir, ray.hitNormal, refrRatio));
 				float3 refrOrig = !ray.inside ? ray.IntersectionPoint() - 0.001f : ray.IntersectionPoint() + 0.001f;
-				refracted = Ray(refrOrig, refrDir, col); //check for color of sphere itself
+				refracted = Ray(refrOrig, refrDir + normal * 0.001f, tempCol); //check for color of sphere itself
 			}
 			kr = kR;
 			reflDir = normalize(reflect(uDir, ray.hitNormal));
 			float3 reflOrig = ray.inside ? ray.IntersectionPoint() - 0.001f : ray.IntersectionPoint() + 0.001f;
-			scattered = Ray(reflOrig, reflDir, col);
+			scattered = Ray(reflOrig, reflDir + normal * 0.001f, col);
 			return true;
 		}
 		
 		float3 refractRay(float3 oRayDir, float3 normal, float refRatio) {
 			float theta = fmin(dot(-oRayDir, normal), 1.0);
 			float3 perpendicular = refRatio * (oRayDir + theta * normal);
-			float3	parallel = -sqrt(fabs(1.0 - pow(length(perpendicular), 2))) * normal;
+			float3	parallel = -sqrt(fabs(1.0 - length(perpendicular) * length(perpendicular))) * normal;
 			return perpendicular + parallel;
 		} 
 			/*float3 refractRay(float3 point, float3 normal, float ir) {
@@ -625,30 +627,29 @@ namespace Tmpl8 {
 			float k = 1 - eta * eta * (1 - cosi * cosi);
 			return k < 0 ? 0 : eta * point + (eta * cosi - sqrtf(k)) * n;
 		}  */
-		float ir;
-		float kr;
 
 		//gotta check this/
-		void fresnel(float3 I, float3 normal, float ior, float& kr) {
-			float cosi = clamp(-1.0f, 1.0f, dot(I, normal));
+		void fresnel(float3 I, float3 normal, float ior, float& v) {
+			float cosi = clamp(dot(I, normal) , -1.0f, 1.0f);
 			float etai = 1, etat = ior;
 			if (cosi > 0) { std::swap(etai, etat); }
 			float sint = etai / etat * sqrtf(std::max(0.0f, 1 - cosi * cosi));
 			if (sint >= 1) {
-				kr = 1;
+				v = 1;
 			}
 			else {
 				float cost = sqrtf(std::max(0.0f, 1 - sint * sint));
 				cosi = fabsf(cosi);
 				float Rs = ((etat * cosi) - (etai * cost)) / ((etat * cosi) + (etai * cost));
 				float Rp = ((etai * cosi) - (etat * cost)) / ((etai * cosi) + (etat * cost));
-				kr = (Rs * Rs + Rp * Rp) / 2;
+				v = (Rs * Rs + Rp * Rp) / 2;
 			}
 
 		}//scratchapixel
 
 		float3 absorption;
-
+		float ir;
+		float kr;
 	};
 
 	// -----------------------------------------------------------
@@ -666,19 +667,19 @@ namespace Tmpl8 {
 			float3 white = float3(1.0, 1.0, 1.0);
 			float3 red = float3(199, 70, 123) / 255;
 			float3 blue = float3(112, 66, 219) / 255;
-			float3 babyblue = float3(0, 0, 1.0f);
+			float3 babyblue = float3(0.6f, 0.6f, 1.0f);
 			float3 green = float3(105, 250, 144) / 255;
 			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.3f, 0.7f, 1200, raytracer);
 			diffuse* standardDiff = new diffuse(float3(0.8f), white, 0.2, 0.8f, 2, raytracer);
-			glass* standardGlass = new glass(1.5f, white, float3(0.0f), raytracer);
-			glass* blueGlass = new glass(1.5f, blue, float3(0.00f), raytracer);
+			glass* standardGlass = new glass(1.5f, red, float3(0.1f), raytracer);
+			glass* blueGlass = new glass(1.5f, babyblue, float3(0.0f), raytracer);
 			glass* diamond = new glass(2.4f, white, float3(0.00f), raytracer);
 			diffuse* specularDiff = new diffuse(float3(0.8f), red, 0.3f, 0.7f, 7, raytracer);
 			diffuse* greenDiff = new diffuse(float3(0.8f), green, 0.6f, 0.4f, 1250, raytracer);
 			metal* standardMetal = new metal(0.7f, white, raytracer);
 			// we store all primitives in one continuous buffer
 
-			//light[0] = new DirectionalLight(11, float3(0, 2, 0), 8.0f, white, float3(0, -1, 1), 0.9, raytracer);			//DIT FF CHECKEN!
+			light[0] = new DirectionalLight(11, float3(0, 2, 0), 8.0f, white, float3(0, -1, 1), 0.9, raytracer);			//DIT FF CHECKEN!
 			light[1] = new AreaLight(12, float3(0,1,0), 2.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);
 			light[0] = new AreaLight(11, float3(0.1f,-0.9f, 0), 2.0f, white, 0.1f, float3(0, 1, 0), 4, raytracer);			//DIT FF CHECKEN!
 			//light[2] = new AreaLight(13, float3(0.1f, -1, 0), 2.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
@@ -691,7 +692,7 @@ namespace Tmpl8 {
 			plane[5] = Plane(5, new diffuse(0.8f, green, 0	, 0.3f, 0.7f,raytracer), float3(0, 0, -1), 3.99f);		// 5: back wall
 			//quad = Quad(6, new diffuse(0.8f, white, 0), 1);							// 6: light source
 
-			obj[0] = new Sphere(7, standardGlass, float3(0), 0.5f);			// 1: bouncing ball
+			obj[0] = new Sphere(7, blueGlass, float3(0), 0.5f);			// 1: bouncing ball
 			//obj[0] = new Sphere(7, red, new metal(1.0f, 1.0f), float3(-1.5f, 0, 2), 0.5f);		// 1: static ball => set animOn to false
 			obj[1] = new Sphere(8, specularDiff, float3(0, 2.5f, -3.07f), 8);		// 2: rounded corners
 			//obj[2] = new Sphere(9, white, new glass(0.1f), float3(1.5f, 0, 2), 0.5f);			// 3: static glass sphere => set animOn to false
@@ -802,7 +803,7 @@ namespace Tmpl8 {
 		Quad quad;
 		Plane plane[6];
 		int aaSamples = 1;
-		bool raytracer = false;
+		bool raytracer = true;
 		float mediumIr = 1.0f;
 		bool animOn = true; // set to false while debugging to prevent some cast error from primitive object type
 	};
