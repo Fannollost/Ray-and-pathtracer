@@ -167,7 +167,7 @@ namespace Tmpl8 {
 		Triangle(int idx, material* m, float3 ver0, float3 ver1, float3 ver2) : objIdx(idx), v0(ver0), v1(ver1), v2(ver2), mat(m) {
 			e1 = v1 - v0;
 			e2 = v2 - v0;
-			N = cross(e1, e2);
+			N = normalize(cross(e1, e2));
 		}
 		void Intersect(Ray& ray, float t_min) override {		 //scratchapixel implementation
 			float NdotRayDir = dot(N, ray.D);
@@ -190,7 +190,7 @@ namespace Tmpl8 {
 			c = cross(e4, vp2);
 			if (dot(N, c) < 0) return;
 
-			if (t < ray.t) {
+			if (t < ray.t && t > t_min) {
 				ray.t = t, ray.objIdx = objIdx, ray.m = mat,
 					ray.SetInside(GetNormal(ray.IntersectionPoint()));
 			}
@@ -543,8 +543,8 @@ namespace Tmpl8 {
 	public:
 		metal(float f, float3 c, bool rt) : fuzzy(f < 1 ? f : 1), material(c, rt) { type = METAL; }
 		virtual bool scatter(Ray& ray, Ray& reflected, float3 normal, float3& energy) {
-			float3 dir = reflect(ray.D, normal); //add fuzzy
-			reflected = Ray(ray.IntersectionPoint() + 0.05f * normal, dir, ray.color * col);
+			float3 dir = reflect(ray.D, normal);
+			reflected = Ray(ray.IntersectionPoint(), dir, ray.color * col);
 			energy = energy;
 			return dot(reflected.D, normal) > 0;
 		}
@@ -577,12 +577,14 @@ namespace Tmpl8 {
 				energy = energy;
 			}
 			if (kR < 1) {
-				refrDir = refractRay(uDir, ray.hitNormal, refrRatio);
-				refracted = Ray(ray.IntersectionPoint(), refrDir, col); //check for color of sphere itself
+				refrDir = normalize(refractRay(uDir, ray.hitNormal, refrRatio));
+				float3 refrOrig = !ray.inside ? ray.IntersectionPoint() - 0.001f : ray.IntersectionPoint() + 0.001f;
+				refracted = Ray(refrOrig, refrDir, col); //check for color of sphere itself
 			}
 			kr = kR;
-			reflDir = reflect(uDir, ray.hitNormal);
-			scattered = Ray(ray.IntersectionPoint(), reflDir, col);
+			reflDir = normalize(reflect(uDir, ray.hitNormal));
+			float3 reflOrig = ray.inside ? ray.IntersectionPoint() - 0.001f : ray.IntersectionPoint() + 0.001f;
+			scattered = Ray(reflOrig, reflDir, col);
 			return true;
 		}
 		float3 refractRay(float3 oRayDir, float3 normal, float refRatio) {
@@ -590,7 +592,17 @@ namespace Tmpl8 {
 			float3 perpendicular = refRatio * (oRayDir + theta * normal);
 			float3	parallel = -sqrt(fabs(1.0 - pow(length(perpendicular), 2))) * normal;
 			return perpendicular + parallel;
-		}
+		} 
+			/*float3 refractRay(float3 point, float3 normal, float ir) {
+			float cosi = clamp(dot(point, normal ),-1.0f, 1.0f);
+			float etai = 1, etat = ir;
+			float3 n = normal;
+			if (cosi < 0) { cosi = -cosi; }
+			else { std::swap(etai, etat); n = -normal; }
+			float eta = etai / etat;
+			float k = 1 - eta * eta * (1 - cosi * cosi);
+			return k < 0 ? 0 : eta * point + (eta * cosi - sqrtf(k)) * n;
+		}  */
 		float ir;
 		float kr;
 
@@ -632,11 +644,13 @@ namespace Tmpl8 {
 			float3 white = float3(1.0, 1.0, 1.0);
 			float3 red = float3(199, 70, 123) / 255;
 			float3 blue = float3(112, 66, 219) / 255;
+			float3 babyblue = float3(0, 0, 1.0f);
 			float3 green = float3(105, 250, 144) / 255;
 			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.3f, 0.7f, 1200);
 			diffuse* standardDiff = new diffuse(float3(0.8f), white, 0.2, 0.8f, 2, raytracer);
-			glass* standardGlass = new glass(1.5f, white, float3(0.10f), raytracer);
-			glass* blueGlass = new glass(1.5f, blue, float3(0.10f), raytracer);
+			glass* standardGlass = new glass(1.5f, red, float3(0.0f), raytracer);
+			glass* blueGlass = new glass(1.5f, blue, float3(0.00f), raytracer);
+			glass* diamond = new glass(2.4f, white, float3(0.00f), raytracer);
 			diffuse* specularDiff = new diffuse(float3(0.8f), red, 0.3f, 0.7f, 7, raytracer);
 			metal* standardMetal = new metal(0.7f, white, raytracer);
 			// we store all primitives in one continuous buffer
