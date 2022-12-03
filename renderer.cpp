@@ -23,7 +23,7 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 	if (depth <= 0) return float3(0, 0, 0);
 	float t_min = 0.001f;
 	scene.FindNearest(ray, t_min);
-	if (ray.objIdx == -1) return 0; // or a fancy sky color	
+	if (ray.objIdx == -1) return scene.GetSkyColor(ray);	
 	float3 totCol = float3(0);
 	material* m = ray.GetMaterial();
 	float3 I = ray.O + ray.t * ray.D;
@@ -150,6 +150,6 @@ void Renderer::Tick( float deltaTime )
 	avg = (1 - alpha) * avg + alpha * t.elapsed() * 1000;
 	if (alpha > 0.05f) alpha *= 0.5f;
 	float fps = 1000 / avg, rps = (SCRWIDTH * SCRHEIGHT) * fps;
-	//printf( "%5.2fms (%.1ffps) - %.1fMrays/s %.1fCameraSpeed\n", avg, fps, rps / 1000000, camera.speed );
+	printf( "%5.2fms (%.1ffps) - %.1fMrays/s %.1fCameraSpeed\n", avg, fps, rps / 1000000, camera.speed);
 }
 

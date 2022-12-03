@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <assert.h>
 #include <io.h>
+#include <lib/stb_image.h>
 
 
 // header for AVX, and every technology before it.
@@ -459,7 +460,6 @@ float3 RandomInHemisphere(float3 normal);
 float3 RandomUnitVector();
 float Rand( float range );
 float3 RandomVectorInUnitSphere();
-
 
 // Perlin noise
 float noise2D( const float x, const float y );

@@ -28,8 +28,6 @@ namespace Tmpl8
 			y > 0 ? camera.speed += 0.1f : camera.speed -= 0.1f;
 		}
 		void KeyUp(int key) {
-			cout << key << endl;
-			//aspectRatio(int value)
 			switch (key) {
 			case KEYBOARD_W:
 				camera.MoveCameraY(-1);
