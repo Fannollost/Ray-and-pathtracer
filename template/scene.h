@@ -661,22 +661,23 @@ namespace Tmpl8 {
 			light[1] = new AreaLight(12, float3(0), 2.0f, white, 0.1f, float3(0, -1, -1), 4, raytracer);
 			//light[2] = new AreaLight(11, float3(0.1f, 1, 0), 2.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
 			light[2] = new AreaLight(12, float3(0.1f, -1, 2), 1.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
+			
+			//plane[0] = Plane(0, new diffuse(0.8f, white, 0), float3(0, 1, 0), 1);			// 2: floor
 
 			//plane[0] = Plane(0, specularDiff, float3(1, 0, 0), 3);			// 0: left wall
 			//plane[1] = Plane(1, new diffuse(0.8f, red, 0), float3(-1, 0, 0), 2.99f);		// 1: right wall
-			plane[0] = Plane(0, new diffuse(0.8f, white, 0), float3(0, 1, 0), 1);			// 2: floor
 			//plane[2] = Plane(2, new diffuse(0.8f, white, 0), float3(0, 1, 0), 1);			// 2: floor
 			//plane[3] = Plane(3, new diffuse(0.8f, white, 0), float3(0, -1, 0), 2);			// 3: ceiling
 			//plane[4] = Plane(4, new diffuse(0.8f, red, 0), float3(0, 0, 1), 3);			// 4: front wall
 			//plane[5] = Plane(5, new diffuse(0.8f, green, 0), float3(0, 0, -1), 3.99f);		// 5: back wall
-			//quad = Quad(6, new diffuse(0.8f, white, 0), 1);							// 6: light source
+			quad = Quad(6, new diffuse(0.8f, white, 0), 1);							// 6: light source
 
 			obj[0] = new Sphere(7, blueDiff, float3(0), 0.5f);			// 1: bouncing ball
 			obj[1] = new Cube(8, blueDiff, float3(0), float3(1.15f));		// 3: spinning cube
 			//obj[0] = new Sphere(7, red, new metal(1.0f, 1.0f), float3(-1.5f, 0, 2), 0.5f);		// 1: static ball => set animOn to false
 			//obj[1] = new Sphere(8, specularDiff, float3(0, 2.5f, -3.07f), 8);		// 2: rounded corners
 			//obj[2] = new Sphere(9, white, new glass(0.1f), float3(1.5f, 0, 2), 0.5f);			// 3: static glass sphere => set animOn to false
-			obj[2] = new Mesh(9, specularDiff, "C:\\Users\\fabie\\3D Objects\\ico.obj", float3(0,1,2), 0.5f);
+			obj[2] = new Mesh(9, specularDiff, "C:\\Users\\fabie\\3D Objects\\stellatedDode.obj", float3(0.2,-1,2), 0.01f);
 			
 			//obj[3] = new Triangle(10, new diffuse(0.8f, blue, 0), float3(0.0f, 0.0f, 1.0f), float3(0.2f, 0, 1.0f), float3(0.2f, 0.2f, 1.0f));	// 4: Triangle
 
@@ -721,7 +722,7 @@ namespace Tmpl8 {
 		void FindNearest(Ray& ray, float t_min) const
 		{
 
-			for (int i = 0; i < size(plane); i++) plane[i].Intersect(ray, t_min);
+			//for (int i = 0; i < size(plane); i++) plane[i].Intersect(ray, t_min);
 
 			for (int i = 0; i < size(obj); i++) obj[i]->Intersect(ray, t_min);
 		}
@@ -760,7 +761,7 @@ namespace Tmpl8 {
 			if (objIdx == -1) return float3(0); // or perhaps we should just crash
 			if (objIdx == 0) return quad.GetAlbedo(I);
 			if (objIdx >= 7 && objIdx < 7 + size(obj)) return obj[objIdx - 7]->GetAlbedo(I);
-			return plane[objIdx].GetAlbedo(I);
+			// return plane[objIdx].GetAlbedo(I);
 			// once we have triangle support, we should pass objIdx and the bary-
 			// centric coordinates of the hit, instead of the intersection location.
 		}
@@ -778,14 +779,14 @@ namespace Tmpl8 {
 		float3 GetSkyColor(Ray &r) const
 		{	
 			float3 horizontalProj = float3(r.D.x, 0, r.D.z);
-			float cosHeight = dot(r.D, horizontalProj);
+			float cHeight = dot(r.D, float3(0, -1, 0));
 			float cOrient = dot(float3(0, 0, 1), normalize(horizontalProj));
 			float sOrient = dot(float3(1, 0, 0), normalize(horizontalProj));
 			sOrient = sOrient > 0 ? 1 : -1;
-			int y = cosHeight * (skydomeY-1);
+			int y = ((cHeight + 1) / 2) * (skydomeY-1);
 			int x = (((sOrient * acos(cOrient))+PI)/ TWOPI )* (skydomeX-1);
 			unsigned char* pixelOffset = skydome + (x + skydomeX * y) * skydomeN;
-			return float3(*pixelOffset, *(pixelOffset+1), (*pixelOffset+2))/255;
+			return float3(uint3(pixelOffset[0], pixelOffset[1], pixelOffset[2]))/255;
 		}
 
 		__declspec(align(64)) // start a new cacheline here
@@ -796,7 +797,7 @@ namespace Tmpl8 {
 		int skydomeX, skydomeY, skydomeN;
 		unsigned char* skydome;
 		Quad quad;
-		Plane plane[1];
+		//Plane plane[6];
 		int aaSamples = 1;
 		bool raytracer = true;
 		float mediumIr = 1.0f;
