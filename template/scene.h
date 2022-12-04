@@ -523,11 +523,12 @@ namespace Tmpl8 {
 	
 	class diffuse : public material {
 	public:
-		diffuse(float3 a = 0, float3 c = 0, float ks = 0.2, float kd = 0.8, int n = 2, bool rt = true, float e = 0)
+		diffuse(float3 a = 0, float3 c = 0, float ks = 0.2, float kd = 0.8, int n = 2, bool rt = true, float e = 0, float s = 0)
 			: specu(ks), diffu(kd), N(n), material(c, rt) {
 			type = DIFFUSE;
 			albedo = a;
 			emission = e;
+			shinieness = s;
 		}
 		void SetSpecularity(float ks) { specu = ks; }
 		void SetDiffuse(float kd) { diffu = kd; }
@@ -557,7 +558,7 @@ namespace Tmpl8 {
 		}
 
 	public:
-		float specu, diffu;
+		float specu, diffu, shinieness;
 		int N;
 	};
 
@@ -618,14 +619,6 @@ namespace Tmpl8 {
 			// kt = 1 - kr;
 		}
 		float3 RefractRay(const float3& oRayDir, const float3& normal, const float& refRatio) {
-			/*float cosi = clamp(dot(oRayDir, normal), -1.0f, 1.0f);
-			float etai = 1, etat = refRatio;
-			float3 n = normal;
-			if (cosi < 0) { cosi = -cosi; }
-			else { std::swap(etai, etat); n = -n; }
-			float eta = etai / etat;
-			float k = 1 - eta * eta * (1 - cosi * cosi);
-			return k < 0 ? 0 : eta * oRayDir + (eta * cosi - sqrtf(k) * n);*/
 			float theta = fmin(dot(-oRayDir, normal), 1.0);	  
 			float3 perpendicular = refRatio * (oRayDir + theta * normal);
 			float3	parallel = -sqrt(fabs(1.0 - pow(length(perpendicular), 2))) * normal;
@@ -635,83 +628,6 @@ namespace Tmpl8 {
 		float ir, fresnelVal;
 		float3 absorption;
 	};
-	/*lass glass : public material{
-	public:
-		glass(float refIndex, float3 c, float3 a, bool rt) : ir(refIndex), absorption(a), material(c, rt) { type = GLASS; }
-		virtual bool scatter(Ray& ray, Ray& scattered, Ray& refracted, float3 normal, float3& energy) {
-			float kR;
-			float refrRatio = ray.inside ? (1.0 / ir) : ir;
-			fresnel(ray.IntersectionPoint(), normal, refrRatio, kR);
-			float3 uDir = UnitVector(ray.D);
-			float ctheta = fmin(dot(-uDir, ray.hitNormal), 1.0);			//maybe use normal
-			float stheta = sqrt(1.0 - ctheta * ctheta);
-			float3 refrDir, reflDir;
-			bool reflected = (refrRatio * stheta) > 1.0;
-			if (1 - dot(normal, uDir) * dot(normal, uDir) < 0.001f)
-				return false;
-			float3 absorbance = (1 - col) * absorption * -ray.t;
-			float3& tempCol = col;
-			if (ray.inside)
-			{
-				energy.x *= exp(absorbance.x);
-				energy.y *= exp(absorbance.y);
-				energy.z *= exp(absorbance.z);
-			}
-			else {
-				energy = energy;
-			}
-			if (kR < 1) {
-				refrDir = normalize(refractRay(uDir, ray.hitNormal, refrRatio));
-				float3 refrOrig = !ray.inside ? ray.IntersectionPoint() - 0.001f : ray.IntersectionPoint() + 0.001f;
-				refracted = Ray(refrOrig, refrDir + normal * 0.001f, tempCol); //check for color of sphere itself
-			}
-			kr = kR;
-			reflDir = normalize(reflect(uDir, ray.hitNormal));
-			float3 reflOrig = ray.inside ? ray.IntersectionPoint() - 0.001f : ray.IntersectionPoint() + 0.001f;
-			scattered = Ray(reflOrig, reflDir + normal * 0.001f, col);
-			return true;
-		}
-		
-		float3 refractRay(float3 oRayDir, float3 normal, float refRatio) {
-			float theta = fmin(dot(-oRayDir, normal), 1.0);
-			float3 perpendicular = refRatio * (oRayDir + theta * normal);
-			float3	parallel = -sqrt(fabs(1.0 - length(perpendicular) * length(perpendicular))) * normal;
-			return perpendicular + parallel;
-		} 
-			/*float3 refractRay(float3 point, float3 normal, float ir) {
-			float cosi = clamp(dot(point, normal ),-1.0f, 1.0f);
-			float etai = 1, etat = ir;
-			float3 n = normal;
-			if (cosi < 0) { cosi = -cosi; }
-			else { std::swap(etai, etat); n = -normal; }
-			float eta = etai / etat;
-			float k = 1 - eta * eta * (1 - cosi * cosi);
-			return k < 0 ? 0 : eta * point + (eta * cosi - sqrtf(k)) * n;
-		}  */
-
-		//gotta check this/	 
-		/*void fresnel(float3 I, float3 normal, float ior, float& v) {
-			float cosi = clamp(dot(I, normal) , -1.0f, 1.0f);
-			float etai = 1, etat = ior;
-			if (cosi > 0) { std::swap(etai, etat); }
-			float sint = etai / etat * sqrtf(std::max(0.0f, 1 - cosi * cosi));
-			if (sint >= 1) {
-				v = 1;
-			}
-			else {
-				float cost = sqrtf(std::max(0.0f, 1 - sint * sint));
-				cosi = fabsf(cosi);
-				float Rs = ((etat * cosi) - (etai * cost)) / ((etat * cosi) + (etai * cost));
-				float Rp = ((etai * cosi) - (etat * cost)) / ((etai * cosi) + (etat * cost));
-				v = (Rs * Rs + Rp * Rp) / 2;
-			}
-
-		}//scratchapixel
-
-		float3 absorption;
-		float ir;
-		float kr;
-	}; */
 
 	// -----------------------------------------------------------
 	// Scene class
@@ -739,6 +655,7 @@ namespace Tmpl8 {
 			diffuse* greenDiff = new diffuse(float3(0.8f), green, 0.6f, 0.4f, 2, raytracer);
 			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.6f, 0.4f, 2, raytracer);
 			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.6f, 0.4f, 2, raytracer);
+			diffuse* specReflDiff = new diffuse(float3(0.7f), white, 0.6f, 0.4f, 50, raytracer, 0.0f, 0.1f);
 			metal* standardMetal = new metal(0.7f, white, raytracer);
 			// we store all primitives in one continuous buffer
 
@@ -750,7 +667,7 @@ namespace Tmpl8 {
 
 			plane[0] = Plane(0, redDiff, float3(1, 0, 0), 3);			// 0: left wall
 			plane[1] = Plane(1, new diffuse(0.8f, red, 0	, 0.3f, 0.7f,raytracer), float3(-1, 0, 0), 2.99f);		// 1: right wall
-			plane[2] = Plane(2, new diffuse(0.8f, white, 0	, 0.3f, 0.7f,raytracer), float3(0, 1, 0), 1);			// 2: floor
+			plane[2] = Plane(2, specReflDiff, float3(0, 1, 0), 1);			// 2: floor
 			plane[3] = Plane(3, specularDiff, float3(0, -1, 0), 2);			// 3: ceiling
 			plane[4] = Plane(4, new diffuse(0.8f, red, 0	, 0.3f, 0.7f,raytracer), float3(0, 0, 1), 3);			// 4: front wall
 			plane[5] = Plane(5, greenDiff, float3(0, 0, -1), 3.99f);		// 5: back wall
@@ -760,7 +677,7 @@ namespace Tmpl8 {
 			//obj[0] = new Sphere(7, red, new metal(1.0f, 1.0f), float3(-1.5f, 0, 2), 0.5f);		// 1: static ball => set animOn to false
 			obj[1] = new Sphere(8, specularDiff, float3(0, 2.5f, -3.07f), 8);		// 2: rounded corners
 			//obj[2] = new Sphere(9, white, new glass(0.1f), float3(1.5f, 0, 2), 0.5f);			// 3: static glass sphere => set animOn to false
-			obj[2] = new Cube(9, redDiff, float3(0), float3(1.15f));		// 3: spinning cube
+			obj[2] = new Cube(9, blueDiff, float3(0), float3(1.15f));		// 3: spinning cube
 			//obj[1] = new Mesh(10, blueDiff, "shape.obj", float3(0,0,2), 0.5f);
 			
 			//obj[3] = new Triangle(10, new diffuse(0.8f, blue, 0), float3(0.0f, 0.0f, 1.0f), float3(0.2f, 0, 1.0f), float3(0.2f, 0.2f, 1.0f));	// 4: Triangle
