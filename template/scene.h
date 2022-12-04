@@ -118,7 +118,7 @@ namespace Tmpl8 {
 		}
 		float3 GetLightIntensityAt(float3 p, float3 n, const material& m) override {
 			float dis = abs(length(pos - p));
-			float relStr = 1 / (dis) * strength;
+			float relStr = 1 / (dis * PI) * strength;
 			float3 dir = pos - p;
 			float str = dot(n, normalize(dir));
 			if (str < 0.0f) str = 0.0f;
@@ -546,10 +546,10 @@ namespace Tmpl8 {
 				dir = ray.IntersectionPoint() + normal;
 			}
 			else {
-				dir = ray.IntersectionPoint() + normal + RandomInHemisphere(normal);
+				dir = RandomInHemisphere(normal);
 			}
-			if (isZero(dir)) dir = normal;
-			scattered = Ray(ray.IntersectionPoint() + 0.001 * RandomInHemisphere(normal) , normalize(ray.IntersectionPoint() - dir), ray.color);
+			//if (isZero(dir)) dir = normal;
+			scattered = Ray(ray.IntersectionPoint(), dir, ray.color);
 			//att = albedo;  */
 			float3 retention = float3(1) - albedo;
 			float3 newEnergy(energy - retention);
@@ -647,37 +647,37 @@ namespace Tmpl8 {
 			float3 babyblue = float3(0.6f, 0.6f, 1.0f);
 			float3 green = float3(255, 250, 144) / 255;
 			//diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.3f, 0.7f, 1200, raytracer);
-			diffuse* standardDiff = new diffuse(float3(0.8f), white, 0.2, 0.8f, 2, raytracer);
-			glass* standardGlass = new glass(1.5f, white, float3(0.05f), raytracer);
+			diffuse* standardDiff = new diffuse(float3(0.8f), blue, 0.8f, 0.2f, 32, raytracer);
+			glass* standardGlass = new glass(1.5f, white, float3(0.0f), raytracer);
 			//glass* blueGlass = new glass(1.5f, babyblue, float3(0.0f), raytracer);
 			//glass* diamond = new glass(2.4f, white, float3(0.00f), raytracer);
 			diffuse* specularDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 1200, raytracer, 1.0f);
 			diffuse* greenDiff = new diffuse(float3(0.8f), green, 0.6f, 0.4f, 2, raytracer);
-			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.6f, 0.4f, 2, raytracer);
+			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.8f, 0.2f, 1, raytracer);
 			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.6f, 0.4f, 2, raytracer);
 			diffuse* specReflDiff = new diffuse(float3(0.7f), white, 0.6f, 0.4f, 50, raytracer, 0.0f, 0.1f);
 			metal* standardMetal = new metal(0.7f, white, raytracer);
 			// we store all primitives in one continuous buffer
 
-			//light[0] = new DirectionalLight(11, float3(0, 2, 0), 8.0f, white, float3(0, -1, 1), 0.9, raytracer);			//DIT FF CHECKEN!
-			light[1] = new AreaLight(12, float3(0,1,0), 4.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);
-			light[0] = new AreaLight(11, float3(0.1f,-0.9f, 0), 4.0f, white, 0.1f, float3(0, 1, 0), 4, raytracer);			//DIT FF CHECKEN!
+			//light[0] = new DirectionalLight(11, float3(0, 2, 0), 10.0f, white, float3(0, -1, 1), 0.9, raytracer);			//DIT FF CHECKEN!
+			light[0] = new AreaLight(12, float3(0,1,0), 15.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);
+			light[1] = new AreaLight(11, float3(0.1f,-0.9f, 0), 15.0f, white, 0.1f, float3(0, 1, 0), 4, raytracer);			//DIT FF CHECKEN!
 			//light[2] = new AreaLight(10, float3(0.1f,1.0f, 2), 4.0f, white, 0.1f, float3(0, 1, 0), 4, raytracer);			//DIT FF CHECKEN!
 			//light[2] = new AreaLight(13, float3(0.1f, -1, 0), 2.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
 
-			plane[0] = Plane(0, redDiff, float3(1, 0, 0), 3);			// 0: left wall
-			plane[1] = Plane(1, new diffuse(0.8f, red, 0	, 0.3f, 0.7f,raytracer), float3(-1, 0, 0), 2.99f);		// 1: right wall
-			plane[2] = Plane(2, specReflDiff, float3(0, 1, 0), 1);			// 2: floor
+			plane[0] = Plane(0, new diffuse(0.8f, white, 0.3f, 0.7f, 4, raytracer), float3(1, 0, 0), 3);			// 0: left wall
+			plane[1] = Plane(1, new diffuse(0.8f, white, 0.0f, 1.0f,4,raytracer), float3(-1, 0, 0), 2.99f);		// 1: right wall
+			plane[2] = Plane(2, specularDiff, float3(0, 1, 0), 1);			// 2: floor
 			plane[3] = Plane(3, specularDiff, float3(0, -1, 0), 2);			// 3: ceiling
-			plane[4] = Plane(4, new diffuse(0.8f, red, 0	, 0.3f, 0.7f,raytracer), float3(0, 0, 1), 3);			// 4: front wall
+			plane[4] = Plane(4, new diffuse(0.8f, white, 0	, 0.3f, 0.7f,raytracer), float3(0, 0, 1), 3);			// 4: front wall
 			plane[5] = Plane(5, greenDiff, float3(0, 0, -1), 3.99f);		// 5: back wall
 			//quad = Quad(6, new diffuse(0.8f, white, 0), 1);							// 6: light source
 
 			obj[0] = new Sphere(7, standardGlass, float3(0), 0.5f);			// 1: bouncing ball
 			//obj[0] = new Sphere(7, red, new metal(1.0f, 1.0f), float3(-1.5f, 0, 2), 0.5f);		// 1: static ball => set animOn to false
-			obj[1] = new Sphere(8, specularDiff, float3(0, 2.5f, -3.07f), 8);		// 2: rounded corners
+			//obj[1] = new Sphere(8, specularDiff, float3(0, 2.5f, -3.07f), 8);		// 2: rounded corners
 			//obj[2] = new Sphere(9, white, new glass(0.1f), float3(1.5f, 0, 2), 0.5f);			// 3: static glass sphere => set animOn to false
-			obj[2] = new Cube(9, blueDiff, float3(0), float3(1.15f));		// 3: spinning cube
+			//obj[2] = new Cube(9, blueDiff, float3(0), float3(1.15f));		// 3: spinning cube
 			//obj[1] = new Mesh(10, blueDiff, "shape.obj", float3(0,0,2), 0.5f);
 			
 			//obj[3] = new Triangle(10, new diffuse(0.8f, blue, 0), float3(0.0f, 0.0f, 1.0f), float3(0.2f, 0, 1.0f), float3(0.2f, 0.2f, 1.0f));	// 4: Triangle
@@ -732,6 +732,7 @@ namespace Tmpl8 {
 			float rayLength = ray.t;
 			// skip planes: it is not possible for the walls to occlude anything
 			quad.Intersect(ray, t_min);
+			for (int i = 0; i < size(plane); i++) plane[i].Intersect(ray, t_min);
 			for (int i = 0; i < size(obj); i++) obj[i]->Intersect(ray, t_min);
 
 			return ray.t < rayLength;
@@ -780,11 +781,11 @@ namespace Tmpl8 {
 			float animTime = 0;
 
 		Light* light[2];
-		Object* obj[3];
+		Object* obj[1];
 		Quad quad;
 		Plane plane[6];
 		int aaSamples = 1;
-		bool raytracer = true;
+		bool raytracer = false;
 		float mediumIr = 1.0f;
 		bool animOn = true; // set to false while debugging to prevent some cast error from primitive object type
 	};

@@ -708,12 +708,11 @@ float random(float min, float max) //range : [min, max]
 
 float3 RandomVectorInUnitSphere() {
 	while (true) {
-		auto a = float3(random(-1.0f,1.0f), random(-1.0f, 1.0f), random(-1.0f, 1.0f));
+		auto a = float3(RandomFloat() * 2 -1, RandomFloat() * 2 - 1, RandomFloat() * 2 - 1);
 		if (sqrLength(a) > 1) continue;
 		return a;
 	}
 }
-
 
 float3 RandomInHemisphere(float3 normal) {
 	float3 a = RandomVectorInUnitSphere();
@@ -721,7 +720,7 @@ float3 RandomInHemisphere(float3 normal) {
 		return normalize(a);
 	}
 	else
-		return normalize(a);
+		return -normalize(a);
 }
 float3 UnitVector(float3 v) { return v / length(v); }
 float3 RandomUnitVector() { return UnitVector(RandomVectorInUnitSphere()); }

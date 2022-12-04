@@ -85,9 +85,9 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 		break;
 	}
 	case DIFFUSE:
+		Ray scattered;
 		for (int i = 0; i < sizeof(scene.light) / sizeof(scene.light[0]); i++)
 		{
-			Ray scattered;
 			float3 attenuation;
 			float3 lightRayDirection = scene.light[i]->GetLightPosition() - ray.IntersectionPoint();
 			float len2 = dot(lightRayDirection, lightRayDirection);
@@ -96,7 +96,6 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 			((diffuse*)m)->scatter(ray, attenuation, scattered, normalize(lightRayDirection),
 				scene.light[i]->GetLightIntensityAt(ray.IntersectionPoint(), N, *m), N, energy);
 			if (scene.IsOccluded(r, t_min)) {
-				 if (r.m->type != GLASS)
 					continue;
 			}
 
@@ -105,6 +104,23 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 
 			totCol += (1- ((diffuse*)m)->shinieness) * m->col * attenuation * energy;
 		}
+
+		if(!scene.raytracer){
+			float3 indirectLightning = 0;
+
+			int N = 1;
+			float BRDF = 1 * INV2PI;
+			for (int i = 0; i < N; i++) {
+				float3 cos_i = dot(scattered.D, N);
+				indirectLightning += cos_i * Trace(scattered,
+					depth - 1, energy) / BRDF ;
+			}
+
+			indirectLightning /= (float)N;
+			totCol *= INVPI;
+			totCol += indirectLightning;
+		}
+		break;
 	}
 	
 	return totCol;
@@ -228,25 +244,96 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
 */
 
 float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
-	float t_min = 0.01f;
-	float eps = 0.0001f;
+	if (depth < 0) return float3(0);
 	float3 totCol = 0;
-	//float3 hitCol = Trace(ray, 1, energy);
-	if (depth < 0) return float3(1.0, 1.0, 1.0);
+	float t_min = 0.001f;
+	float eps = 0.0001f;
 	scene.FindNearest(ray, t_min);
-	float3 hemiDir = RandomInHemisphere(ray.hitNormal);
-	Ray rayToHemisphere = Ray(ray.IntersectionPoint() + hemiDir * eps, hemiDir, ray.color);
-	for (int i = 0; i < size(scene.light); i++)
+	float3 intersectionPoint = ray.IntersectionPoint();
+	float3 normal = ray.hitNormal;
+	material* m = ray.GetMaterial();
+	switch (m->type)
 	{
-		scene.light[i]->Intersect(rayToHemisphere, t_min);
-		if (rayToHemisphere.objIdx == 11 || rayToHemisphere.objIdx == 12) {
-			float3 BRDF = ray.m->albedo * INVPI;
-			float cos_i = dot(hemiDir, ray.D);
-			return 2.0f * PI * BRDF * scene.light[i]->GetLightColor() * cos_i;
+		case DIFFUSE: {
+			float3 directLightning = 0;
+			for (int i = 0; i < size(scene.light); i++) {
+				Ray scattered;
+				float3 attenuation;
+				float3 lightRayDirection = scene.light[i]->GetLightPosition() - ray.IntersectionPoint();
+				float len2 = dot(lightRayDirection, lightRayDirection);
+				lightRayDirection = normalize(lightRayDirection);
+				Ray r = Ray(ray.IntersectionPoint() + lightRayDirection * 1e-4f, lightRayDirection, ray.color, sqrt(len2));
+				((diffuse*)m)->scatter(ray, attenuation, scattered, normalize(lightRayDirection),
+					scene.light[i]->GetLightIntensityAt(ray.IntersectionPoint(), normal, *m), normal, energy);
+				float cos_o = dot(-lightRayDirection, scene.light[i]->normal);
+				if (scene.IsOccluded(r, t_min)) {
+					continue;
+				}
+				if (((diffuse*)m)->shinieness != 0)
+					directLightning += ((diffuse*)m)->shinieness * m->col * Sample(Ray(ray.IntersectionPoint(), reflect(ray.D, ray.hitNormal), ray.color), depth - 1, energy) * energy;
+
+				directLightning += (1 - ((diffuse*)m)->shinieness) * m->col * attenuation * energy;
+			}
+			float3 indirectLightning = 0;
+
+			int N = 1;
+			float BRDF = 1 * INV2PI;
+			for (int i = 0; i < N; i++) {
+				float3 rayToHemi = RandomInHemisphere(normal);
+				float3 cos_i = dot(rayToHemi, normal);
+				indirectLightning += cos_i * Sample(Ray(intersectionPoint + rayToHemi * eps, rayToHemi, float3(0)),
+					depth - 1, energy) / BRDF;
+			}
+
+			indirectLightning /= (float)N;
+			totCol = (directLightning / PI + 2 * indirectLightning) * m->albedo;
+			break;
+		}
+		case METAL:{
+			Ray reflected;
+			((metal*)m)->scatter(ray, reflected, normal, energy);
+			totCol += m->col * Sample(reflected, depth - 1, energy) * energy;
+			break;
+		}
+		case GLASS: {
+			glass* g = (glass*)m;
+			float3 refractionColor = 0, reflectionColor = 0;
+			// compute fresnel
+			float kr;
+			g->fresnel(normalize(ray.D), normalize(ray.hitNormal), g->ir, kr);
+			bool outside = dot(ray.D, ray.hitNormal) < 0;
+			float3 bias = 0.0001f * ray.hitNormal;
+			float3 norm = outside ? ray.hitNormal : -ray.hitNormal;
+			float r = !outside ? g->ir : (1 / g->ir);
+			// compute refraction if it is not a case of total internal reflection
+			if (outside)
+			{
+				energy.x *= exp(g->absorption.x * -ray.t);
+				energy.y *= exp(g->absorption.y * -ray.t);
+				energy.z *= exp(g->absorption.z * -ray.t);
+			}
+			else {
+				energy = energy;
+			}
+			float odds = kr;
+			if (odds < RandomFloat()) {
+				float3 refractionDirection = normalize(g->RefractRay(ray.D, norm, r));
+				float3 refractionRayOrig = outside ? ray.IntersectionPoint() - bias : ray.IntersectionPoint() + bias;
+				Ray refrRay = Ray(refractionRayOrig, refractionDirection, ray.color);
+				refractionColor = g->col * Sample(refrRay, depth - 1, energy);
+				totCol += refractionColor;
+			} else{
+				float3 reflectionDirection = normalize(reflect(ray.D, norm));
+				float3 reflectionRayOrig = outside ? ray.IntersectionPoint() + bias : ray.IntersectionPoint() - bias;
+				Ray reflRay = Ray(reflectionRayOrig, reflectionDirection, ray.color);
+				float3 reflectionColor = g->col * Sample(reflRay, depth - 1, energy);
+				totCol += reflectionColor;
+			}
+			// mix the two
+			break;
 		}
 	}
-
-	return float3(0);
+	return totCol;
 }
 // -----------------------------------------------------------
 // Main application tick function - Executed once per frame
@@ -276,16 +363,16 @@ void Renderer::Tick(float deltaTime, int frameNr)
 			float3 totCol = float3(0);				//antialiassing
 			for (int s = 0; s < scene.aaSamples; ++s) {
 				if (scene.raytracer) {
-					float newX = x + RandomFloat(); //+ random(-1.0f, 1.0f);
-					float newY = y + RandomFloat(); //+ random(-1.0f, 1.0f);
+					float newX = x + (RandomFloat() * 2 -1); //+ random(-1.0f, 1.0f);
+					float newY = y + (RandomFloat() * 2 -1); //+ random(-1.0f, 1.0f);
 					totCol += Trace(camera.GetPrimaryRay(newX, newY), 4, float3(1));
 					accumulator[x + y * SCRWIDTH] = (totCol / scene.aaSamples);
 				}
 				else {
-					float newX = x + random(-1.0f, 1.0f);
-					float newY = y + random(-1.0f, 1.0f);
+					float newX = x + (RandomFloat() * 2 - 1);
+					float newY = y + (RandomFloat() * 2 - 1);
 					totCol += Sample(camera.GetPrimaryRay(newX, newY),4, float3(1));
-					accumulator[x + y * SCRWIDTH] += totCol;
+					accumulator[x + y * SCRWIDTH] += totCol / scene.aaSamples;
 					//cout << totCol.x;
 				}
 			}
