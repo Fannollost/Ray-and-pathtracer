@@ -62,11 +62,13 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 		else {
 			energy = energy;
 		}
-		if (kr < 1) {
+
+		float totRefl = clamp(g->extraReflection + (1 - g->extraReflection) * kr, 0.0f, 1.0f);
+		if (totRefl < 1) {
 			float3 refractionDirection = normalize(g->RefractRay(ray.D, norm,r));
 			float3 refractionRayOrig = outside ? ray.IntersectionPoint() - bias : ray.IntersectionPoint() + bias;
 			Ray refrRay = Ray(refractionRayOrig, refractionDirection, ray.color);
-			refractionColor = g->col * Trace(refrRay, depth - 1, energy);
+			refractionColor = Trace(refrRay, depth - 1, energy);
 		}
 
 		float3 reflectionDirection = normalize(reflect(ray.D, norm));
@@ -75,7 +77,7 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 		float3 reflectionColor = g->col * Trace(reflRay, depth - 1, energy);
 
 		// mix the two
-		totCol += reflectionColor * kr + refractionColor * (1 - kr);
+		totCol += reflectionColor * (totRefl) + refractionColor * (1 - totRefl);
 		break;
 	}
 	case METAL:	{
@@ -94,9 +96,9 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 			lightRayDirection = normalize(lightRayDirection);
 			Ray r = Ray(ray.IntersectionPoint() + lightRayDirection * 1e-4f ,lightRayDirection, ray.color, sqrt(len2));
 			((diffuse*)m)->scatter(ray, attenuation, scattered, normalize(lightRayDirection),
-				scene.light[i]->GetLightIntensityAt(ray.IntersectionPoint(), N, *m), N, energy);
+				scene.light[i]->GetLightIntensityAt(ray.IntersectionPoint(), N), N, energy);
 			if (scene.IsOccluded(r, t_min)) {
-					continue;
+				continue;
 			}
 
 			if (((diffuse*)m)->shinieness != 0)
@@ -244,31 +246,52 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
 */
 
 float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
-	if (depth < 0) return float3(0);
+	if (depth < 0) return float3(0.05f);
 	float3 totCol = 0;
 	float t_min = 0.001f;
 	float eps = 0.0001f;
 	scene.FindNearest(ray, t_min);
+	//for (int i = 0; i < size(scene.light); ++i)
+	//{
+	//	scene.light[i]->Intersect(ray, t_min);
+	//	if (ray.objIdx == 11 || ray.objIdx == 12) {
+			//cout << scene.light[i]->GetLightColor().x;
+		//	return scene.light[i]->GetLightIntensityAt(ray.IntersectionPoint(), ray.hitNormal);
+	//	}
+	//} 
 	float3 intersectionPoint = ray.IntersectionPoint();
 	float3 normal = ray.hitNormal;
 	material* m = ray.GetMaterial();
+	float3 f = m->col;
+	if (scene.raytracer) {
+		double p = f.x > f.y && f.x > f.z ? f.x : f.y > f.z ? f.y : f.z;
+		if (depth < 5 || !p) {
+			if (RandomFloat() < p) {
+				f = f * (1 / p);
+			}
+			else {
+				return totCol;
+			}
+		}
+	}
 	switch (m->type)
 	{
 		case DIFFUSE: {
 			float3 directLightning = 0;
 			for (int i = 0; i < size(scene.light); i++) {
-				Ray scattered;
-				float3 attenuation;
 				float3 lightRayDirection = scene.light[i]->GetLightPosition() - ray.IntersectionPoint();
 				float len2 = dot(lightRayDirection, lightRayDirection);
 				lightRayDirection = normalize(lightRayDirection);
 				Ray r = Ray(ray.IntersectionPoint() + lightRayDirection * 1e-4f, lightRayDirection, ray.color, sqrt(len2));
+				Ray scattered;
+				float3 attenuation;
 				((diffuse*)m)->scatter(ray, attenuation, scattered, normalize(lightRayDirection),
-					scene.light[i]->GetLightIntensityAt(ray.IntersectionPoint(), normal, *m), normal, energy);
+					scene.light[i]->GetLightIntensityAt(ray.IntersectionPoint(), normal), normal, energy);
 				float cos_o = dot(-lightRayDirection, scene.light[i]->normal);
 				if (scene.IsOccluded(r, t_min)) {
 					continue;
 				}
+
 				if (((diffuse*)m)->shinieness != 0)
 					directLightning += ((diffuse*)m)->shinieness * m->col * Sample(Ray(ray.IntersectionPoint(), reflect(ray.D, ray.hitNormal), ray.color), depth - 1, energy) * energy;
 
@@ -278,10 +301,10 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
 
 			int N = 1;
 			float BRDF = 1 * INV2PI;
-			for (int i = 0; i < N; i++) {
+			for (int i = 0; i < N; ++i) {
 				float3 rayToHemi = RandomInHemisphere(normal);
 				float3 cos_i = dot(rayToHemi, normal);
-				indirectLightning += cos_i * Sample(Ray(intersectionPoint + rayToHemi * eps, rayToHemi, float3(0)),
+				indirectLightning += 0.25 * cos_i * Sample(Ray(intersectionPoint + rayToHemi * eps, rayToHemi, float3(0)),
 					depth - 1, energy) / BRDF;
 			}
 
@@ -315,7 +338,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
 			else {
 				energy = energy;
 			}
-			float odds = kr;
+			float odds = kr + g->extraReflection;
 			if (odds < RandomFloat()) {
 				float3 refractionDirection = normalize(g->RefractRay(ray.D, norm, r));
 				float3 refractionRayOrig = outside ? ray.IntersectionPoint() - bias : ray.IntersectionPoint() + bias;
@@ -340,7 +363,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
 // -----------------------------------------------------------
 void Renderer::Tick(float deltaTime, int frameNr)
 {
-	
+	float gamma = 1.75f;
 	// animation
 	if (!camera.paused && scene.raytracer) {
 		static float animTime = 0;
@@ -356,23 +379,26 @@ void Renderer::Tick(float deltaTime, int frameNr)
 	Timer t;
 	// lines are executed as OpenMP parallel tasks (disabled in DEBUG)
 	#pragma omp parallel for schedule(dynamic)
-	for (int y = 0; y < SCRHEIGHT; y++)
+	for (int y = 0; y < SCRHEIGHT; ++y)
 	{
 		// trace a primary ray for each pixel on the line
-		for (int x = 0; x < SCRWIDTH; x++) {
+		for (int x = 0; x < SCRWIDTH; ++x) {
 			float3 totCol = float3(0);				//antialiassing
 			for (int s = 0; s < scene.aaSamples; ++s) {
 				if (scene.raytracer) {
-					float newX = x + (RandomFloat() * 2 -1); //+ random(-1.0f, 1.0f);
-					float newY = y + (RandomFloat() * 2 -1); //+ random(-1.0f, 1.0f);
+					float newX = x; 
+					float newY = y;
 					totCol += Trace(camera.GetPrimaryRay(newX, newY), 4, float3(1));
 					accumulator[x + y * SCRWIDTH] = (totCol / scene.aaSamples);
 				}
 				else {
 					float newX = x + (RandomFloat() * 2 - 1);
 					float newY = y + (RandomFloat() * 2 - 1);
-					totCol += Sample(camera.GetPrimaryRay(newX, newY),4, float3(1));
-					accumulator[x + y * SCRWIDTH] += totCol / scene.aaSamples;
+					totCol += Sample(camera.GetPrimaryRay(newX, newY),3, float3(1));
+					float r = pow(totCol.x / scene.aaSamples, 1.0f / gamma);
+					float g = pow(totCol.y / scene.aaSamples, 1.0f / gamma);
+					float b = pow(totCol.z / scene.aaSamples, 1.0f / gamma);
+					accumulator[x + y * SCRWIDTH] += float3(r,g,b);
 					//cout << totCol.x;
 				}
 			}
@@ -381,7 +407,7 @@ void Renderer::Tick(float deltaTime, int frameNr)
 		if(scene.raytracer)
 			frameNr = 1;
 		// translate accumulator contents to rgb32 pixels
-		for (int dest = y * SCRWIDTH, x = 0; x < SCRWIDTH; x++)	{
+		for (int dest = y * SCRWIDTH, x = 0; x < SCRWIDTH; ++x)	{
 			float4 acc = accumulator[x + y * SCRWIDTH] / frameNr; /// iteration;
 			screen->pixels[dest + x] = (RGBF32_to_RGB8(&acc));///iteration ;
 		}
