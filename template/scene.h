@@ -787,6 +787,10 @@ namespace Tmpl8 {
 			return float3(uint3(pixelOffset[0], pixelOffset[1], pixelOffset[2]))/255;
 		}
 
+		void toogleRaytracer() {
+			raytracer = !raytracer;
+		}
+
 		__declspec(align(64)) // start a new cacheline here
 			float animTime = 0;
 
