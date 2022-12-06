@@ -653,7 +653,7 @@ namespace Tmpl8 {
 			if (animOn) spheres.push_back(Sphere(7, standardGlass, float3(-0.7f, -0.4f, 2.0f), 0.5f));			// 1: bouncing ball
 			else spheres.push_back(Sphere(7, standardGlass, float3(-1.5f, 0, 2), 0.5f));		    // 1: static ball
 			if (animOn) cubes.push_back(Cube(9, blueDiff, float3(0), float3(1.15f)));		// 3: spinning cube
-			triangles.push_back(Mesh(10, new diffuse(0.8f, green, 0, 0.3f, 0.7f, raytracer), "Resources/ico.obj", float3(1.0f, -0.5, 1), 0.5f));
+			triangles.push_back(Mesh(10, new diffuse(0.8f, green, 0, 0.3f, 0.7f, raytracer), "Resources/ico.obj", float3(1.0f, -0.5, 2), 0.5f));
 
 		}
 
