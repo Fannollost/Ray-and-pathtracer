@@ -67,8 +67,8 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 			energy = energy;
 		} 
 
-		float totRefl = clamp(g->specu + (1 - g->specu) * kr, 0.0f, 1.0f); //this is weird
-		if (totRefl < 1) {
+		
+		if (kr < 1) {
 			float3 refractionDirection = normalize(g->RefractRay(ray.D, norm,r));
 			float3 refractionRayOrig = outside ? ray.IntersectionPoint() - bias : ray.IntersectionPoint() + bias;
 			Ray refrRay = Ray(refractionRayOrig, refractionDirection, ray.color);
@@ -80,9 +80,8 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 		float3 reflectionRayOrig = outside ? ray.IntersectionPoint() + bias : ray.IntersectionPoint() - bias;
 		Ray reflRay = Ray(reflectionRayOrig, reflectionDirection, ray.color);
 		float3 reflectionColor = g->col * Trace(reflRay, depth - 1, energy);
-
 		// mix the two
-		totCol += reflectionColor * (totRefl) + refractionColor * (1 - totRefl);
+		totCol += reflectionColor * kr + refractionColor * (1 - kr);
 		break;
 	}
 	case METAL:	{
@@ -223,21 +222,20 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
 			else {
 				energy = energy;
 			}
-			float totRefl = clamp(g->specu + (1 - g->specu) * kr, 0.0f, 1.0f);
-			float odds = totRefl;
+			float odds = kr;
 			if (odds < RandomFloat()) {
 				float3 refractionDirection = normalize(g->RefractRay(ray.D, norm, r));
 				float3 refractionRayOrig = outside ? ray.IntersectionPoint() - bias : ray.IntersectionPoint() + bias;
 				Ray refrRay = Ray(refractionRayOrig, refractionDirection, ray.color);
 				float3 tempCol = g->col * energy;
 				refractionColor = tempCol * Sample(refrRay, depth - 1, energy);
-				totCol += refractionColor * (1 - totRefl); // check if we should do * (1-totRefl)
+				totCol += refractionColor * (1 - kr); // check if we should do * (1-totRefl)
 			} else{
 				float3 reflectionDirection = normalize(reflect(ray.D, norm));
 				float3 reflectionRayOrig = outside ? ray.IntersectionPoint() + bias : ray.IntersectionPoint() - bias;
 				Ray reflRay = Ray(reflectionRayOrig, reflectionDirection, ray.color);
 				float3 reflectionColor = g->col * Sample(reflRay, depth - 1, energy);
-				totCol += reflectionColor * totRefl;
+				totCol += reflectionColor * kr;
 			}
 			// mix the two
 			break;
