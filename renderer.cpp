@@ -24,8 +24,8 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 	float t_min = 0.001f;
 	scene.FindNearest(ray, t_min);
 	if (ray.objIdx == -1) return scene.GetSkyColor(ray);
-	if (ray.objIdx == 11 || ray.objIdx == 12)  {
-		//return float3(1);
+
+	if (ray.objIdx >= 11 && ray.objIdx < 11 + size(scene.lights)){
 		return scene.lights[ray.objIdx - 11]->GetLightIntensityAt(ray.IntersectionPoint(), ray.hitNormal);
 	}
 	float3 totCol = float3(0);
@@ -139,7 +139,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
 	float eps = 0.0001f;
 	scene.FindNearest(ray, t_min);
 	if (ray.objIdx == -1) return scene.GetSkyColor(ray);
-	if (ray.objIdx == 11 || ray.objIdx == 12)
+	if (ray.objIdx >= 11 && ray.objIdx < 11+size(scene.lights))
 		return scene.lights[ray.objIdx - 11]->GetLightIntensityAt(ray.IntersectionPoint(), ray.hitNormal);
 
 	//return float3(0);
