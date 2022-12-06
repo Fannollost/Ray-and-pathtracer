@@ -120,13 +120,17 @@ namespace Tmpl8 {
 			float dis = length(pos - p);
 			float3 dir = pos - p;
 			float cos_ang = dot(normalize(n), normalize(dir));
-			
-			float relStr = 1 / (dis * PI) * strength;
-			float str = dot(n, normalize(dir));
+			//cout << cos_ang << endl;
+			if (dis <= radius && isZero(cos_ang)) {
+				//cout << "On disk" << endl;
+				return float3(strength);
+			}
 			if (dis <= radius && isZero(cos_ang)) {
 				if (dis == 0) return float3(strength);
 				else return float3(relStr / strength) + relStr * str * GetLightColor();
 			}
+			}
+			//cout << relStr << ", " << str << "," << GetLightColor().x << endl;
 			return relStr * str * GetLightColor();
 		}
 		float3 GetLightPosition() override {
@@ -160,8 +164,6 @@ namespace Tmpl8 {
 			}
 			float dis = length(dir);
 			float str = sinAngle - sTheta > 0 ? asin(sinAngle) - asin(sTheta) : 0;
-			
-			//return str > 0 ? 1 : 0;
 
 			return 1 / dis * str * strength;
 		}
@@ -533,7 +535,6 @@ namespace Tmpl8 {
 			specularColor = powf(fmax(0.0f, -dot(reflectionDirection, ray.D)), N) * lightIntensity;
 			lightAttenuation = lightIntensity;
 
-			//cout << diffu;
 			att = albedo * lightAttenuation * diffu + specularColor * specu;
 			float3 dir;
 			if (raytracer) {
@@ -542,9 +543,7 @@ namespace Tmpl8 {
 			else {
 				dir = RandomInHemisphere(normal);
 			}
-			//if (isZero(dir)) dir = normal;
 			scattered = Ray(ray.IntersectionPoint(), dir, ray.color);
-			//att = albedo;  */
 			float3 retention = float3(1) - albedo;
 			float3 newEnergy(energy - retention);
 			energy = newEnergy.x > 0 ? newEnergy : 0;
@@ -575,24 +574,6 @@ namespace Tmpl8 {
 		glass(float refIndex, float3 c, float3 a, float r, float n, bool rt)
 			: ir(refIndex), absorption(a), specu(r), N(n), material(c, rt) {
 			type = GLASS; invIr = 1 / ir;
-		}
-		virtual bool scatter(const Ray& r, Ray& scattered, Ray& reflected, float3 normal, float3& energy) {
-			bool outside = dot(r.D, r.hitNormal) < 0;
-			float3 offset = 0.001f * r.hitNormal;
-			float kr;
-			fresnel(r.D, r.hitNormal, ir, kr);
-			fresnelVal = kr;
-			if(kr < 1){
-				float3 refrDir = normalize(RefractRay(r.D, r.hitNormal, ir));
-				float3 refrOrig = outside ? r.IntersectionPoint() - offset : r.IntersectionPoint() + offset;
-				scattered = Ray(refrOrig, refrDir, col);
-				//return true;
-			}
-			//return true;
-			float3 reflDir = normalize(reflect(r.D, r.hitNormal));
-			float3 reflOrig = outside ? r.IntersectionPoint() + offset : r.IntersectionPoint() - offset;
-			reflected = Ray(reflOrig, reflDir, col);
-			return true;
 		}
 		void fresnel(const float3& I, const float3& N, const float& ior, float& kr)
 		{
@@ -786,6 +767,9 @@ namespace Tmpl8 {
 			uint8_t* pixelOffset = skydome + (x + skydomeX * y) * skydomeN;
 			return float3(uint3(pixelOffset[0], pixelOffset[1], pixelOffset[2]))/255;
 		}
+
+		void SetIterationNumber(int i) { iterationNumber = i; }
+		int GetIterationNumber() { return iterationNumber; }
 
 		__declspec(align(64)) // start a new cacheline here
 			float animTime = 0;

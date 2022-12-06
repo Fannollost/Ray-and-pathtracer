@@ -51,27 +51,32 @@ public:
 	float fovChange = 0.f;
 	bool paused = false;
 	bool fishEye = false;
+	bool changed = false;
 
 	void ToogleFisheye() {
+		changed = true;
 		fishEye = !fishEye;
 	}
+	
+	void SetChange(bool s) { changed = s; }
+	bool GetChange() { return changed; }
 
 	void MoveTick() {
 		screenCenter = topLeft + .5f * (topRight - topLeft) + .5f * (bottomLeft - topLeft);
 		float3 velocity = (speed * mov[1] * normalize(screenCenter - camPos)) + (speed * mov[0] * normalize(topRight - topLeft));
 		if (length(velocity) > 0) {
-			//it = 0;
 			camPos += velocity;
 			topLeft += velocity;
 			topRight += velocity;
 			bottomLeft += velocity;
+			changed = true;
 		}
 		screenCenter = topLeft + .5f * (topRight - topLeft) + .5f * (bottomLeft - topLeft);
 	}
 
 	void FOVTick() {
 		if (fishEye) {
-			if(viewAngle>0.11f && viewAngle<0.99)viewAngle -= 0.01f * fovChange;
+			if(viewAngle>0.11f && viewAngle<0.99)viewAngle -= 0.01f * fovChange; changed = true;
 		}
 		else {
 			screenCenter = topLeft + .5f * (topRight - topLeft) + .5f * (bottomLeft - topLeft);
@@ -80,6 +85,7 @@ public:
 				topLeft += normalize(screenCenter - camPos) * 0.1f * fovChange;
 				topRight += normalize(screenCenter - camPos) * 0.1f * fovChange;
 				bottomLeft += normalize(screenCenter - camPos) * 0.1f * fovChange;
+				changed = true;
 			}
 			screenCenter = topLeft + .5f * (topRight - topLeft) + .5f * (bottomLeft - topLeft);
 		}
@@ -89,7 +95,6 @@ public:
 		float3 strechtDir = topRight - topLeft;
 		float3 projDir = float3(strechtDir.x, strechtDir.y,0);
 		if (length(strechtDir) > length(0.2f * aspectChange * normalize(projDir)) || aspectChange > 0) {
-			//it = 0;
 			topLeft -= 0.1f * aspectChange * normalize(projDir);
 			topRight += 0.1f * aspectChange * normalize(projDir);
 			bottomLeft -= 0.1f * aspectChange * normalize(projDir);
@@ -112,6 +117,7 @@ public:
 		topLeft = RotateX(topLeft, camPos, theta);
 		topRight = RotateX(topRight, camPos, theta);
 		bottomLeft = RotateX(bottomLeft, camPos, theta);
+		changed = true;
 	}
 
 	void RotateScreenY(float theta) {
@@ -119,6 +125,7 @@ public:
 		topLeft = RotateY(topLeft, camPos,theta);
 		topRight = RotateY(topRight, camPos, theta);
 		bottomLeft = RotateY(bottomLeft, camPos, theta);
+		changed = true;
 	}
 
 	float3 RotateZ(float3 p, float3 center, float theta) {
