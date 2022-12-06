@@ -123,10 +123,7 @@ namespace Tmpl8 {
 
 			float relStr = 1 / (dis * PI) * strength;
 			float str = dot(n, normalize(dir));
-			if (dis <= radius && isZero(cos_ang)) {
-				if (dis == 0) return float3(strength);
-				else return float3(relStr / strength) + relStr * str * GetLightColor();
-			}
+			if (dis <= radius && isZero(cos_ang)) return float3(strength);
 			return relStr * str * GetLightColor();
 		}
 		float3 GetLightPosition() override {
@@ -655,8 +652,7 @@ namespace Tmpl8 {
 
 			if (animOn) spheres.push_back(Sphere(7, standardGlass, float3(-0.7f, -0.4f, 2.0f), 0.5f));			// 1: bouncing ball
 			else spheres.push_back(Sphere(7, standardGlass, float3(-1.5f, 0, 2), 0.5f));		    // 1: static ball
-			spheres.push_back(Sphere(8, new diffuse(0.8f, white, 0, 0.3f, 0.7f, raytracer), float3(0, 2.5f, -3.07f), 8));		// 2: rounded corners
-			cubes.push_back(Cube(9, blueDiff, float3(0), float3(1.15f)));		// 3: spinning cube
+			if (animOn) cubes.push_back(Cube(9, blueDiff, float3(0), float3(1.15f)));		// 3: spinning cube
 			triangles.push_back(Mesh(10, new diffuse(0.8f, green, 0, 0.3f, 0.7f, raytracer), "Resources/ico.obj", float3(0.0f, -0.51f, 2), 0.5f));
 
 		}
@@ -677,8 +673,9 @@ namespace Tmpl8 {
 			metal* standardMetal = new metal(0.7f, white, raytracer);
 
 			// we store all primitives in one continuous buffer
-			lights.push_back(new AreaLight(12, float3(0, -0.9, 0.5f), 5.0f, white, 0.5f, float3(0, 1, 0), 4, raytracer));
+
 			lights.push_back(new AreaLight(11, float3(0.1f, 1.8f, 1.5f), 5.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
+			lights.push_back(new AreaLight(12, float3(0, -0.9, 0.5f), 5.0f, white, 0.5f, float3(0, 1, 0), 4, raytracer));
 
 			planes.push_back(Plane(0, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 1));			// 2: floor
 
@@ -780,7 +777,7 @@ namespace Tmpl8 {
 		int aaSamples = 1;
 		int invAaSamples = 1 / aaSamples;
 		int iterationNumber = 1;
-		bool raytracer = true;
+		bool raytracer = false;
 		float mediumIr = 1.0f;
 		bool animOn = raytracer && true; // set to false while debugging to prevent some cast error from primitive object type
 		const float3 white = float3(1.0, 1.0, 1.0);
