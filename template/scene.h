@@ -717,8 +717,7 @@ namespace Tmpl8 {
 			cubes.push_back(Cube(9, blueDiff, float3(1.5, -0.875, 1.5), float3(0.25)));
 			cubes.push_back(Cube(9, redDiff, float3(2.2, -0.875, 1.8), float3(0.25)));
 			cubes.push_back(Cube(9, greenDiff, float3(1.55, -0.925, 1.25), float3(0.15)));
-			triangles.push_back(Mesh(9, goldMetal, "Resources/stellatedDode.obj", float3(0.000000, 0.561019, 0.000000) * threeScale + threePos +float3(0, 0.25f, 0), 0.4f));
-			
+			triangles.push_back(Mesh(9, goldMetal, "Resources/stellatedDode.obj", float3(0.000000, 0.561019, 0.000000) * threeScale + threePos +float3(0, 0.25f, 0), 0.4f));			
 		}
 
 		void SetTime(float t)
