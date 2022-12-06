@@ -120,17 +120,13 @@ namespace Tmpl8 {
 			float dis = length(pos - p);
 			float3 dir = pos - p;
 			float cos_ang = dot(normalize(n), normalize(dir));
-			//cout << cos_ang << endl;
-			if (dis <= radius && isZero(cos_ang)) {
-				//cout << "On disk" << endl;
-				return float3(strength);
-			}
+
+			float relStr = 1 / (dis * PI) * strength;
+			float str = dot(n, normalize(dir));
 			if (dis <= radius && isZero(cos_ang)) {
 				if (dis == 0) return float3(strength);
 				else return float3(relStr / strength) + relStr * str * GetLightColor();
 			}
-			}
-			//cout << relStr << ", " << str << "," << GetLightColor().x << endl;
 			return relStr * str * GetLightColor();
 		}
 		float3 GetLightPosition() override {
@@ -783,6 +779,7 @@ namespace Tmpl8 {
 		unsigned char* skydome;
 		int aaSamples = 1;
 		int invAaSamples = 1 / aaSamples;
+		int iterationNumber = 1;
 		bool raytracer = true;
 		float mediumIr = 1.0f;
 		bool animOn = raytracer && true; // set to false while debugging to prevent some cast error from primitive object type
