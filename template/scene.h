@@ -616,7 +616,7 @@ namespace Tmpl8 {
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 
 			//Instantiate scene
-			instantiateScene2();
+			instantiateScene1();
 
 			SetTime(0);
 		}
@@ -641,7 +641,7 @@ namespace Tmpl8 {
 			// we store all primitives in one continuous buffer
 			//lights.push_back(new DirectionalLight(11, float3(0, 2, 0), 10.0f, white, float3(0, -1, 1), 0.9, raytracer));
 			lights.push_back(new AreaLight(11, float3(0.1f, 1.95f, 1.5f), 5.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
-			lights.push_back(new AreaLight(12, float3(0, -0.95, 0.5f), 5.0f, white, 0.5f, float3(0, 1, 0), 4, raytracer));
+			//lights.push_back(new AreaLight(12, float3(0, -0.95, 0.5f), 2.0f, white, 0.5f, float3(0, 1, 0), 4, raytracer));
 
 			planes.push_back(Plane(0, new diffuse(0.8f, red, 0.0f, 1.0f, 4, raytracer), float3(1, 0, 0), 3));			// 0: left wall
 			planes.push_back(Plane(1, new diffuse(0.8f, green, 0.0f, 1.0f, 4, raytracer), float3(-1, 0, 0), 2.99f));		// 1: right wall
@@ -653,7 +653,7 @@ namespace Tmpl8 {
 			if (animOn) spheres.push_back(Sphere(7, standardGlass, float3(-0.7f, -0.4f, 2.0f), 0.5f));			// 1: bouncing ball
 			else spheres.push_back(Sphere(7, standardGlass, float3(-1.5f, 0, 2), 0.5f));		    // 1: static ball
 			if (animOn) cubes.push_back(Cube(9, blueDiff, float3(0), float3(1.15f)));		// 3: spinning cube
-			triangles.push_back(Mesh(10, new diffuse(0.8f, green, 0, 0.3f, 0.7f, raytracer), "Resources/ico.obj", float3(0.0f, -0.51f, 2), 0.5f));
+			triangles.push_back(Mesh(10, new diffuse(0.8f, green, 0, 0.3f, 0.7f, raytracer), "Resources/ico.obj", float3(1.0f, -0.5, 1), 0.5f));
 
 		}
 
