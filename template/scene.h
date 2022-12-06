@@ -80,7 +80,7 @@ namespace Tmpl8 {
 		virtual float3 GetLightPosition() { return pos; }
 		float3 GetLightColor() { return col; }
 		virtual float3 GetLightIntensityAt(float3 p, float3 n) { return 1; }
-		virtual void Intersect(Ray& ray, float t_min) { return; }
+		virtual void Intersect (Ray& ray, float t_min) { return; }
 		float3 pos;
 		bool raytracer;
 		float3 col;
@@ -168,19 +168,6 @@ namespace Tmpl8 {
 
 		float sinAngle;
 	};
-
-	/*class Object {
-	public:
-		Object() = default;
-		Object(int idx, material* m) : objIdx(idx), mat(m) {}
-		float3 GetIndex() { return objIdx; }
-		material* GetMaterial() { return mat; }
-		virtual void Intersect(Ray& ray, float t_min) { return; }
-		virtual float3 GetNormal(const float3 I) { return float3(); }
-		virtual float3 GetAlbedo(const float3 I) { return float3(); }
-		int objIdx = -1;
-		material* mat;
-	};*/
 
 	// -----------------------------------------------------------
 	// Triangle Primitive
@@ -420,7 +407,7 @@ namespace Tmpl8 {
 			mat = m;
 			M = transform, invM = transform.FastInvertedTransformNoScale();
 		}
-		void Intersect(Ray& ray, float t_min) {
+		void Intersect(Ray& ray, float t_min) const {
 			// 'rotate' the cube by transforming the ray into object space
 			// using the inverse of the cube transform.
 			float3 O = TransformPosition(ray.O, invM);
@@ -651,17 +638,23 @@ namespace Tmpl8 {
 	public:
 		Scene()
 		{
-			float3 white = float3(1.0, 1.0, 1.0);
-			float3 red = float3(255, 0, 0) / 255;
-			float3 blue = float3(0, 0, 255) / 255;
-			float3 babyblue = float3(0.6f, 0.6f, 1.0f);
-			float3 green = float3(0, 255, 0) / 255;
-			//diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.3f, 0.7f, 1200, raytracer);
+			//Loading sky texture
+			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
+
+			//Instantiate scene
+			instantiateScene2();
+
+			SetTime(0);
+		}
+
+		void instantiateScene1() {
+
+			
 			diffuse* standardDiff = new diffuse(float3(0.8f), blue, 0.8f, 0.2f, 32, raytracer);
 			diffuse* pureDiff = new diffuse(float3(0.8f), blue, 0.8f, 0.0f, 1, raytracer);
 			glass* standardGlass = new glass(1.5f, white, float3(0.00f), 0.0f, 0, raytracer);
-			//glass* blueGlass = new glass(1.5f, babyblue, float3(0.0f), raytracer);
-			//glass* diamond = new glass(2.4f, white, float3(0.00f), raytracer);
+			glass* blueGlass = new glass(1.5f, babyblue, float3(0.0f), 0.0f, 0, raytracer);
+			glass* diamond = new glass(2.4f, white, float3(0.00f), 0.0f, 0, raytracer);
 			diffuse* specularDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 2, raytracer, 0);
 			diffuse* lightDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 1200, raytracer, 1.2f);
 			diffuse* greenDiff = new diffuse(float3(0.8f), green, 0.6f, 0.4f, 2, raytracer);
@@ -669,34 +662,52 @@ namespace Tmpl8 {
 			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.6f, 0.4f, 2, raytracer);
 			diffuse* specReflDiff = new diffuse(float3(0.7f), white, 0.6f, 0.4f, 50, raytracer, 0.0f);
 			metal* standardMetal = new metal(0.7f, white, raytracer);
+
+
 			// we store all primitives in one continuous buffer
-			skydome = stbi_load("sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
-			//light[0] = new DirectionalLight(11, float3(0, 2, 0), 10.0f, white, float3(0, -1, 1), 0.9, raytracer);			//DIT FF CHECKEN!
-			light[0] = new AreaLight(11, float3(0.1f,1.95f,1.5f), 5.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
-			light[1] = new AreaLight(12, float3(0, -0.95, 0.5f), 5.0f, white, 0.5f, float3(0, 1, 0), 4, raytracer);
-			//light[2] = new AreaLight(10, float3(0.1f,1.0f, 2), 4.0f, white, 0.1f, float3(0, 1, 0), 4, raytracer);			//DIT FF CHECKEN!
-			//light[2] = new AreaLight(13, float3(0.1f, -1, 0), 2.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
+			//lights.push_back(new DirectionalLight(11, float3(0, 2, 0), 10.0f, white, float3(0, -1, 1), 0.9, raytracer));
+			lights.push_back(new AreaLight(11, float3(0.1f, 1.95f, 1.5f), 5.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
+			lights.push_back(new AreaLight(12, float3(0, -0.95, 0.5f), 5.0f, white, 0.5f, float3(0, 1, 0), 4, raytracer));
 
-			plane[0] = Plane(0, new diffuse(0.8f, red, 0.0f, 1.0f, 4, raytracer), float3(1, 0, 0), 3);			// 0: left wall
-			plane[1] = Plane(1, new diffuse(0.8f, green, 0.0f, 1.0f,4,raytracer), float3(-1, 0, 0), 2.99f);		// 1: right wall
-			plane[2] = Plane(2, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 1);			// 2: floor
-			plane[3] = Plane(3, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, -1, 0), 2);			// 3: ceiling
-			plane[4] = Plane(4, new diffuse(0.8f, white, 0	, 0.3f, 0.7f,raytracer), float3(0, 0, 1), 3);			// 4: front wall
-			plane[5] = Plane(5, specularDiff, float3(0, 0, -1), 3.99f);		// 5: back wall
-			//quad = Quad(6, new diffuse(0.8f, white, 0), 1);							// 6: light source
+			planes.push_back(Plane(0, new diffuse(0.8f, red, 0.0f, 1.0f, 4, raytracer), float3(1, 0, 0), 3));			// 0: left wall
+			planes.push_back(Plane(1, new diffuse(0.8f, green, 0.0f, 1.0f, 4, raytracer), float3(-1, 0, 0), 2.99f));		// 1: right wall
+			planes.push_back(Plane(2, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 1));			// 2: floor
+			planes.push_back(Plane(3, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, -1, 0), 2));			// 3: ceiling
+			planes.push_back(Plane(4, new diffuse(0.8f, white, 0, 0.3f, 0.7f, raytracer), float3(0, 0, 1), 3));			// 4: front wall
+			planes.push_back(Plane(5, specularDiff, float3(0, 0, -1), 3.99f));		// 5: back wall
 
-			spheres[0] = Sphere(7, standardGlass, float3(-0.7f, -0.4f, 2.0f), 0.5f);			// 1: bouncing ball
-			//obj[0] = new Sphere(7, red, new metal(1.0f, 1.0f), float3(-1.5f, 0, 2), 0.5f);		// 1: static ball => set animOn to false
-			//obj[1] = new Sphere(8, specularDiff, float3(0, 2.5f, -3.07f), 8);		// 2: rounded corners
-			//obj[2] = new Sphere(9, white, new glass(0.1f), float3(1.5f, 0, 2), 0.5f);			// 3: static glass sphere => set animOn to false
-			//obj[2] = new Cube(9, blueDiff, float3(0), float3(1.15f));		// 3: spinning cube
-			triangles[0] = Mesh(10, new diffuse(0.8f, green, 0	, 0.3f, 0.7f,raytracer), "shape.obj", float3(0.5f,-0.51f,2), 0.5f);
-			
-			//triangles[0] = Triangle(8, new diffuse(0.8f, blue, 0), float3(0.0f, 0.0f, 1.0f), float3(0.2f, 0, 1.0f), float3(0.2f, 0.2f, 1.0f));	// 4: Triangle
+			if (animOn) spheres.push_back(Sphere(7, standardGlass, float3(-0.7f, -0.4f, 2.0f), 0.5f));			// 1: bouncing ball
+			else spheres.push_back(Sphere(7, standardGlass, float3(-1.5f, 0, 2), 0.5f));		    // 1: static ball
+			spheres.push_back(Sphere(8, new diffuse(0.8f, white, 0, 0.3f, 0.7f, raytracer), float3(0, 2.5f, -3.07f), 8));		// 2: rounded corners
+			cubes.push_back(Cube(9, blueDiff, float3(0), float3(1.15f)));		// 3: spinning cube
+			triangles.push_back(Mesh(10, new diffuse(0.8f, green, 0, 0.3f, 0.7f, raytracer), "Resources/ico.obj", float3(0.0f, -0.51f, 2), 0.5f));
 
-			SetTime(0);
-			// Note: once we have triangle support we should get rid of the class
-			// hierarchy: virtuals reduce performance somewhat.
+		}
+
+		void instantiateScene2() {
+
+			diffuse* standardDiff = new diffuse(float3(0.8f), blue, 0.8f, 0.2f, 32, raytracer);
+			diffuse* pureDiff = new diffuse(float3(0.8f), blue, 0.8f, 0.0f, 1, raytracer);
+			glass* standardGlass = new glass(1.5f, blue, float3(0.00f), 0.0f, 0, raytracer);
+			glass* blueGlass = new glass(1.5f, babyblue, float3(0.0f), 0.0f, 0, raytracer);
+			glass* diamond = new glass(2.4f, white, float3(0.00f), 0.0f, 0, raytracer);
+			diffuse* specularDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 2, raytracer, 0);
+			diffuse* lightDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 1200, raytracer, 1.2f);
+			diffuse* greenDiff = new diffuse(float3(0.8f), green, 0.6f, 0.4f, 2, raytracer);
+			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.8f, 0.2f, 1, raytracer);
+			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.6f, 0.4f, 2, raytracer);
+			diffuse* specReflDiff = new diffuse(float3(0.7f), white, 0.6f, 0.4f, 50, raytracer, 0.0f);
+			metal* standardMetal = new metal(0.7f, white, raytracer);
+
+			// we store all primitives in one continuous buffer
+			lights.push_back(new AreaLight(12, float3(0, -0.9, 0.5f), 5.0f, white, 0.5f, float3(0, 1, 0), 4, raytracer));
+			lights.push_back(new AreaLight(11, float3(0.1f, 1.8f, 1.5f), 5.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
+
+			planes.push_back(Plane(0, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 1));			// 2: floor
+
+			spheres.push_back(Sphere(7, standardMetal, float3(-0.7f, -0.4f, 2.0f), 0.5f));
+			triangles.push_back(Mesh(10, standardGlass, "Resources/ico.obj", float3(0.5f, -0.51f, 2), 0.5f));
+
 		}
 		void SetTime(float t)
 		{
@@ -705,50 +716,36 @@ namespace Tmpl8 {
 			// light source animation: swing
 			animTime = t;
 
-			mat4 M1base = mat4::Translate(float3(0, 2.6f, 2));
-			mat4 M1 = M1base * mat4::RotateZ(sinf(animTime * 0.6f) * 0.1f) * mat4::Translate(float3(0, -0.9, 0));
-			quad.T = M1, quad.invT = M1.FastInvertedTransformNoScale();
-
 			if (animOn) {
 				// cube animation: spin
 				mat4 M2base = mat4::RotateX(PI / 4) * mat4::RotateZ(PI / 4);
 				mat4 M2 = mat4::Translate(float3(1.4f, 0, 2)) * mat4::RotateY(animTime * 0.5f) * M2base;
-				//if (size(obj) >= 3)((Cube*)obj[2])->M = M2, ((Cube*)obj[2])->invM = M2.FastInvertedTransformNoScale();
+				if (size(cubes) >= 1) cubes[0].M = M2, cubes[0].invM = M2.FastInvertedTransformNoScale();
 
 				// sphere animation: bounce
 				float tm = 1 - sqrf(fmodf(animTime, 2.0f) - 1);
-				//if (size(obj) >= 1)((Sphere*)obj[0])->pos = float3(-1.4f, -0.5f + tm, 2);
+				if (size(spheres) >= 1) spheres[0].pos = float3(-1.4f, -0.5f + tm, 2);
 			}
 
 		}
-		float3 GetLightPos() const
-		{
-			// light point position is the middle of the swinging quad
-			float3 corner1 = TransformPosition(float3(-0.5f, 0, -0.5f), quad.T);
-			float3 corner2 = TransformPosition(float3(0.5f, 0, 0.5f), quad.T);
-			return (corner1 + corner2) * 0.5f - float3(0, 0.01f, 0);
-		}
-		float3 GetLightColor() const
-		{
-			return quad.mat->col;
-		}
+
 		void FindNearest(Ray& ray, float t_min) const
 		{
 			ray.objIdx = -1;
-			for (int i = 0; i < size(plane); ++i) plane[i].Intersect(ray, t_min);
+			for (int i = 0; i < size(planes); ++i) planes[i].Intersect(ray, t_min);
 
 			for (int i = 0; i < size(spheres); ++i) spheres[i].Intersect(ray, t_min);
 
+			for (int i = 0; i < size(cubes); ++i) cubes[i].Intersect(ray, t_min);
+
 			for (int i = 0; i < size(triangles); ++i) triangles[i].Intersect(ray, t_min);
 
-			if(!raytracer) for(int i = 0; i < size(light); ++i) light[i]->Intersect(ray, t_min);
+			if(!raytracer) for(int i = 0; i < size(lights); ++i) lights[i]->Intersect(ray, t_min);
 		}
 		bool IsOccluded(Ray& ray, float t_min) const
 		{
 			float rayLength = ray.t;
-			// skip planes: it is not possible for the walls to occlude anything
-			quad.Intersect(ray, t_min);
-			for (int i = 0; i < size(plane); ++i) plane[i].Intersect(ray, t_min);
+			for (int i = 0; i < size(planes); ++i) planes[i].Intersect(ray, t_min);
 			for (int i = 0; i < size(spheres); ++i) spheres[i].Intersect(ray, t_min);
 			for (int i = 0; i < size(triangles); ++i) triangles[i].Intersect(ray, t_min);
 			return ray.t < rayLength;
@@ -757,29 +754,12 @@ namespace Tmpl8 {
 			// - we store objIdx and t when we just need a yes/no
 			// - we don't 'early out' after the first occlusion
 		}
-		float3 GetNormal(int objIdx, float3 I, float3 wo) const
-		{
-			// we get the normal after finding the nearest intersection:
-			// this way we prevent calculating it multiple times.
-			if (objIdx == -1) return float3(0); // or perhaps we should just crash
-			float3 N;
-			if (objIdx == 6) N = quad.GetNormal(I);
-			//else if (objIdx >= 7 && objIdx < 7 + size(obj)) N = obj[objIdx - 7]->GetNormal(I);
-			else
-			{
-				// faster to handle the 6 planes without a call to GetNormal
-				N = float3(0);
-				N[objIdx / 2] = 1 - 2 * (float)(objIdx + 4);
-			}
-			if (dot(N, wo) > 0) N = -N; // hit backside / inside
-			return N;
-		}
+
 		float3 GetAlbedo(int objIdx, float3 I) const
 		{
 			if (objIdx == -1) return float3(0); // or perhaps we should just crash
-			if (objIdx == 0) return quad.GetAlbedo(I);
 			//if (objIdx >= 7 && objIdx < 7 + size(obj)) return obj[objIdx - 7]->GetAlbedo(I);
-			return plane[objIdx].GetAlbedo(I);
+			return planes[objIdx].GetAlbedo(I);
 			// once we have triangle support, we should pass objIdx and the bary-
 			// centric coordinates of the hit, instead of the intersection location.
 		}
@@ -810,18 +790,22 @@ namespace Tmpl8 {
 		__declspec(align(64)) // start a new cacheline here
 			float animTime = 0;
 
-		Light* light[2];
-		//Cube cubes[1];
-		Sphere spheres[1];
-		Mesh triangles[1];
-		Quad quad;	
+		vector<Light *> lights;
+		vector<Cube> cubes;
+		vector<Sphere> spheres;
+		vector<Mesh> triangles;	
+		vector<Plane> planes;
 		int skydomeX, skydomeY, skydomeN;
 		unsigned char* skydome;
-		Plane plane[6];
 		int aaSamples = 1;
 		int invAaSamples = 1 / aaSamples;
 		bool raytracer = true;
 		float mediumIr = 1.0f;
-		bool animOn = true; // set to false while debugging to prevent some cast error from primitive object type
+		bool animOn = raytracer && true; // set to false while debugging to prevent some cast error from primitive object type
+		const float3 white = float3(1.0, 1.0, 1.0);
+		const float3 red = float3(255, 0, 0) / 255;
+		const float3 blue = float3(0, 0, 255) / 255;
+		const float3 babyblue = float3(0.6f, 0.6f, 1.0f);
+		const float3 green = float3(0, 255, 0) / 255;
 	};
 }
