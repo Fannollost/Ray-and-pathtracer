@@ -23,7 +23,7 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 	if (depth <= 0) return float3(0, 0, 0);
 	float t_min = 0.001f;
 	scene.FindNearest(ray, t_min);
-	if (ray.objIdx == -1) return 0; // or a fancy sky color	
+	if (ray.objIdx == -1) return scene.GetSkyColor(ray);	
 	float3 totCol = float3(0);
 	material* m = ray.GetMaterial();
 	float3 f = m->col;

@@ -1,4 +1,5 @@
 #pragma once
+
 // -----------------------------------------------------------
 // scene.h
 // Simple test scene for ray tracing experiments. Goals:
@@ -261,6 +262,11 @@ namespace Tmpl8 {
 					v >> x; v >> y; v >> z;
 					vertices.push_back(float3(x*scale+pos.x, y * scale +pos.y, z * scale +pos.z));
 				}
+				else if (line.substr(0, 2) == "vn") {
+					istringstream v(line.substr(3));
+					v >> x; v >> y; v >> z;
+					verticesNormal.push_back(float3(x * scale + pos.x, y * scale + pos.y, z * scale + pos.z));
+				}
 				else if (line.substr(0, 2) == "f ") {
 					int v0, v1, v2;
 					int temp;
@@ -308,6 +314,7 @@ namespace Tmpl8 {
 		int vertexNb = 0;
 		int facesNb = 0;
 		vector<float3> vertices;
+		vector<float3> verticesNormal;
 		vector<int3> faces;
 		vector<Triangle> triangles;
 	};
@@ -671,7 +678,7 @@ namespace Tmpl8 {
 			diffuse* specReflDiff = new diffuse(float3(0.7f), white, 0.6f, 0.4f, 50, raytracer, 0.0f);
 			metal* standardMetal = new metal(0.7f, white, raytracer);
 			// we store all primitives in one continuous buffer
-
+			skydome = stbi_load("C:\\Users\\fabie\\Documents\\Fac\\Master\\P2\\INFOMARG\\Skydome\\sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 			//light[0] = new DirectionalLight(11, float3(0, 2, 0), 10.0f, white, float3(0, -1, 1), 0.9, raytracer);			//DIT FF CHECKEN!
 			//light[1] = new AreaLight(12, float3(0,0.9,1.5f), 10.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);
 			light[0] = new AreaLight(11, float3(0.1f,1.8f,1.5f), 10.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
@@ -794,6 +801,20 @@ namespace Tmpl8 {
 		{
 			return objIdx == 3 ? 1.0f : 0.0f;
 		}
+
+		float3 GetSkyColor(Ray &r) const
+		{	
+			float3 horizontalProj = float3(r.D.x, 0, r.D.z);
+			float cHeight = dot(r.D, float3(0, -1, 0));
+			float cOrient = dot(float3(0, 0, 1), normalize(horizontalProj));
+			float sOrient = dot(float3(1, 0, 0), normalize(horizontalProj));
+			sOrient = sOrient > 0 ? 1 : -1;
+			int y = ((cHeight + 1) / 2) * (skydomeY-1);
+			int x = (((sOrient * acos(cOrient))+PI)/ TWOPI )* (skydomeX-1);
+			uint8_t* pixelOffset = skydome + (x + skydomeX * y) * skydomeN;
+			return float3(uint3(pixelOffset[0], pixelOffset[1], pixelOffset[2]))/255;
+		}
+
 		__declspec(align(64)) // start a new cacheline here
 			float animTime = 0;
 
@@ -801,7 +822,9 @@ namespace Tmpl8 {
 		//Cube cubes[1];
 		Sphere spheres[1];
 		Mesh triangles[1];
-		Quad quad;		
+		Quad quad;	
+		int skydomeX, skydomeY, skydomeN;
+		unsigned char* skydome;
 		Plane plane[6];
 		int aaSamples = 1;
 		int invAaSamples = 1 / aaSamples;

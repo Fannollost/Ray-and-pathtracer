@@ -18,6 +18,8 @@ public:
 		topLeft = float3( -aspect, 1, 0 );
 		topRight = float3( aspect, 1, 0 );
 		bottomLeft = float3( -aspect, -1, 0 );
+		screenCenter = topLeft + .5f * (topRight - topLeft) + .5f * (bottomLeft - topLeft);
+		radius = 2*(screenCenter.z - camPos.z);
 		speed = 0.1f;
 	}
 	Ray GetPrimaryRay( const int x, const int y )
@@ -26,20 +28,38 @@ public:
 		const float u = (float)x * (1.0f / SCRWIDTH);
 		const float v = (float)y * (1.0f / SCRHEIGHT);
 		const float3 P = topLeft + u * (topRight - topLeft) + v * (bottomLeft - topLeft);
-		return Ray( camPos, normalize( P - camPos ), float3(0) );
+		if (fishEye) {
+			
+			float3 newRay = normalize(P - camPos) * radius;
+			newRay = float3(newRay.x, newRay.y, newRay.z);
+			/*float theta = 0.5f * (u * 2 - 1) * (v * 2 - 1);
+			float3 newRay = RotateZ(P,camPos, -theta);*/
+			return Ray(camPos, normalize(newRay - camPos), float3(0));
+		}
+		else {
+			
+			return Ray(camPos, normalize(P - camPos), float3(0));
+		}
+		
 	}
 	float aspect = (float)SCRWIDTH / (float)SCRHEIGHT;
 	float3 camPos;
-	float3 topLeft, topRight, bottomLeft;
+	float3 topLeft, topRight, bottomLeft, screenCenter, radius;
 	float speed;
 	float yAngle = 0;
 	float2 mov = float2(0.f);
 	int aspectChange = 0;
 	float fovChange = 0.f;
 	bool paused = false;
+	bool fishEye = true;
 
-	void MoveTick(int &it) {
-		float3 velocity = float3(0, speed * mov[1], 0) + (speed * mov[0] * normalize(topRight - topLeft));
+	void ToogleFisheye() {
+		fishEye = !fishEye;
+	}
+
+	void MoveTick() {
+		screenCenter = topLeft + .5f * (topRight - topLeft) + .5f * (bottomLeft - topLeft);
+		float3 velocity = (speed * mov[1] * normalize(screenCenter - camPos)) + (speed * mov[0] * normalize(topRight - topLeft));
 		if (length(velocity) > 0) {
 			it = 0;
 			camPos += velocity;
@@ -47,16 +67,18 @@ public:
 			topRight += velocity;
 			bottomLeft += velocity;
 		}
+		screenCenter = topLeft + .5f * (topRight - topLeft) + .5f * (bottomLeft - topLeft);
 	}
 
-	void FOVTick(int &it) {
-		const float3 screenCenter = topLeft + .5f * (topRight - topLeft) + .5f * (bottomLeft - topLeft);
+	void FOVTick() {
+		screenCenter = topLeft + .5f * (topRight - topLeft) + .5f * (bottomLeft - topLeft);
 		if (fovChange != 0 && (length(screenCenter - camPos) > 0.1f || fovChange > 0)) {
 			it = 0;
 			topLeft += normalize(screenCenter - camPos) * 0.1f * fovChange;
 			topRight += normalize(screenCenter - camPos) * 0.1f * fovChange;
 			bottomLeft += normalize(screenCenter - camPos) * 0.1f * fovChange;
 		}
+		screenCenter = topLeft + .5f * (topRight - topLeft) + .5f * (bottomLeft - topLeft);
 	}
 
 	void aspectTick(int &it) {
@@ -93,6 +115,22 @@ public:
 		topLeft = RotateY(topLeft, camPos,theta);
 		topRight = RotateY(topRight, camPos, theta);
 		bottomLeft = RotateY(bottomLeft, camPos, theta);
+	}
+
+	float3 RotateZ(float3 p, float3 center, float theta) {
+		double c = cos(theta);
+		double s = sin(theta);
+		float3 res = float3(0.f);
+
+		float3 vect = p - center;
+		float3 xTransform = float3(c, -s, 0);
+		float3 yTransform = float3(s, c, 0);
+
+		res[0] = dot(vect, xTransform);
+		res[1] = dot(vect, yTransform);
+		res[2] = vect[2];
+
+		return res + center;
 	}
 
 	float3 RotateY(float3 p, float3 center, float theta) {
