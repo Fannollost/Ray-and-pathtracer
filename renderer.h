@@ -10,7 +10,7 @@ namespace Tmpl8
 		void Init();
 		float3 Trace(Ray& ray, int depth, float3 energy);
 		float3 Sample(Ray& ray, int depth, float3 energy);
-		void Tick(float deltaTime, int frameNr);
+		void Tick(float deltaTime);
 		void Shutdown() { /* implement if you want to do something on exit */ }
 		// input handling
 		void MouseUp(int button) {
