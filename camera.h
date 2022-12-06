@@ -38,9 +38,10 @@ public:
 	float fovChange = 0.f;
 	bool paused = false;
 
-	void MoveTick() {
+	void MoveTick(int &it) {
 		float3 velocity = float3(0, speed * mov[1], 0) + (speed * mov[0] * normalize(topRight - topLeft));
 		if (length(velocity) > 0) {
+			it = 0;
 			camPos += velocity;
 			topLeft += velocity;
 			topRight += velocity;
@@ -48,19 +49,21 @@ public:
 		}
 	}
 
-	void FOVTick() {
+	void FOVTick(int &it) {
 		const float3 screenCenter = topLeft + .5f * (topRight - topLeft) + .5f * (bottomLeft - topLeft);
 		if (fovChange != 0 && (length(screenCenter - camPos) > 0.1f || fovChange > 0)) {
+			it = 0;
 			topLeft += normalize(screenCenter - camPos) * 0.1f * fovChange;
 			topRight += normalize(screenCenter - camPos) * 0.1f * fovChange;
 			bottomLeft += normalize(screenCenter - camPos) * 0.1f * fovChange;
 		}
 	}
 
-	void aspectTick() {
+	void aspectTick(int &it) {
 		float3 strechtDir = topRight - topLeft;
 		float3 projDir = float3(strechtDir.x, strechtDir.y,0);
 		if (length(strechtDir) > length(0.2f * aspectChange * normalize(projDir)) || aspectChange > 0) {
+			it = 0;
 			topLeft -= 0.1f * aspectChange * normalize(projDir);
 			topRight += 0.1f * aspectChange * normalize(projDir);
 			bottomLeft -= 0.1f * aspectChange * normalize(projDir);

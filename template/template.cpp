@@ -261,7 +261,7 @@ void main()
 		"void main(){f=vec4(sqrt(fxaa(vec2(1240,800),uv)),1);}", true);
 #endif
 	float deltaTime = 0;
-	static int frameNr = 0;
+	static int frameNr = 1;
 	static Timer timer;
 	while (!glfwWindowShouldClose(window))
 	{
