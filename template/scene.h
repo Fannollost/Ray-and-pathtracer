@@ -673,8 +673,9 @@ namespace Tmpl8 {
 			metal* standardMetal = new metal(0.7f, white, raytracer);
 
 			// we store all primitives in one continuous buffer
-			lights.push_back(new AreaLight(12, float3(0, -0.9, 0.5f), 5.0f, white, 0.5f, float3(0, 1, 0), 4, raytracer));
+
 			lights.push_back(new AreaLight(11, float3(0.1f, 1.8f, 1.5f), 5.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
+			lights.push_back(new AreaLight(12, float3(0, -0.9, 0.5f), 5.0f, white, 0.5f, float3(0, 1, 0), 4, raytracer));
 
 			planes.push_back(Plane(0, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 1));			// 2: floor
 
