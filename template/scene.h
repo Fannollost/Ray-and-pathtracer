@@ -102,8 +102,6 @@ namespace Tmpl8 {
 
 		void Intersect(Ray& ray, float t_min) override {
 			float d = dot(normal, ray.D);
-			//cout << ray.O.x << ", " << ray.O.y << ", " << ray.O.z << endl;
-			////cout << "normal" <<  ray.D.x << ", " << ray.D.y << ", " << ray.D.z << endl;
 			float3 dir = pos - ray.O;
 			float t = dot(dir, normal) / d;
 				if (t >= t_min) {
@@ -113,7 +111,6 @@ namespace Tmpl8 {
 					if (sqrtf(dis2) <= radius) {
 						ray.t = t, ray.SetNormal(normal), ray.color = col;
 							ray.objIdx = objIdx;
-							//GetLightIntensityAt(ray.IntersectionPoint(), normal);
 					}
 			}
 
@@ -123,19 +120,12 @@ namespace Tmpl8 {
 			float dis = length(pos - p);
 			float3 dir = pos - p;
 			float cos_ang = dot(normalize(n), normalize(dir));
-			//cout << cos_ang << endl;
 			if (dis <= radius && isZero(cos_ang)) {
-				//cout << "On disk" << endl;
 				return float3(strength);
 			}
 			float relStr = 1 / (dis * PI) * strength;
 			float str = dot(n, normalize(dir));
 			if ( str < 0.0f) str = 0.0f;
-
-			for (int i = 0; i < samples; i++) {
-				//lerp between values then divide by samples  
-			}
-			//cout << relStr << ", " << str << "," << GetLightColor().x << endl;
 			return relStr * str * GetLightColor();
 		}
 		float3 GetLightPosition() override {
@@ -169,27 +159,12 @@ namespace Tmpl8 {
 			}
 			float dis = length(dir);
 			float str = sinAngle - sTheta > 0 ? asin(sinAngle) - asin(sTheta) : 0;
-			
-			//return str > 0 ? 1 : 0;
 
 			return 1 / dis * str * strength;
 		}
 
 		float sinAngle;
 	};
-
-	/*class Object {
-	public:
-		Object() = default;
-		Object(int idx, material* m) : objIdx(idx), mat(m) {}
-		float3 GetIndex() { return objIdx; }
-		material* GetMaterial() { return mat; }
-		virtual void Intersect(Ray& ray, float t_min) { return; }
-		virtual float3 GetNormal(const float3 I) { return float3(); }
-		virtual float3 GetAlbedo(const float3 I) { return float3(); }
-		int objIdx = -1;
-		material* mat;
-	};*/
 
 	// -----------------------------------------------------------
 	// Triangle Primitive
@@ -555,7 +530,6 @@ namespace Tmpl8 {
 			specularColor = powf(fmax(0.0f, -dot(reflectionDirection, ray.D)), N) * lightIntensity;
 			lightAttenuation = lightIntensity;
 
-			//cout << diffu;
 			att = albedo * lightAttenuation * diffu + specularColor * specu;
 			float3 dir;
 			if (raytracer) {
@@ -564,9 +538,7 @@ namespace Tmpl8 {
 			else {
 				dir = RandomInHemisphere(normal);
 			}
-			//if (isZero(dir)) dir = normal;
 			scattered = Ray(ray.IntersectionPoint(), dir, ray.color);
-			//att = albedo;  */
 			float3 retention = float3(1) - albedo;
 			float3 newEnergy(energy - retention);
 			energy = newEnergy.x > 0 ? newEnergy : 0;
@@ -597,24 +569,6 @@ namespace Tmpl8 {
 		glass(float refIndex, float3 c, float3 a, float r, float n, bool rt)
 			: ir(refIndex), absorption(a), specu(r), N(n), material(c, rt) {
 			type = GLASS; invIr = 1 / ir;
-		}
-		virtual bool scatter(const Ray& r, Ray& scattered, Ray& reflected, float3 normal, float3& energy) {
-			bool outside = dot(r.D, r.hitNormal) < 0;
-			float3 offset = 0.001f * r.hitNormal;
-			float kr;
-			fresnel(r.D, r.hitNormal, ir, kr);
-			fresnelVal = kr;
-			if(kr < 1){
-				float3 refrDir = normalize(RefractRay(r.D, r.hitNormal, ir));
-				float3 refrOrig = outside ? r.IntersectionPoint() - offset : r.IntersectionPoint() + offset;
-				scattered = Ray(refrOrig, refrDir, col);
-				//return true;
-			}
-			//return true;
-			float3 reflDir = normalize(reflect(r.D, r.hitNormal));
-			float3 reflOrig = outside ? r.IntersectionPoint() + offset : r.IntersectionPoint() - offset;
-			reflected = Ray(reflOrig, reflDir, col);
-			return true;
 		}
 		void fresnel(const float3& I, const float3& N, const float& ior, float& kr)
 		{
@@ -681,17 +635,17 @@ namespace Tmpl8 {
 			// we store all primitives in one continuous buffer
 			skydome = stbi_load("sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 			//light[0] = new DirectionalLight(11, float3(0, 2, 0), 10.0f, white, float3(0, -1, 1), 0.9, raytracer);			//DIT FF CHECKEN!
-			light[1] = new AreaLight(12, float3(0,-0.9,0.5f), 5.0f, white, 0.5f, float3(0, 1, 0), 4, raytracer);
-			light[0] = new AreaLight(11, float3(0.1f,1.8f,1.5f), 5.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
+			light[1] = new AreaLight(12, float3(0,-0.9,0.5f), 5.0f, white, 0.2f, float3(0, 1, 0), 4, raytracer);
+			light[0] = new AreaLight(11, float3(0.1f,1.8f,1.5f), 5.0f, white, 0.2f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
 			//light[2] = new AreaLight(10, float3(0.1f,1.0f, 2), 4.0f, white, 0.1f, float3(0, 1, 0), 4, raytracer);			//DIT FF CHECKEN!
 			//light[2] = new AreaLight(13, float3(0.1f, -1, 0), 2.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
 
-			plane[0] = Plane(0, new diffuse(0.8f, red, 0.0f, 1.0f, 4, raytracer), float3(1, 0, 0), 3);			// 0: left wall
-			plane[1] = Plane(1, new diffuse(0.8f, green, 0.0f, 1.0f,4,raytracer), float3(-1, 0, 0), 2.99f);		// 1: right wall
-			plane[2] = Plane(2, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 1);			// 2: floor
-			plane[3] = Plane(3, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, -1, 0), 2);			// 3: ceiling
-			plane[4] = Plane(4, new diffuse(0.8f, white, 0	, 0.3f, 0.7f,raytracer), float3(0, 0, 1), 3);			// 4: front wall
-			plane[5] = Plane(5, specularDiff, float3(0, 0, -1), 3.99f);		// 5: back wall
+			//plane[0] = Plane(0, new diffuse(0.8f, red, 0.0f, 1.0f, 4, raytracer), float3(1, 0, 0), 3);			// 0: left wall
+			//plane[1] = Plane(1, new diffuse(0.8f, green, 0.0f, 1.0f,4,raytracer), float3(-1, 0, 0), 2.99f);		// 1: right wall
+			plane[0] = Plane(2, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 1);			// 2: floor
+			//plane[3] = Plane(3, standardMetal, float3(0, -1, 0), 2);			// 3: ceiling
+			//plane[4] = Plane(4, new diffuse(0.8f, white, 0	, 0.3f, 0.7f,raytracer), float3(0, 0, 1), 3);			// 4: front wall
+			//plane[5] = Plane(5, specularDiff, float3(0, 0, -1), 3.99f);		// 5: back wall
 			//quad = Quad(6, new diffuse(0.8f, white, 0), 1);							// 6: light source
 
 			spheres[0] = Sphere(7, standardGlass, float3(-0.7f, -0.4f, 2.0f), 0.5f);			// 1: bouncing ball
@@ -699,7 +653,7 @@ namespace Tmpl8 {
 			//obj[1] = new Sphere(8, specularDiff, float3(0, 2.5f, -3.07f), 8);		// 2: rounded corners
 			//obj[2] = new Sphere(9, white, new glass(0.1f), float3(1.5f, 0, 2), 0.5f);			// 3: static glass sphere => set animOn to false
 			//obj[2] = new Cube(9, blueDiff, float3(0), float3(1.15f));		// 3: spinning cube
-			triangles[0] = Mesh(10, new diffuse(0.8f, green, 0	, 0.3f, 0.7f,raytracer), "shape.obj", float3(0.5f,-0.51f,2), 0.5f);
+			triangles[0] = Mesh(10, new diffuse(0.8f, red, 0.0f, 1.0f, 4, raytracer), "shape.obj", float3(0.5f,-0.51f,2), 0.5f);
 			
 			//triangles[0] = Triangle(8, new diffuse(0.8f, blue, 0), float3(0.0f, 0.0f, 1.0f), float3(0.2f, 0, 1.0f), float3(0.2f, 0.2f, 1.0f));	// 4: Triangle
 
@@ -826,7 +780,7 @@ namespace Tmpl8 {
 		Quad quad;	
 		int skydomeX, skydomeY, skydomeN;
 		unsigned char* skydome;
-		Plane plane[6];
+		Plane plane[1];
 		int aaSamples = 1;
 		int invAaSamples = 1 / aaSamples;
 		bool raytracer = false;
