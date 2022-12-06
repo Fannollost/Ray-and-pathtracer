@@ -57,6 +57,7 @@ namespace Tmpl8
 			}
 		}
 		void KeyDown(int key) {
+			cout << key << endl;
 			switch (key) {
 			case KEYBOARD_W:
 				camera.MoveCameraY(1);
@@ -88,6 +89,9 @@ namespace Tmpl8
 			case KEYBOARD_F:
 				camera.ToogleFisheye();
 				break;
+			case KEYBOARD_P:
+				scene.toogleRaytracer();
+				break;
 			}
 			/* implement if you want to handle keys */
 		}
@@ -104,6 +108,7 @@ namespace Tmpl8
 			KEYBOARD_S = 83,
 			KEYBOARD_A = 65,
 			KEYBOARD_F = 70,
+			KEYBOARD_P = 80,
 			KEYBOARD_SPACE = 32,
 			KEYBOARD_PLUS = 334,
 			KEYBOARD_MINUS = 333,

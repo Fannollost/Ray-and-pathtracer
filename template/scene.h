@@ -676,10 +676,11 @@ namespace Tmpl8 {
 
 			lights.push_back(new AreaLight(11, float3(0.1f, 1.8f, 1.5f), 5.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
 			lights.push_back(new AreaLight(12, float3(0, -0.9, 0.5f), 5.0f, white, 0.5f, float3(0, 1, 0), 4, raytracer));
+			
 
 			planes.push_back(Plane(0, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 1));			// 2: floor
 
-			spheres.push_back(Sphere(7, standardMetal, float3(-0.7f, -0.4f, 2.0f), 0.5f));
+			spheres.push_back(Sphere(7, standardGlass, float3(-0.7f, -0.4f, 2.0f), 0.5f));
 			triangles.push_back(Mesh(10, standardGlass, "Resources/ico.obj", float3(0.5f, -0.51f, 2), 0.5f));
 
 		}
@@ -764,6 +765,11 @@ namespace Tmpl8 {
 		void SetIterationNumber(int i) { iterationNumber = i; }
 		int GetIterationNumber() { return iterationNumber; }
 
+		void toogleRaytracer() {
+			raytracer = !raytracer;
+			animOn = raytracer && defaultAnim;
+			SetIterationNumber(1);
+		}
 		__declspec(align(64)) // start a new cacheline here
 			float animTime = 0;
 
@@ -779,7 +785,8 @@ namespace Tmpl8 {
 		int iterationNumber = 1;
 		bool raytracer = false;
 		float mediumIr = 1.0f;
-		bool animOn = raytracer && true; // set to false while debugging to prevent some cast error from primitive object type
+		bool defaultAnim = false;
+		bool animOn = raytracer && defaultAnim; // set to false while debugging to prevent some cast error from primitive object type
 		const float3 white = float3(1.0, 1.0, 1.0);
 		const float3 red = float3(255, 0, 0) / 255;
 		const float3 blue = float3(0, 0, 255) / 255;
