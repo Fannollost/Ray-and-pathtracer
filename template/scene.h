@@ -102,8 +102,6 @@ namespace Tmpl8 {
 
 		void Intersect(Ray& ray, float t_min) override {
 			float d = dot(normal, ray.D);
-			//cout << ray.O.x << ", " << ray.O.y << ", " << ray.O.z << endl;
-			////cout << "normal" <<  ray.D.x << ", " << ray.D.y << ", " << ray.D.z << endl;
 			float3 dir = pos - ray.O;
 			float t = dot(dir, normal) / d;
 				if (t >= t_min) {
@@ -111,9 +109,8 @@ namespace Tmpl8 {
 					float3 v = intersection - pos;
 					float dis2 = dot(v, v);
 					if (sqrtf(dis2) <= radius) {
-						ray.t = t, ray.SetNormal(normal), ray.color = col;
+						ray.t = t, ray.SetNormal(normal), ray.color = col, ray.O = ray.O + normal * 1e-6;
 							ray.objIdx = objIdx;
-							//GetLightIntensityAt(ray.IntersectionPoint(), normal);
 					}
 			}
 
@@ -123,19 +120,13 @@ namespace Tmpl8 {
 			float dis = length(pos - p);
 			float3 dir = pos - p;
 			float cos_ang = dot(normalize(n), normalize(dir));
-			//cout << cos_ang << endl;
-			if (dis <= radius && isZero(cos_ang)) {
-				//cout << "On disk" << endl;
-				return float3(strength);
-			}
+			
 			float relStr = 1 / (dis * PI) * strength;
 			float str = dot(n, normalize(dir));
-			if ( str < 0.0f) str = 0.0f;
-
-			for (int i = 0; i < samples; i++) {
-				//lerp between values then divide by samples  
+			if (dis <= radius && isZero(cos_ang)) {
+				if (dis == 0) return float3(strength);
+				else return float3(relStr / strength) + relStr * str * GetLightColor();
 			}
-			//cout << relStr << ", " << str << "," << GetLightColor().x << endl;
 			return relStr * str * GetLightColor();
 		}
 		float3 GetLightPosition() override {
@@ -681,8 +672,8 @@ namespace Tmpl8 {
 			// we store all primitives in one continuous buffer
 			skydome = stbi_load("sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 			//light[0] = new DirectionalLight(11, float3(0, 2, 0), 10.0f, white, float3(0, -1, 1), 0.9, raytracer);			//DIT FF CHECKEN!
-			light[1] = new AreaLight(12, float3(0,-0.9,0.5f), 5.0f, white, 0.5f, float3(0, 1, 0), 4, raytracer);
-			light[0] = new AreaLight(11, float3(0.1f,1.8f,1.5f), 5.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
+			light[0] = new AreaLight(11, float3(0.1f,1.95f,1.5f), 5.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
+			light[1] = new AreaLight(12, float3(0, -0.95, 0.5f), 5.0f, white, 0.5f, float3(0, 1, 0), 4, raytracer);
 			//light[2] = new AreaLight(10, float3(0.1f,1.0f, 2), 4.0f, white, 0.1f, float3(0, 1, 0), 4, raytracer);			//DIT FF CHECKEN!
 			//light[2] = new AreaLight(13, float3(0.1f, -1, 0), 2.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
 
@@ -750,7 +741,7 @@ namespace Tmpl8 {
 
 			for (int i = 0; i < size(triangles); ++i) triangles[i].Intersect(ray, t_min);
 
-			for(int i = 0; i < size(light); ++i) light[i]->Intersect(ray, t_min);
+			if(!raytracer) for(int i = 0; i < size(light); ++i) light[i]->Intersect(ray, t_min);
 		}
 		bool IsOccluded(Ray& ray, float t_min) const
 		{
@@ -829,7 +820,7 @@ namespace Tmpl8 {
 		Plane plane[6];
 		int aaSamples = 1;
 		int invAaSamples = 1 / aaSamples;
-		bool raytracer = false;
+		bool raytracer = true;
 		float mediumIr = 1.0f;
 		bool animOn = true; // set to false while debugging to prevent some cast error from primitive object type
 	};

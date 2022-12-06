@@ -22,27 +22,26 @@ public:
 		radius = 2*(screenCenter.z - camPos.z);
 		speed = 0.1f;
 	}
-	Ray GetPrimaryRay( const int x, const int y )
+	Ray GetPrimaryRay(const int x, const int y)
 	{
-		// calculate pixel position on virtual screen plane
-		const float u = (float)x * (1.0f / SCRWIDTH);
-		const float v = (float)y * (1.0f / SCRHEIGHT);
-		const float3 P = topLeft + u * (topRight - topLeft) + v * (bottomLeft - topLeft);
 		if (fishEye) {
-			
-			float3 newRay = normalize(P - camPos) * radius;
-			newRay = float3(newRay.x, newRay.y, newRay.z);
-			/*float theta = 0.5f * (u * 2 - 1) * (v * 2 - 1);
-			float3 newRay = RotateZ(P,camPos, -theta);*/
-			return Ray(camPos, normalize(newRay - camPos), float3(0));
+			float theta = viewAngle * PI;
+			const float u = (float)(x - SCRWIDTH / 2) * (aspect*viewAngle / SCRWIDTH);
+			const float v = (float)(y - SCRWIDTH / 2) * (viewAngle / SCRHEIGHT);
+			float3 newRay = RotateX(RotateY(normalize(screenCenter - camPos), camPos, -u), camPos, -v);
+			return Ray(camPos, normalize(newRay), float3(0));
 		}
 		else {
-			
+			// calculate pixel position on virtual screen plane
+			const float u = (float)x * (1.0f / SCRWIDTH);
+			const float v = (float)y * (1.0f / SCRHEIGHT);
+			const float3 P = topLeft + u * (topRight - topLeft) + v * (bottomLeft - topLeft);
 			return Ray(camPos, normalize(P - camPos), float3(0));
 		}
-		
+
 	}
 	float aspect = (float)SCRWIDTH / (float)SCRHEIGHT;
+	float viewAngle = 0.25;
 	float3 camPos;
 	float3 topLeft, topRight, bottomLeft, screenCenter, radius;
 	float speed;
@@ -71,14 +70,19 @@ public:
 	}
 
 	void FOVTick() {
-		screenCenter = topLeft + .5f * (topRight - topLeft) + .5f * (bottomLeft - topLeft);
-		if (fovChange != 0 && (length(screenCenter - camPos) > 0.1f || fovChange > 0)) {
-			//it = 0;
-			topLeft += normalize(screenCenter - camPos) * 0.1f * fovChange;
-			topRight += normalize(screenCenter - camPos) * 0.1f * fovChange;
-			bottomLeft += normalize(screenCenter - camPos) * 0.1f * fovChange;
+		if (fishEye) {
+			if(viewAngle>0.11f && viewAngle<0.99)viewAngle -= 0.01f * fovChange;
 		}
-		screenCenter = topLeft + .5f * (topRight - topLeft) + .5f * (bottomLeft - topLeft);
+		else {
+			screenCenter = topLeft + .5f * (topRight - topLeft) + .5f * (bottomLeft - topLeft);
+			if (fovChange != 0 && (length(screenCenter - camPos) > 0.1f || fovChange > 0)) {
+				//it = 0;
+				topLeft += normalize(screenCenter - camPos) * 0.1f * fovChange;
+				topRight += normalize(screenCenter - camPos) * 0.1f * fovChange;
+				bottomLeft += normalize(screenCenter - camPos) * 0.1f * fovChange;
+			}
+			screenCenter = topLeft + .5f * (topRight - topLeft) + .5f * (bottomLeft - topLeft);
+		}
 	}
 
 	void aspectTick() {

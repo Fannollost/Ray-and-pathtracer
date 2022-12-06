@@ -882,7 +882,7 @@ inline float4 smoothstep( float4 a, float4 b, float4 x )
 	float4 y = clamp( (x - a) / (b - a), 0.0f, 1.0f );
 	return (y * y * (make_float4( 3.0f ) - (make_float4( 2.0f ) * y)));
 }
-inline bool isZero(float3 r) { double s = 1e-6;  return fabs(r.x < s) && fabs(r.y < s) && fabs(r.z < s); }
+inline bool isZero(float3 r) { double s = 1e-8;  return fabs(r.x < s) && fabs(r.y < s) && fabs(r.z < s); }
 
 // axis aligned bounding box class
 class aabb
