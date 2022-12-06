@@ -123,10 +123,7 @@ namespace Tmpl8 {
 
 			float relStr = 1 / (dis * PI) * strength;
 			float str = dot(n, normalize(dir));
-			if (dis <= radius && isZero(cos_ang)) {
-				if (dis == 0) return float3(strength);
-				else return float3(relStr / strength) + relStr * str * GetLightColor();
-			}
+			if (dis <= radius && isZero(cos_ang)) return float3(strength);
 			return relStr * str * GetLightColor();
 		}
 		float3 GetLightPosition() override {
