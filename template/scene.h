@@ -113,7 +113,7 @@ namespace Tmpl8 {
 					if (sqrtf(dis2) <= radius) {
 						ray.t = t, ray.SetNormal(normal), ray.color = col;
 							ray.objIdx = objIdx;
-							GetLightIntensityAt(ray.IntersectionPoint(), normal);
+							//GetLightIntensityAt(ray.IntersectionPoint(), normal);
 					}
 			}
 
@@ -122,10 +122,11 @@ namespace Tmpl8 {
 		float3 GetLightIntensityAt(float3 p, float3 n) override {
 			float dis = length(pos - p);
 			float3 dir = pos - p;
-			float cos_ang = dot(n, normalize(dir));
+			float cos_ang = dot(normalize(n), normalize(dir));
+			//cout << cos_ang << endl;
 			if (dis <= radius && isZero(cos_ang)) {
 				//cout << "On disk" << endl;
-				return strength;
+				return float3(strength);
 			}
 			float relStr = 1 / (dis * PI) * strength;
 			float str = dot(n, normalize(dir));
@@ -667,7 +668,7 @@ namespace Tmpl8 {
 			//diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.3f, 0.7f, 1200, raytracer);
 			diffuse* standardDiff = new diffuse(float3(0.8f), blue, 0.8f, 0.2f, 32, raytracer);
 			diffuse* pureDiff = new diffuse(float3(0.8f), blue, 0.8f, 0.0f, 1, raytracer);
-			glass* standardGlass = new glass(1.5f, white, float3(0.00f), 0.1f, 0, raytracer);
+			glass* standardGlass = new glass(1.5f, white, float3(0.00f), 0.0f, 0, raytracer);
 			//glass* blueGlass = new glass(1.5f, babyblue, float3(0.0f), raytracer);
 			//glass* diamond = new glass(2.4f, white, float3(0.00f), raytracer);
 			diffuse* specularDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 2, raytracer, 0);
@@ -680,8 +681,8 @@ namespace Tmpl8 {
 			// we store all primitives in one continuous buffer
 			skydome = stbi_load("sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 			//light[0] = new DirectionalLight(11, float3(0, 2, 0), 10.0f, white, float3(0, -1, 1), 0.9, raytracer);			//DIT FF CHECKEN!
-			//light[1] = new AreaLight(12, float3(0,0.9,1.5f), 10.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);
-			light[0] = new AreaLight(11, float3(0.1f,1.8f,1.5f), 10.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
+			light[1] = new AreaLight(12, float3(0,-0.9,0.5f), 5.0f, white, 0.5f, float3(0, 1, 0), 4, raytracer);
+			light[0] = new AreaLight(11, float3(0.1f,1.8f,1.5f), 5.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
 			//light[2] = new AreaLight(10, float3(0.1f,1.0f, 2), 4.0f, white, 0.1f, float3(0, 1, 0), 4, raytracer);			//DIT FF CHECKEN!
 			//light[2] = new AreaLight(13, float3(0.1f, -1, 0), 2.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
 
@@ -698,7 +699,7 @@ namespace Tmpl8 {
 			//obj[1] = new Sphere(8, specularDiff, float3(0, 2.5f, -3.07f), 8);		// 2: rounded corners
 			//obj[2] = new Sphere(9, white, new glass(0.1f), float3(1.5f, 0, 2), 0.5f);			// 3: static glass sphere => set animOn to false
 			//obj[2] = new Cube(9, blueDiff, float3(0), float3(1.15f));		// 3: spinning cube
-			triangles[0] = Mesh(10, new diffuse(0.6f, green, 0.8f, 0.2f, 5, raytracer), "shape.obj", float3(0.5f,-0.51f,2), 0.5f);
+			triangles[0] = Mesh(10, new diffuse(0.8f, green, 0	, 0.3f, 0.7f,raytracer), "shape.obj", float3(0.5f,-0.51f,2), 0.5f);
 			
 			//triangles[0] = Triangle(8, new diffuse(0.8f, blue, 0), float3(0.0f, 0.0f, 1.0f), float3(0.2f, 0, 1.0f), float3(0.2f, 0.2f, 1.0f));	// 4: Triangle
 
@@ -742,7 +743,7 @@ namespace Tmpl8 {
 		}
 		void FindNearest(Ray& ray, float t_min) const
 		{
-
+			ray.objIdx = -1;
 			for (int i = 0; i < size(plane); ++i) plane[i].Intersect(ray, t_min);
 
 			for (int i = 0; i < size(spheres); ++i) spheres[i].Intersect(ray, t_min);
@@ -756,7 +757,7 @@ namespace Tmpl8 {
 			float rayLength = ray.t;
 			// skip planes: it is not possible for the walls to occlude anything
 			quad.Intersect(ray, t_min);
-			//for (int i = 0; i < size(plane); ++i) plane[i].Intersect(ray, t_min);
+			for (int i = 0; i < size(plane); ++i) plane[i].Intersect(ray, t_min);
 			for (int i = 0; i < size(spheres); ++i) spheres[i].Intersect(ray, t_min);
 			for (int i = 0; i < size(triangles); ++i) triangles[i].Intersect(ray, t_min);
 			return ray.t < rayLength;
@@ -818,7 +819,7 @@ namespace Tmpl8 {
 		__declspec(align(64)) // start a new cacheline here
 			float animTime = 0;
 
-		Light* light[1];
+		Light* light[2];
 		//Cube cubes[1];
 		Sphere spheres[1];
 		Mesh triangles[1];
@@ -828,7 +829,7 @@ namespace Tmpl8 {
 		Plane plane[6];
 		int aaSamples = 1;
 		int invAaSamples = 1 / aaSamples;
-		bool raytracer = true;
+		bool raytracer = false;
 		float mediumIr = 1.0f;
 		bool animOn = true; // set to false while debugging to prevent some cast error from primitive object type
 	};

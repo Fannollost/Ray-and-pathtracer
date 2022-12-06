@@ -1,8 +1,8 @@
 #pragma once
 
 // default screen resolution
-#define SCRWIDTH	600
-#define SCRHEIGHT	400
+#define SCRWIDTH	600		//1280
+#define SCRHEIGHT	400		//720
 // #define FULLSCREEN
 // #define DOUBLESIZE
 
@@ -51,7 +51,7 @@ public:
 	int aspectChange = 0;
 	float fovChange = 0.f;
 	bool paused = false;
-	bool fishEye = true;
+	bool fishEye = false;
 
 	void ToogleFisheye() {
 		fishEye = !fishEye;

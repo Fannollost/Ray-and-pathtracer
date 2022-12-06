@@ -23,7 +23,11 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 	if (depth <= 0) return float3(0, 0, 0);
 	float t_min = 0.001f;
 	scene.FindNearest(ray, t_min);
-	if (ray.objIdx == -1) return scene.GetSkyColor(ray);	
+	if (ray.objIdx == -1) return scene.GetSkyColor(ray);
+	if (ray.objIdx == 11 || ray.objIdx == 12)  {
+		//return float3(1);
+		return scene.light[ray.objIdx - 11]->GetLightIntensityAt(ray.IntersectionPoint(), ray.hitNormal);
+	}
 	float3 totCol = float3(0);
 	material* m = ray.GetMaterial();
 	float3 f = m->col;
@@ -270,8 +274,9 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
 	float t_min = 0.001f;
 	float eps = 0.0001f;
 	scene.FindNearest(ray, t_min);
+	if (ray.objIdx == -1) return scene.GetSkyColor(ray);
 	if (ray.objIdx == 11 || ray.objIdx == 12)
-		return scene.light[11-ray.objIdx]->GetLightIntensityAt(ray.IntersectionPoint(), ray.hitNormal);
+		return scene.light[ray.objIdx - 11]->GetLightIntensityAt(ray.IntersectionPoint(), ray.hitNormal);
 
 	//return float3(0);
 	float3 intersectionPoint = ray.IntersectionPoint();
@@ -410,7 +415,7 @@ void Renderer::Tick(float deltaTime, int frameNr)
 				else {
 					float newX = x + (RandomFloat() * 2 - 1);
 					float newY = y + (RandomFloat() * 2 - 1);
-					totCol += Sample(camera.GetPrimaryRay(newX, newY),6, float3(1));
+					totCol += Sample(camera.GetPrimaryRay(newX, newY),4, float3(1));
 					float r = pow(totCol.x * scene.invAaSamples, GAMMA);
 					float g = pow(totCol.y * scene.invAaSamples, GAMMA);
 					float b = pow(totCol.z * scene.invAaSamples, GAMMA);
