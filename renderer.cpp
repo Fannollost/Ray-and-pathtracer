@@ -387,9 +387,9 @@ void Renderer::Tick(float deltaTime, int frameNr)
 	}
 	
 	if(scene.raytracer){
-	camera.MoveTick(frameNr);
-	camera.FOVTick(frameNr);
-	camera.aspectTick(frameNr);
+	camera.MoveTick();
+	camera.FOVTick();
+	camera.aspectTick();
 	}
 	// pixel loop
 	Timer t;

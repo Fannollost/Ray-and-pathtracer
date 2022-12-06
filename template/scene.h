@@ -678,7 +678,7 @@ namespace Tmpl8 {
 			diffuse* specReflDiff = new diffuse(float3(0.7f), white, 0.6f, 0.4f, 50, raytracer, 0.0f);
 			metal* standardMetal = new metal(0.7f, white, raytracer);
 			// we store all primitives in one continuous buffer
-			skydome = stbi_load("C:\\Users\\fabie\\Documents\\Fac\\Master\\P2\\INFOMARG\\Skydome\\sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
+			skydome = stbi_load("sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 			//light[0] = new DirectionalLight(11, float3(0, 2, 0), 10.0f, white, float3(0, -1, 1), 0.9, raytracer);			//DIT FF CHECKEN!
 			//light[1] = new AreaLight(12, float3(0,0.9,1.5f), 10.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);
 			light[0] = new AreaLight(11, float3(0.1f,1.8f,1.5f), 10.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
@@ -828,7 +828,7 @@ namespace Tmpl8 {
 		Plane plane[6];
 		int aaSamples = 1;
 		int invAaSamples = 1 / aaSamples;
-		bool raytracer = false;
+		bool raytracer = true;
 		float mediumIr = 1.0f;
 		bool animOn = true; // set to false while debugging to prevent some cast error from primitive object type
 	};

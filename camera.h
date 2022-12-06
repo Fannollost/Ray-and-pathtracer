@@ -61,7 +61,7 @@ public:
 		screenCenter = topLeft + .5f * (topRight - topLeft) + .5f * (bottomLeft - topLeft);
 		float3 velocity = (speed * mov[1] * normalize(screenCenter - camPos)) + (speed * mov[0] * normalize(topRight - topLeft));
 		if (length(velocity) > 0) {
-			it = 0;
+			//it = 0;
 			camPos += velocity;
 			topLeft += velocity;
 			topRight += velocity;
@@ -73,7 +73,7 @@ public:
 	void FOVTick() {
 		screenCenter = topLeft + .5f * (topRight - topLeft) + .5f * (bottomLeft - topLeft);
 		if (fovChange != 0 && (length(screenCenter - camPos) > 0.1f || fovChange > 0)) {
-			it = 0;
+			//it = 0;
 			topLeft += normalize(screenCenter - camPos) * 0.1f * fovChange;
 			topRight += normalize(screenCenter - camPos) * 0.1f * fovChange;
 			bottomLeft += normalize(screenCenter - camPos) * 0.1f * fovChange;
@@ -81,11 +81,11 @@ public:
 		screenCenter = topLeft + .5f * (topRight - topLeft) + .5f * (bottomLeft - topLeft);
 	}
 
-	void aspectTick(int &it) {
+	void aspectTick() {
 		float3 strechtDir = topRight - topLeft;
 		float3 projDir = float3(strechtDir.x, strechtDir.y,0);
 		if (length(strechtDir) > length(0.2f * aspectChange * normalize(projDir)) || aspectChange > 0) {
-			it = 0;
+			//it = 0;
 			topLeft -= 0.1f * aspectChange * normalize(projDir);
 			topRight += 0.1f * aspectChange * normalize(projDir);
 			bottomLeft -= 0.1f * aspectChange * normalize(projDir);

@@ -461,7 +461,7 @@ float3 RandomUnitVector();
 float Rand( float range );
 float random(float min, float max);
 float3 RandomVectorInUnitSphere();
-inline float fclamp(float x) { return x < 0 ? 0 : x>1 ? 1 : x; }
+//inline float fclamp(float x) { return x < 0 ? 0 : x>1 ? 1 : x; }
 
 // Perlin noise
 float noise2D( const float x, const float y );
