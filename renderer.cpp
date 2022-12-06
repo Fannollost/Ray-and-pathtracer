@@ -189,7 +189,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
 			for (int i = 0; i < N; ++i) {
 				float3 rayToHemi = RandomInHemisphere(normal);
 				float3 cos_i = dot(rayToHemi, normal);
-				indirectLightning += 0.1 * cos_i * Sample(Ray(intersectionPoint + rayToHemi * eps, rayToHemi, float3(0)),
+				indirectLightning += 0.15 * cos_i * Sample(Ray(intersectionPoint + rayToHemi * eps, rayToHemi, float3(0)),
 					depth - 1, energy) * 2 * PI;
 			}
 
@@ -248,18 +248,21 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
 // -----------------------------------------------------------
 // Main application tick function - Executed once per frame
 // -----------------------------------------------------------
-void Renderer::Tick(float deltaTime, int frameNr)
+void Renderer::Tick(float deltaTime)
 {
 	// animation
 	if (!camera.paused && scene.raytracer) {
 		static float animTime = 0;
 		scene.SetTime(animTime += deltaTime * 0.002f);
 	}
-	
-	if(scene.raytracer){
+	int it = scene.GetIterationNumber();
+
 	camera.MoveTick();
 	camera.FOVTick();
 	camera.aspectTick();
+
+	if (camera.GetChange() && !scene.raytracer) {
+		scene.SetIterationNumber(1);
 	}
 	// pixel loop
 	Timer t;
@@ -278,6 +281,9 @@ void Renderer::Tick(float deltaTime, int frameNr)
 					accumulator[x + y * SCRWIDTH] = (totCol / scene.aaSamples);
 				}
 				else {
+					if (camera.GetChange())	{
+						accumulator[x + y * SCRWIDTH] = float3(0);
+					}
 					float newX = x + (RandomFloat() * 2 - 1);
 					float newY = y + (RandomFloat() * 2 - 1);
 					totCol += Sample(camera.GetPrimaryRay(newX, newY),4, float3(1));
@@ -289,15 +295,16 @@ void Renderer::Tick(float deltaTime, int frameNr)
 				}
 			}
 		}
-		if(scene.raytracer)
-			frameNr = 1;
 		// translate accumulator contents to rgb32 pixels
 		for (int dest = y * SCRWIDTH, x = 0; x < SCRWIDTH; ++x)	{
-			float4 acc = accumulator[x + y * SCRWIDTH] / frameNr; /// iteration;
+			float4 acc = accumulator[x + y * SCRWIDTH] / it; /// iteration;
 			screen->pixels[dest + x] = (RGBF32_to_RGB8(&acc));///iteration ;
 		}
 	}
 	
+	if (!scene.raytracer && !camera.GetChange())
+		scene.SetIterationNumber(it + 1);
+	camera.SetChange(false);
 	// performance report - running average - ms, MRays/s
 	static float avg = 10, alpha = 1;
 	avg = (1 - alpha) * avg + alpha * t.elapsed() * 1000;

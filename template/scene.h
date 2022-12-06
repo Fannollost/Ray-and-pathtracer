@@ -616,13 +616,13 @@ namespace Tmpl8 {
 		{
 			float3 white = float3(1.0, 1.0, 1.0);
 			float3 red = float3(255, 0, 0) / 255;
-			float3 blue = float3(0, 0, 255) / 255;
+			float3 blue = float3(175, 175, 255) / 255;
 			float3 babyblue = float3(0.6f, 0.6f, 1.0f);
 			float3 green = float3(0, 255, 0) / 255;
 			//diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.3f, 0.7f, 1200, raytracer);
 			diffuse* standardDiff = new diffuse(float3(0.8f), blue, 0.8f, 0.2f, 32, raytracer);
 			diffuse* pureDiff = new diffuse(float3(0.8f), blue, 0.8f, 0.0f, 1, raytracer);
-			glass* standardGlass = new glass(1.5f, white, float3(0.00f), 0.0f, 0, raytracer);
+			glass* standardGlass = new glass(1.5f, blue, float3(0.00f), 0.0f, 0, raytracer);
 			//glass* blueGlass = new glass(1.5f, babyblue, float3(0.0f), raytracer);
 			//glass* diamond = new glass(2.4f, white, float3(0.00f), raytracer);
 			diffuse* specularDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 2, raytracer, 0);
@@ -635,25 +635,25 @@ namespace Tmpl8 {
 			// we store all primitives in one continuous buffer
 			skydome = stbi_load("sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 			//light[0] = new DirectionalLight(11, float3(0, 2, 0), 10.0f, white, float3(0, -1, 1), 0.9, raytracer);			//DIT FF CHECKEN!
-			light[1] = new AreaLight(12, float3(0,-0.9,0.5f), 5.0f, white, 0.2f, float3(0, 1, 0), 4, raytracer);
-			light[0] = new AreaLight(11, float3(0.1f,1.8f,1.5f), 5.0f, white, 0.2f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
+			//light[1] = new AreaLight(12, float3(0,-0.9,0.5f), 5.0f, white, 0.5f, float3(0, 1, 0), 4, raytracer);
+			light[0] = new AreaLight(11, float3(3.0f,1.8f,5.0f),10.0f, white,2.0f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
 			//light[2] = new AreaLight(10, float3(0.1f,1.0f, 2), 4.0f, white, 0.1f, float3(0, 1, 0), 4, raytracer);			//DIT FF CHECKEN!
 			//light[2] = new AreaLight(13, float3(0.1f, -1, 0), 2.0f, white, 0.1f, float3(0, -1, 0), 4, raytracer);			//DIT FF CHECKEN!
 
 			//plane[0] = Plane(0, new diffuse(0.8f, red, 0.0f, 1.0f, 4, raytracer), float3(1, 0, 0), 3);			// 0: left wall
 			//plane[1] = Plane(1, new diffuse(0.8f, green, 0.0f, 1.0f,4,raytracer), float3(-1, 0, 0), 2.99f);		// 1: right wall
 			plane[0] = Plane(2, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 1);			// 2: floor
-			//plane[3] = Plane(3, standardMetal, float3(0, -1, 0), 2);			// 3: ceiling
+			//plane[3] = Plane(3, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, -1, 0), 2);			// 3: ceiling
 			//plane[4] = Plane(4, new diffuse(0.8f, white, 0	, 0.3f, 0.7f,raytracer), float3(0, 0, 1), 3);			// 4: front wall
 			//plane[5] = Plane(5, specularDiff, float3(0, 0, -1), 3.99f);		// 5: back wall
 			//quad = Quad(6, new diffuse(0.8f, white, 0), 1);							// 6: light source
 
-			spheres[0] = Sphere(7, standardGlass, float3(-0.7f, -0.4f, 2.0f), 0.5f);			// 1: bouncing ball
+			spheres[0] = Sphere(7, standardMetal, float3(-0.7f, -0.4f, 2.0f), 0.5f);			// 1: bouncing ball
 			//obj[0] = new Sphere(7, red, new metal(1.0f, 1.0f), float3(-1.5f, 0, 2), 0.5f);		// 1: static ball => set animOn to false
 			//obj[1] = new Sphere(8, specularDiff, float3(0, 2.5f, -3.07f), 8);		// 2: rounded corners
 			//obj[2] = new Sphere(9, white, new glass(0.1f), float3(1.5f, 0, 2), 0.5f);			// 3: static glass sphere => set animOn to false
 			//obj[2] = new Cube(9, blueDiff, float3(0), float3(1.15f));		// 3: spinning cube
-			triangles[0] = Mesh(10, new diffuse(0.8f, red, 0.0f, 1.0f, 4, raytracer), "shape.obj", float3(0.5f,-0.51f,2), 0.5f);
+			triangles[0] = Mesh(10, standardGlass, "shape.obj", float3(0.5f,-0.51f,2), 0.5f);
 			
 			//triangles[0] = Triangle(8, new diffuse(0.8f, blue, 0), float3(0.0f, 0.0f, 1.0f), float3(0.2f, 0, 1.0f), float3(0.2f, 0.2f, 1.0f));	// 4: Triangle
 
@@ -770,20 +770,24 @@ namespace Tmpl8 {
 			return float3(uint3(pixelOffset[0], pixelOffset[1], pixelOffset[2]))/255;
 		}
 
+		void SetIterationNumber(int i) { iterationNumber = i; }
+		int GetIterationNumber() { return iterationNumber; }
+
 		__declspec(align(64)) // start a new cacheline here
 			float animTime = 0;
 
-		Light* light[2];
+		Light* light[1];
 		//Cube cubes[1];
 		Sphere spheres[1];
 		Mesh triangles[1];
+		int iterationNumber = 1;
 		Quad quad;	
 		int skydomeX, skydomeY, skydomeN;
 		unsigned char* skydome;
 		Plane plane[1];
 		int aaSamples = 1;
 		int invAaSamples = 1 / aaSamples;
-		bool raytracer = false;
+		bool raytracer = true;
 		float mediumIr = 1.0f;
 		bool animOn = true; // set to false while debugging to prevent some cast error from primitive object type
 	};
