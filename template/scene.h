@@ -639,7 +639,7 @@ namespace Tmpl8 {
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 
 			//Instantiate scene
-			instantiateScene1();
+			instantiateScene2();
 
 			SetTime(0);
 		}
@@ -702,7 +702,7 @@ namespace Tmpl8 {
 
 			planes.push_back(Plane(0, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 1));			// 2: floor
 
-			spheres.push_back(Sphere(7, standardMetal, float3(-0.7f, -0.4f, 2.0f), 0.5f));
+			spheres.push_back(Sphere(7, standardGlass, float3(-0.7f, -0.4f, 2.0f), 0.5f));
 			triangles.push_back(Mesh(10, standardGlass, "Resources/ico.obj", float3(0.5f, -0.51f, 2), 0.5f));
 
 		}
