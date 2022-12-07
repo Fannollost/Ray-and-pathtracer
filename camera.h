@@ -1,8 +1,8 @@
 #pragma once
 
 // default screen resolution
-#define SCRWIDTH	600		//1280
-#define SCRHEIGHT	400		//720
+#define SCRWIDTH	1920		//1280
+#define SCRHEIGHT	1080		//720
 // #define FULLSCREEN
 // #define DOUBLESIZE
 
@@ -43,6 +43,7 @@ public:
 		
 	}
 	float aspect = (float)SCRWIDTH / (float)SCRHEIGHT;
+	float viewAngle = 0.25;
 	float3 camPos;
 	float3 topLeft, topRight, bottomLeft, screenCenter, radius;
 	float speed;
@@ -76,12 +77,16 @@ public:
 	}
 
 	void FOVTick() {
+		if (fishEye) {
+			if (viewAngle > 0.11f && viewAngle < 0.99)viewAngle -= 0.01f * fovChange; changed = true;
+		} else {
 		screenCenter = topLeft + .5f * (topRight - topLeft) + .5f * (bottomLeft - topLeft);
-		if (fovChange != 0 && (length(screenCenter - camPos) > 0.1f || fovChange > 0)) {
-			topLeft += normalize(screenCenter - camPos) * 0.1f * fovChange;
-			topRight += normalize(screenCenter - camPos) * 0.1f * fovChange;
-			bottomLeft += normalize(screenCenter - camPos) * 0.1f * fovChange;
-			changed = true;
+			if (fovChange != 0 && (length(screenCenter - camPos) > 0.1f || fovChange > 0)) {
+				topLeft += normalize(screenCenter - camPos) * 0.1f * fovChange;
+				topRight += normalize(screenCenter - camPos) * 0.1f * fovChange;
+				bottomLeft += normalize(screenCenter - camPos) * 0.1f * fovChange;
+				changed = true;
+			}
 		}
 		screenCenter = topLeft + .5f * (topRight - topLeft) + .5f * (bottomLeft - topLeft);
 	}

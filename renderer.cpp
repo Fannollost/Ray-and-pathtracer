@@ -24,9 +24,8 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 	float t_min = 0.001f;
 	scene.FindNearest(ray, t_min);
 	if (ray.objIdx == -1) return scene.GetSkyColor(ray);
-	if (ray.objIdx == 11 || ray.objIdx == 12)  {
-		//return float3(1);
-		return scene.light[ray.objIdx - 11]->GetLightIntensityAt(ray.IntersectionPoint(), ray.hitNormal);
+	if (ray.objIdx >= 11 && ray.objIdx < 11 + size(scene.lights)) {
+		return scene.lights[ray.objIdx - 11]->GetLightIntensityAt(ray.IntersectionPoint(), ray.hitNormal);
 	}
 	float3 totCol = float3(0);
 	material* m = ray.GetMaterial();
@@ -67,8 +66,7 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 			energy = energy;
 		} 
 
-		float totRefl = clamp(g->specu + (1 - g->specu) * kr, 0.0f, 1.0f); //this is weird
-		if (totRefl < 1) {
+		if (kr < 1) {
 			float3 refractionDirection = normalize(g->RefractRay(ray.D, norm,r));
 			float3 refractionRayOrig = outside ? ray.IntersectionPoint() - bias : ray.IntersectionPoint() + bias;
 			Ray refrRay = Ray(refractionRayOrig, refractionDirection, ray.color);
@@ -82,7 +80,7 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 		float3 reflectionColor = g->col * Trace(reflRay, depth - 1, energy);
 
 		// mix the two
-		totCol += reflectionColor * (totRefl) + refractionColor * (1 - totRefl);
+		totCol += reflectionColor * kr + refractionColor * (1 - kr);
 		break;
 	}
 	case METAL:	{
@@ -93,15 +91,15 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 	}
 	case DIFFUSE:
 		Ray scattered;
-		for (int i = 0; i < size(scene.light); i++)
+		for (int i = 0; i < size(scene.lights); i++)
 		{
 			float3 attenuation;
-			float3 lightRayDirection = scene.light[i]->GetLightPosition() - ray.IntersectionPoint();
+			float3 lightRayDirection = scene.lights[i]->GetLightPosition() - ray.IntersectionPoint();
 			float len2 = dot(lightRayDirection, lightRayDirection);
 			lightRayDirection = normalize(lightRayDirection);
 			Ray r = Ray(ray.IntersectionPoint() + lightRayDirection * 1e-4f ,lightRayDirection, ray.color, sqrt(len2));
 			((diffuse*)m)->scatter(ray, attenuation, scattered, lightRayDirection,
-				scene.light[i]->GetLightIntensityAt(ray.IntersectionPoint(), N), N, energy);
+				scene.lights[i]->GetLightIntensityAt(ray.IntersectionPoint(), N), N, energy);
 			if (scene.IsOccluded(r, t_min)) {
 				continue;
 			}
@@ -140,9 +138,9 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
 	float eps = 0.0001f;
 	scene.FindNearest(ray, t_min);
 	if (ray.objIdx == -1) return scene.GetSkyColor(ray);
-	if (ray.objIdx == 11 || ray.objIdx == 12)
-		return scene.light[ray.objIdx - 11]->GetLightIntensityAt(ray.IntersectionPoint(), ray.hitNormal);
-
+	if (ray.objIdx >= 11 && ray.objIdx < 11 + size(scene.lights)) {
+		return scene.lights[ray.objIdx - 11]->GetLightIntensityAt(ray.IntersectionPoint(), ray.hitNormal);
+	}
 	//return float3(0);
 	float3 intersectionPoint = ray.IntersectionPoint();
 	float3 normal = ray.hitNormal;
@@ -163,16 +161,16 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
 	{
 		case DIFFUSE: {
 			float3 directLightning = 0;
-			for (int i = 0; i < size(scene.light); i++) {
-				float3 lightRayDirection = scene.light[i]->GetLightPosition() - ray.IntersectionPoint();
+			for (int i = 0; i < size(scene.lights); i++) {
+				float3 lightRayDirection = scene.lights[i]->GetLightPosition() - ray.IntersectionPoint();
 				float len2 = dot(lightRayDirection, lightRayDirection);
 				lightRayDirection = normalize(lightRayDirection);
 				Ray r = Ray(ray.IntersectionPoint() + lightRayDirection * 1e-4f, lightRayDirection, ray.color, sqrt(len2));
 				Ray scattered;
 				float3 attenuation;
 				((diffuse*)m)->scatter(ray, attenuation, scattered, lightRayDirection,
-					scene.light[i]->GetLightIntensityAt(ray.IntersectionPoint(), normal), normal, energy);
-				float cos_o = dot(-lightRayDirection, scene.light[i]->normal);
+					scene.lights[i]->GetLightIntensityAt(ray.IntersectionPoint(), normal), normal, energy);
+				float cos_o = dot(-lightRayDirection, scene.lights[i]->normal);
 				if (scene.IsOccluded(r, t_min)) {
 					continue;
 				}
@@ -189,8 +187,8 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
 			for (int i = 0; i < N; ++i) {
 				float3 rayToHemi = RandomInHemisphere(normal);
 				float3 cos_i = dot(rayToHemi, normal);
-				indirectLightning += 0.15 * cos_i * Sample(Ray(intersectionPoint + rayToHemi * eps, rayToHemi, float3(0)),
-					depth - 1, energy) * 2 * PI;
+				indirectLightning += m->col* cos_i * Sample(Ray(intersectionPoint, rayToHemi, float3(0)),
+					depth - 1, energy);
 			}
 
 			indirectLightning /= (float)N;
@@ -223,21 +221,20 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
 			else {
 				energy = energy;
 			}
-			float totRefl = clamp(g->specu + (1 - g->specu) * kr, 0.0f, 1.0f);
-			float odds = totRefl;
+			float odds = kr;
 			if (odds < RandomFloat()) {
 				float3 refractionDirection = normalize(g->RefractRay(ray.D, norm, r));
 				float3 refractionRayOrig = outside ? ray.IntersectionPoint() - bias : ray.IntersectionPoint() + bias;
 				Ray refrRay = Ray(refractionRayOrig, refractionDirection, ray.color);
 				float3 tempCol = g->col * energy;
 				refractionColor = tempCol * Sample(refrRay, depth - 1, energy);
-				totCol += refractionColor * (1 - totRefl); // check if we should do * (1-totRefl)
+				totCol += refractionColor * (1 - kr); // check if we should do * (1-totRefl)
 			} else{
 				float3 reflectionDirection = normalize(reflect(ray.D, norm));
 				float3 reflectionRayOrig = outside ? ray.IntersectionPoint() + bias : ray.IntersectionPoint() - bias;
 				Ray reflRay = Ray(reflectionRayOrig, reflectionDirection, ray.color);
 				float3 reflectionColor = g->col * Sample(reflRay, depth - 1, energy);
-				totCol += reflectionColor * totRefl;
+				totCol += reflectionColor * kr;
 			}
 			// mix the two
 			break;
