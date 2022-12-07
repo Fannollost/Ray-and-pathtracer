@@ -612,8 +612,9 @@ namespace Tmpl8 {
 	public:
 		Scene()
 		{
+			
 			//Instantiate scene
-			instantiateScene1();
+			instantiateScene3();
 
 			SetTime(0);
 
@@ -625,11 +626,12 @@ namespace Tmpl8 {
 			defaultAnim = true;
 			//Loading sky texture
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
+			
 			glass* standardGlass = new glass(1.5f, white, float3(0.00f), 0.0f, 0, raytracer);
 			diffuse* specularDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 2, raytracer, 0);
 			diffuse* lightDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 1200, raytracer, 1.2f);
 			diffuse* greenDiff = new diffuse(float3(0.8f), green, 0.6f, 0.4f, 2, raytracer);
-			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.0f, 1.0f, 4, raytracer);
+			diffuse* blueDiff = new diffuse(0.8f, blue, 0.0f, 1.0f, 4, raytracer);
 			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.6f, 0.4f, 2, raytracer);
 			diffuse* specReflDiff = new diffuse(float3(0.7f), white, 0.6f, 0.4f, 50, raytracer, 0.0f);
 			metal* standardMetal = new metal(0.7f, white, raytracer);
@@ -714,6 +716,27 @@ namespace Tmpl8 {
 			cubes.push_back(Cube(9, greenDiff, float3(1.55, -0.925, 1.25), float3(0.15)));
 			triangles.push_back(Mesh(9, goldMetal, "Resources/stellatedDode.obj", float3(0.000000, 0.561019, 0.000000) * threeScale + threePos + float3(0, 0.25f, 0), 0.4f));
 
+			float3 threePos = float3(0, 0, 2);
+			float threeScale = 2.5f;
+			triangles.push_back(Mesh(0, greenDiff, "Resources/three.obj", threePos, threeScale));
+			spheres.push_back(Sphere(1, standardGlass, float3(0.410241, -0.085121, -0.122131) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
+			spheres.push_back(Sphere(2, standardGlass, float3(0.122131, -0.085121, 0.410241) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
+			spheres.push_back(Sphere(3, standardGlass, float3(-0.410241, -0.085121, 0.122131) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
+			spheres.push_back(Sphere(4, standardGlass, float3(-0.122131, -0.085121, -0.410241) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
+			spheres.push_back(Sphere(5, standardGlass, float3(0.500000, -0.367977, -0.001909) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
+			spheres.push_back(Sphere(6, standardGlass, float3(0.001909, -0.367977, 0.500000) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
+			spheres.push_back(Sphere(7, standardGlass, float3(-0.500000, -0.367977, 0.001909) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
+			spheres.push_back(Sphere(8, standardGlass, float3(-0.001909, -0.367977, -0.500000) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
+			spheres.push_back(Sphere(8, standardGlass, float3(0.236091, 0.198982, -0.236091) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
+			spheres.push_back(Sphere(8, standardGlass, float3(0.236091, 0.198982, 0.236091) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
+			spheres.push_back(Sphere(8, standardGlass, float3(-0.236091, 0.198982, 0.236091) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
+			spheres.push_back(Sphere(8, standardGlass, float3(-0.236091, 0.198982, -0.236091) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
+			cubes.push_back(Cube(9, goldDiff, float3(2, -0.5, 2.5), float3(1)));
+			cubes.push_back(Cube(9, pinkDiff, float3(2.2, -0.75, 1), float3(0.5)));
+			cubes.push_back(Cube(9, blueDiff, float3(1.5, -0.875, 1.5), float3(0.25)));
+			cubes.push_back(Cube(9, redDiff, float3(2.2, -0.875, 1.8), float3(0.25)));
+			cubes.push_back(Cube(9, greenDiff, float3(1.55, -0.925, 1.25), float3(0.15)));
+			triangles.push_back(Mesh(9, goldMetal, "Resources/stellatedDode.obj", float3(0.000000, 0.561019, 0.000000) * threeScale + threePos +float3(0, 0.25f, 0), 0.4f));			
 		}
 
 		void SetTime(float t)
