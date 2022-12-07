@@ -88,6 +88,9 @@ namespace Tmpl8
 			case KEYBOARD_F:
 				camera.ToogleFisheye();
 				break;
+			case KEYBOARD_P:
+				scene.toogleRaytracer();
+				break;
 			}
 			/* implement if you want to handle keys */
 		}
@@ -107,6 +110,7 @@ namespace Tmpl8
 			KEYBOARD_SPACE = 32,
 			KEYBOARD_PLUS = 334,
 			KEYBOARD_MINUS = 333,
+			KEYBOARD_P = 80,
 			KEYBOARD_MULT = 332,
 			KEYBOARD_DIV = 331
 		};

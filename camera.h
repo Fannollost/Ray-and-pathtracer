@@ -81,7 +81,6 @@ public:
 		else {
 			screenCenter = topLeft + .5f * (topRight - topLeft) + .5f * (bottomLeft - topLeft);
 			if (fovChange != 0 && (length(screenCenter - camPos) > 0.1f || fovChange > 0)) {
-				//it = 0;
 				topLeft += normalize(screenCenter - camPos) * 0.1f * fovChange;
 				topRight += normalize(screenCenter - camPos) * 0.1f * fovChange;
 				bottomLeft += normalize(screenCenter - camPos) * 0.1f * fovChange;
