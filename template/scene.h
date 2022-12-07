@@ -635,7 +635,7 @@ namespace Tmpl8 {
 			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.6f, 0.4f, 2, raytracer);
 			diffuse* specReflDiff = new diffuse(float3(0.7f), white, 0.6f, 0.4f, 50, raytracer, 0.0f);
 			metal* standardMetal = new metal(0.7f, white, raytracer);
-			lights.push_back(new AreaLight(11, float3(0.1f, 1.95f, 1.5f), 7.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
+			lights.push_back(new AreaLight(11, float3(0.1f, 1.95f, 1.5f), 4.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
 			lights.push_back(new AreaLight(12, float3(0, -0.95, 0.5f), 2.0f, white, 0.5f, float3(0, 1, 0), 4, raytracer));
 			planes.push_back(Plane(0, redDiff, float3(1, 0, 0), 3));			// 0: left wall
 			planes.push_back(Plane(1, greenDiff, float3(-1, 0, 0), 2.99f));		// 1: right wall
@@ -821,7 +821,7 @@ namespace Tmpl8 {
 		int aaSamples = 1;
 		int invAaSamples = 1 / aaSamples;
 		int iterationNumber = 1;
-		bool raytracer = true;
+		bool raytracer = false;
 		float mediumIr = 1.0f;
 		bool defaultAnim = false;
 		bool animOn = raytracer && defaultAnim; // set to false while debugging to prevent some cast error from primitive object type
