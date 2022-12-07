@@ -529,13 +529,9 @@ namespace Tmpl8 {
 			float3 specularColor, lightAttenuation;
 			specularColor = powf(fmax(0.0f, -dot(reflectionDirection, ray.D)), N) * lightIntensity;
 			lightAttenuation = lightIntensity;
-
 			att = albedo * lightAttenuation * diffu + specularColor * specu;
 			float3 dir;
-			if (raytracer) {
-				dir = ray.IntersectionPoint() + normal;
-			}
-			else {
+			if (!raytracer) {
 				dir = RandomInHemisphere(normal);
 			}
 			scattered = Ray(ray.IntersectionPoint(), dir, ray.color);
@@ -575,7 +571,6 @@ namespace Tmpl8 {
 			float cosi = clamp(dot(I, N) ,-1.0f, 1.0f);
 			float etai = 1, etat = ior;				 
 			if (cosi > 0) { std::swap(etai, etat); }
-			// Compute sini using Snell's law
 			float sint = etai / etat * sqrtf(fmaxf(0.f, 1 - cosi * cosi));
 			// Total internal reflection
 			if (sint >= 1) {
@@ -631,12 +626,12 @@ namespace Tmpl8 {
 			diffuse* specularDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 2, raytracer, 0);
 			diffuse* lightDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 1200, raytracer, 1.2f);
 			diffuse* greenDiff = new diffuse(float3(0.8f), green, 0.6f, 0.4f, 2, raytracer);
-			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.0f, 1.0f, 4, raytracer);
+			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.2f, 0.8f, 4, raytracer);
 			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.6f, 0.4f, 2, raytracer);
 			diffuse* specReflDiff = new diffuse(float3(0.7f), white, 0.6f, 0.4f, 50, raytracer, 0.0f);
 			metal* standardMetal = new metal(0.7f, white, raytracer);
 			lights.push_back(new AreaLight(11, float3(0.1f, 1.95f, 1.5f), 4.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
-			lights.push_back(new AreaLight(12, float3(0, -0.95, 0.5f), 2.0f, white, 0.5f, float3(0, 1, 0), 4, raytracer));
+			//lights.push_back(new AreaLight(12, float3(0, -0.95, 0.5f), 2.0f, white, 0.5f, float3(0, 1, 0), 4, raytracer));
 			planes.push_back(Plane(0, redDiff, float3(1, 0, 0), 3));			// 0: left wall
 			planes.push_back(Plane(1, greenDiff, float3(-1, 0, 0), 2.99f));		// 1: right wall
 			planes.push_back(Plane(2, specReflDiff, float3(0, 1, 0), 1));			// 2: floor
@@ -648,8 +643,8 @@ namespace Tmpl8 {
 			else spheres.push_back(Sphere(7, standardGlass, float3(-1.5f, -0.5, 2), 0.5f));		    // 1: static ball
 			spheres.push_back(Sphere(8, new diffuse(0.8f, white, 0, 0.3f, 0.7f, raytracer), float3(0, 2.5f, -3.07f), 8));		// 2: rounded corners
 			if (animOn) cubes.push_back(Cube(9, blueDiff, float3(0), float3(1.15f)));		// 3: spinning cube			
-			else cubes.push_back(Cube(9, blueDiff, float3(1, -0.4f, 2.0f), float3(1)));
-			triangles.push_back(Mesh(10, greenDiff, "Resources/ico.obj", float3(0, -0.5, 2.5f), 0.5f));
+			//else cubes.push_back(Cube(9, standardGlass, float3(1.2f, -0.5f, 2.5f), float3(1)));
+			triangles.push_back(Mesh(10, greenDiff, "Resources/ico.obj", float3(0.1f, -0.6f, 1.5f), 0.5f));
 
 		}
 
@@ -659,16 +654,22 @@ namespace Tmpl8 {
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 
 			glass* standardGlass = new glass(1.5f, white, float3(0.00f), 0.0f, 0, raytracer);
-			glass* blueGlass = new glass(1.5f, babyblue, float3(0.0f), 0.0f, 0, raytracer);
-			metal* standardMetal = new metal(0.7f, white, raytracer);
+			glass* blueGlass = new glass(1.5f, babyblue, float3(0.1f), 0.0f, 0, raytracer);
+			metal* blueMetal = new metal(0.7f, babyblue, raytracer);
+			metal* greenMetal = new metal(0.7f, green, raytracer);
+			metal* yellowMetal = new metal(0.7f, gold, raytracer);
+			metal* pinkMetal = new metal(0.7f, pink, raytracer);
 			// we store all primitives in one continuous buffer
 			lights.push_back(new AreaLight(11, float3(1.8f, 2.0f, 5.5f), 10.0f, white, 2.0f, float3(0, 1, 0), 4, raytracer));
 			//lights.push_back(new AreaLight(12, float3(0.1f, 1.8f, 1.5f), 5.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
 
 			planes.push_back(Plane(0, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 1));			// 2: floor
 
-			spheres.push_back(Sphere(7, standardGlass, float3(-0.7f, -0.5f, 2.0f), 0.5f));
-			triangles.push_back(Mesh(10, blueGlass, "Resources/ico.obj", float3(0.5f, -0.51f, 2), 0.5f));
+			spheres.push_back(Sphere(7, blueMetal, float3(-0.7f, -0.5f, 2.0f), 0.5f));
+			spheres.push_back(Sphere(7, greenMetal, float3(-1.9f, -0.5f, 2.0f), 0.5f));
+			spheres.push_back(Sphere(7, yellowMetal, float3(-3.1f, -0.5f, 2.0f), 0.5f));
+			spheres.push_back(Sphere(7, pinkMetal, float3(-4.3f, -0.5f, 2.0f), 0.5f));
+			triangles.push_back(Mesh(10, standardGlass, "Resources/ico.obj", float3(0.5f, -0.51f, 2), 0.5f));
 		}
 
 
@@ -678,8 +679,10 @@ namespace Tmpl8 {
 			skydome = stbi_load("Resources/night.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 
 			glass* standardGlass = new glass(1.5f, white, float3(0.00f), 0.0f, 0, raytracer);
-			diffuse* specularDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 2, raytracer, 0);
-			diffuse* lightDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 1200, raytracer, 1.2f);
+			glass* greenGlass = new glass(1.5f, green, float3(0.00f), 0.0f, 0, raytracer);
+			glass* pinkGlass = new glass(1.5f, pink, float3(0.00f), 0.0f, 0, raytracer);
+			diffuse* specularDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 2, raytracer);
+			diffuse* lightDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 1200, raytracer);
 			diffuse* greenDiff = new diffuse(float3(0.8f), green, 0.6f, 0.4f, 2, raytracer);
 			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.8f, 0.2f, 1, raytracer);
 			diffuse* goldDiff = new diffuse(float3(0.8f), gold, 0.8f, 0.2f, 1, raytracer);
@@ -687,6 +690,7 @@ namespace Tmpl8 {
 			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.6f, 0.4f, 2, raytracer);
 			metal* greenMetal = new metal(0.7f, green, raytracer);
 			metal* goldMetal = new metal(0.7f, gold, raytracer);
+			metal* blueMetal = new metal(0.7f, blue, raytracer);
 
 			// we store all primitives in one continuous buffer
 			lights.push_back(new AreaLight(11, float3(0.1f, 10, 1.5f), 5.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
@@ -697,17 +701,17 @@ namespace Tmpl8 {
 			float3 threePos = float3(0, 0, 2);
 			float threeScale = 2.5f;
 			triangles.push_back(Mesh(0, greenDiff, "Resources/three.obj", threePos, threeScale));
-			spheres.push_back(Sphere(1, standardGlass, float3(0.410241, -0.085121, -0.122131) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
-			spheres.push_back(Sphere(2, standardGlass, float3(0.122131, -0.085121, 0.410241) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
-			spheres.push_back(Sphere(3, standardGlass, float3(-0.410241, -0.085121, 0.122131) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
+			spheres.push_back(Sphere(1, blueMetal, float3(0.410241, -0.085121, -0.122131) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
+			spheres.push_back(Sphere(2, pinkGlass, float3(0.122131, -0.085121, 0.410241) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
+			spheres.push_back(Sphere(3, blueMetal, float3(-0.410241, -0.085121, 0.122131) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
 			spheres.push_back(Sphere(4, standardGlass, float3(-0.122131, -0.085121, -0.410241) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
-			spheres.push_back(Sphere(5, standardGlass, float3(0.500000, -0.367977, -0.001909) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
-			spheres.push_back(Sphere(6, standardGlass, float3(0.001909, -0.367977, 0.500000) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
-			spheres.push_back(Sphere(7, standardGlass, float3(-0.500000, -0.367977, 0.001909) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
+			spheres.push_back(Sphere(5, greenMetal, float3(0.500000, -0.367977, -0.001909) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
+			spheres.push_back(Sphere(6, pinkGlass, float3(0.001909, -0.367977, 0.500000) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
+			spheres.push_back(Sphere(7, greenMetal, float3(-0.500000, -0.367977, 0.001909) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
 			spheres.push_back(Sphere(8, standardGlass, float3(-0.001909, -0.367977, -0.500000) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
-			spheres.push_back(Sphere(8, standardGlass, float3(0.236091, 0.198982, -0.236091) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
-			spheres.push_back(Sphere(8, standardGlass, float3(0.236091, 0.198982, 0.236091) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
-			spheres.push_back(Sphere(8, standardGlass, float3(-0.236091, 0.198982, 0.236091) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
+			spheres.push_back(Sphere(8, blueMetal, float3(0.236091, 0.198982, -0.236091) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
+			spheres.push_back(Sphere(8, pinkGlass, float3(0.236091, 0.198982, 0.236091) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
+			spheres.push_back(Sphere(8, greenMetal, float3(-0.236091, 0.198982, 0.236091) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
 			spheres.push_back(Sphere(8, standardGlass, float3(-0.236091, 0.198982, -0.236091) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
 			cubes.push_back(Cube(9, goldDiff, float3(2, -0.5, 2.5), float3(1)));
 			cubes.push_back(Cube(9, pinkDiff, float3(2.2, -0.75, 1), float3(0.5)));
@@ -716,6 +720,29 @@ namespace Tmpl8 {
 			cubes.push_back(Cube(9, greenDiff, float3(1.55, -0.925, 1.25), float3(0.15)));
 			triangles.push_back(Mesh(9, goldMetal, "Resources/stellatedDode.obj", float3(0.000000, 0.561019, 0.000000) * threeScale + threePos + float3(0, 0.25f, 0), 0.4f));
 
+		}  
+		
+		void instantiateScene4() {
+
+			//Loading sky texture
+			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
+
+			glass* standardGlass = new glass(1.5f, white, float3(0.00f), 0.0f, 0, raytracer);
+			glass* blueGlass = new glass(1.5f, babyblue, float3(0.0f), 0.0f, 0, raytracer);
+			metal* standardMetal = new metal(0.7f, white, raytracer);
+			diffuse* lightDiff = new diffuse(float3(0.8f), pink, 0.6f, 0.4f, 30, raytracer);
+			diffuse* goldDiff = new diffuse(float3(0.8f), gold, 0.6f, 0.4f, 30, raytracer);
+			// we store all primitives in one continuous buffer
+			lights.push_back(new AreaLight(11, float3(1.8f, 2.0f, 5.5f), 10.0f, white, 2.0f, float3(0, 1, 0), 4, raytracer));
+			//lights.push_back(new AreaLight(12, float3(0.1f, 1.8f, 1.5f), 5.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
+
+			planes.push_back(Plane(0, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 1));			// 2: floor
+
+			spheres.push_back(Sphere(7, blueGlass, float3(-0.7f, -0.5f, 2.0f), 0.5f));
+			spheres.push_back(Sphere(8, standardMetal, float3(-2.2f, -0.5f, 2.0f), 0.5f));
+			spheres.push_back(Sphere(9, lightDiff, float3(-3.7f, -0.5f, 2.0f), 0.5f));
+			spheres.push_back(Sphere(5, goldDiff, float3(1.8f, -0.5f, 2.0f), 0.5f));
+			triangles.push_back(Mesh(10, standardMetal, "Resources/ico.obj", float3(0.5f, -0.51f, 2), 0.5f));
 		}
 
 		void SetTime(float t)
