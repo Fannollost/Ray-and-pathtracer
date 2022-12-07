@@ -615,7 +615,7 @@ namespace Tmpl8 {
 		Scene()
 		{
 			//Instantiate scene
-			instantiateScene3();
+			instantiateScene1();
 
 			SetTime(0);
 
@@ -821,7 +821,7 @@ namespace Tmpl8 {
 		int aaSamples = 1;
 		int invAaSamples = 1 / aaSamples;
 		int iterationNumber = 1;
-		bool raytracer = false;
+		bool raytracer = true;
 		float mediumIr = 1.0f;
 		bool defaultAnim = false;
 		bool animOn = raytracer && defaultAnim; // set to false while debugging to prevent some cast error from primitive object type
