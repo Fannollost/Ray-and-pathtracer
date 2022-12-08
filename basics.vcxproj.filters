@@ -5,6 +5,7 @@
     <ClCompile Include="template\template.cpp">
       <Filter>template</Filter>
     </ClCompile>
+    <ClCompile Include="bvh.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="camera.h" />
@@ -21,6 +22,7 @@
     <ClInclude Include="material.h">
       <Filter>template</Filter>
     </ClInclude>
+    <ClInclude Include="bvh.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="template">

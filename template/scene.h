@@ -208,7 +208,7 @@ namespace Tmpl8 {
 
 		}
 		float3 GetNormal(const float3 I) const { return N; }
-		float3 v0, v1, v2, e1, e2, N;
+		float3 v0, v1, v2, e1, e2, N, centroid;
 		int objIdx = -1;
 		float3 col;
 		material* mat;
@@ -610,14 +610,27 @@ namespace Tmpl8 {
 		Scene()
 		{
 			//Instantiate scene
-			instantiateScene1();
-
+			instantiateScene2();
+			GetAllTriangles();
+			bvh* b = new bvh(this);
+			b->BuildBVH();
 			SetTime(0);
 
 			// Note: once we have triangle support we should get rid of the class
 			// hierarchy: virtuals reduce performance somewhat.
 		}
 		
+		vector<Triangle> GetAllTriangles() {
+			vector<Triangle> buff;
+			for (int i = 0; i < size(triangles); i++)
+			{
+				for (int j = 0; j < size(triangles[i].triangles); j++) {
+					buff.push_back(triangles[i].triangles[j]);
+				}
+			}
+			tri = buff;
+			return buff;
+		}
 		void instantiateScene1() {
 			defaultAnim = true;
 			//Loading sky texture
@@ -844,6 +857,8 @@ namespace Tmpl8 {
 		vector<Cube> cubes;
 		vector<Sphere> spheres;
 		vector<Mesh> triangles;
+		vector<Triangle> tri;
+		uint triIdx[20];
 		vector<Plane> planes;
 		int aaSamples = 1;
 		int invAaSamples = 1 / aaSamples;
