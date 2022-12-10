@@ -610,26 +610,40 @@ namespace Tmpl8 {
 		Scene()
 		{
 			//Instantiate scene
+			b = new bvh(this);
 			instantiateScene2();
-			GetAllTriangles();
-			bvh* b = new bvh(this);
+			//GetAllTriangles(); 
+			//cout << size(tri);
 			b->BuildBVH();
+			/*for (uint i = 0; i < size(triIdx); i++)
+			{
+				cout << triIdx[i];
+			} */
 			SetTime(0);
 
 			// Note: once we have triangle support we should get rid of the class
 			// hierarchy: virtuals reduce performance somewhat.
 		}
 		
-		vector<Triangle> GetAllTriangles() {
+		void GetAllTriangles() {
 			vector<Triangle> buff;
 			for (int i = 0; i < size(triangles); i++)
 			{
 				for (int j = 0; j < size(triangles[i].triangles); j++) {
-					buff.push_back(triangles[i].triangles[j]);
+					tri.push_back(triangles[i].triangles[j]);
 				}
 			}
-			tri = buff;
-			return buff;
+		}
+
+		void ParseUnityFile(char* path, material* m) {
+			FILE* file = fopen(path, "r");
+			float a, c, d, e, f, g, h, i,j;
+			for (int t = 0; t < b->N; t++) {
+				fscanf(file, "%f %f %f %f %f %f %f %f %f\n",
+					&a, &c, &d, &e, &f, &g, &h, &i, &j);
+				tri.push_back(Triangle(t, m, float3(a, c, d), float3(e, f, g), float3(h, i, j)));
+			}
+			fclose(file);
 		}
 		void instantiateScene1() {
 			defaultAnim = true;
@@ -665,10 +679,12 @@ namespace Tmpl8 {
 
 			//Loading sky texture
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
+			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.8f, 0.2f, 1, raytracer);
 
 			glass* standardGlass = new glass(1.5f, white, float3(0.00f), 0.0f, 0, raytracer);
 			glass* blueGlass = new glass(1.5f, babyblue, float3(0.1f), 0.0f, 0, raytracer);
 			metal* blueMetal = new metal(0.7f, babyblue, raytracer);
+			metal* standardMetal = new metal(0.7f, white, raytracer);
 			metal* greenMetal = new metal(0.7f, green, raytracer);
 			metal* yellowMetal = new metal(0.7f, gold, raytracer);
 			metal* pinkMetal = new metal(0.7f, pink, raytracer);
@@ -682,7 +698,8 @@ namespace Tmpl8 {
 			spheres.push_back(Sphere(7, greenMetal, float3(-1.9f, -0.5f, 2.0f), 0.5f));
 			spheres.push_back(Sphere(7, yellowMetal, float3(-3.1f, -0.5f, 2.0f), 0.5f));
 			spheres.push_back(Sphere(7, pinkMetal, float3(-4.3f, -0.5f, 2.0f), 0.5f));
-			triangles.push_back(Mesh(10, standardGlass, "Resources/ico.obj", float3(0.5f, -0.51f, 2), 0.5f));
+			//triangles.push_back(Mesh(10, standardMetal, "Resources/icos.obj", float3(0.5f, -0.51f, 2), 0.5f));
+			ParseUnityFile("Resources/unity.tri", blueDiff);
 		}
 
 
@@ -783,13 +800,12 @@ namespace Tmpl8 {
 		void FindNearest(Ray& ray, float t_min) const
 		{
 			ray.objIdx = -1;
-			for (int i = 0; i < size(planes); ++i) planes[i].Intersect(ray, t_min);
+			//for (int i = 0; i < size(planes); ++i) planes[i].Intersect(ray, t_min);
+			//for (int i = 0; i < size(spheres); ++i) spheres[i].Intersect(ray, t_min);
+			//for (int i = 0; i < size(cubes); ++i) cubes[i].Intersect(ray, t_min);
 
-			for (int i = 0; i < size(spheres); ++i) spheres[i].Intersect(ray, t_min);
-			for (int i = 0; i < size(cubes); ++i) cubes[i].Intersect(ray, t_min);
-
-			for (int i = 0; i < size(triangles); ++i) triangles[i].Intersect(ray, t_min);
-
+			//for (int i = 0; i < size(triangles); ++i) triangles[i].Intersect(ray, t_min);
+			b->IntersectBVH(ray);
 			if (!raytracer) for (int i = 0; i < size(lights); ++i) lights[i]->Intersect(ray, t_min);
 		}
 		bool IsOccluded(Ray& ray, float t_min) const
@@ -853,17 +869,18 @@ namespace Tmpl8 {
 
 		int skydomeX, skydomeY, skydomeN;
 		unsigned char* skydome;
+		bvh* b;
 		vector<Light*> lights;
 		vector<Cube> cubes;
 		vector<Sphere> spheres;
 		vector<Mesh> triangles;
 		vector<Triangle> tri;
-		uint triIdx[20];
+		uint triIdx[12582];
 		vector<Plane> planes;
 		int aaSamples = 1;
 		int invAaSamples = 1 / aaSamples;
 		int iterationNumber = 1;
-		bool raytracer = false;
+		bool raytracer = true;
 		float mediumIr = 1.0f;
 		bool defaultAnim = false;
 		bool animOn = raytracer && defaultAnim; // set to false while debugging to prevent some cast error from primitive object type
