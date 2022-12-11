@@ -19,7 +19,7 @@ namespace Tmpl8
 		void MouseDown(int button) { mousePressed = true; }
 		void MouseMove(int x, int y) {
 			if (mousePressed) {
-				camera.RotateScreenY((float(x) - float(mousePos.x)) / SCRWIDTH);
+				camera.RotateScreenY((float(x) - float(mousePos.x)) / SCRHEIGHT);
 				camera.RotateScreenX((float(y) - float(mousePos.y)) / SCRWIDTH);
 			}
 			mousePos.x = x, mousePos.y = y;
@@ -57,7 +57,6 @@ namespace Tmpl8
 			}
 		}
 		void KeyDown(int key) {
-			cout << key << endl;
 			switch (key) {
 			case KEYBOARD_W:
 				camera.MoveCameraY(1);

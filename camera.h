@@ -19,7 +19,6 @@ public:
 		topRight = float3( aspect, 1, 0 );
 		bottomLeft = float3( -aspect, -1, 0 );
 		screenCenter = topLeft + .5f * (topRight - topLeft) + .5f * (bottomLeft - topLeft);
-		radius = 2*(screenCenter.z - camPos.z);
 		speed = 0.1f;
 	}
 	Ray GetPrimaryRay(const int x, const int y)
@@ -43,11 +42,10 @@ public:
 	float aspect = (float)SCRWIDTH / (float)SCRHEIGHT;
 	float viewAngle = 0.25;
 	float3 camPos;
-	float3 topLeft, topRight, bottomLeft, screenCenter, radius;
+	float3 topLeft, topRight, bottomLeft, screenCenter;
 	float speed;
 	float yAngle = 0;
 	float2 mov = float2(0.f);
-	int aspectChange = 0;
 	float fovChange = 0.f;
 	bool paused = false;
 	bool fishEye = false;
@@ -91,15 +89,6 @@ public:
 		}
 	}
 
-	void aspectTick() {
-		float3 strechtDir = topRight - topLeft;
-		float3 projDir = float3(strechtDir.x, strechtDir.y,0);
-		if (length(strechtDir) > length(0.2f * aspectChange * normalize(projDir)) || aspectChange > 0) {
-			topLeft -= 0.1f * aspectChange * normalize(projDir);
-			topRight += 0.1f * aspectChange * normalize(projDir);
-			bottomLeft -= 0.1f * aspectChange * normalize(projDir);
-		}
-	}
 
 	void MoveCameraY(int dir) {
 		mov[1] += dir;
@@ -107,10 +96,6 @@ public:
 
 	void MoveCameraX(int dir) {
 		mov[0] += dir;
-	}
-
-	void aspectRatio(int value) {
-		aspectChange += value;
 	}
 
 	void RotateScreenX(float theta) {

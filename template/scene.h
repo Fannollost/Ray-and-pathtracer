@@ -615,12 +615,13 @@ namespace Tmpl8 {
 			
 			//Instantiate scene
 			instantiateScene3();
-
+			
 			SetTime(0);
 		}
 
 		void instantiateScene1() {
 			defaultAnim = true;
+			animOn = raytracer && defaultAnim;
 			//Loading sky texture
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 			
@@ -628,7 +629,7 @@ namespace Tmpl8 {
 			diffuse* specularDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 2, raytracer, 0);
 			diffuse* lightDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 1200, raytracer, 1.2f);
 			diffuse* greenDiff = new diffuse(float3(0.8f), green, 0.6f, 0.4f, 2, raytracer);
-			diffuse* blueDiff = new diffuse(0.8f, blue, 0.0f, 1.0f, 4, raytracer);
+			diffuse* blueDiff = new diffuse(0.8f, blue, 0.99f, 0.01f, 4, raytracer);
 			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.6f, 0.4f, 2, raytracer);
 			diffuse* specReflDiff = new diffuse(float3(0.7f), white, 0.6f, 0.4f, 50, raytracer, 0.0f);
 			metal* standardMetal = new metal(0.7f, white, raytracer);
@@ -682,17 +683,16 @@ namespace Tmpl8 {
 
 			glass* standardGlass = new glass(1.5f, white, float3(0.00f), 0.0f, 0, raytracer);
 			diffuse* specularDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 2, raytracer, 0);
-			diffuse* lightDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 1200, raytracer, 1.2f);
-			diffuse* greenDiff = new diffuse(float3(0.8f), green, 0.6f, 0.4f, 2, raytracer);
-			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.8f, 0.2f, 1, raytracer);
-			diffuse* goldDiff = new diffuse(float3(0.8f), gold, 0.8f, 0.2f, 1, raytracer);
-			diffuse* pinkDiff = new diffuse(float3(0.8f), pink, 0.8f, 0.2f, 1, raytracer);
-			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.6f, 0.4f, 2, raytracer);
+			diffuse* greenDiff = new diffuse(float3(0.8f), green, 0.995f, 0.005f, 2, raytracer);
+			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.95f, 0.05f, 2, raytracer);
+			diffuse* goldDiff = new diffuse(float3(0.8f), gold, 0.95f, 0.05f, 2, raytracer);
+			diffuse* pinkDiff = new diffuse(float3(0.8f), pink, 0.995f, 0.005f, 2, raytracer);
+			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.95f, 0.01f, 2, raytracer);
 			metal* greenMetal = new metal(0.7f, green, raytracer);
 			metal* goldMetal = new metal(0.7f, gold, raytracer);
 
 			// we store all primitives in one continuous buffer
-			lights.push_back(new AreaLight(11, float3(0.1f, 10, 1.5f), 5.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
+			lights.push_back(new AreaLight(11, float3(0.1f, 3, 1.5f), 10.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
 			lights.push_back(new DirectionalLight(12, float3(5, 3, -1), 10.0f, white, float3(-1, -1, 1), 1, raytracer));
 
 			planes.push_back(Plane(0, new diffuse(0.8f, red, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 1));
