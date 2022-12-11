@@ -48,12 +48,6 @@ namespace Tmpl8
 			case KEYBOARD_MINUS:
 				camera.FOV(1.f);
 				break;
-			case KEYBOARD_MULT:
-				camera.aspectRatio(-1);
-				break;
-			case KEYBOARD_DIV:
-				camera.aspectRatio(1);
-				break;
 			}
 		}
 		void KeyDown(int key) {
@@ -78,12 +72,6 @@ namespace Tmpl8
 				break;
 			case KEYBOARD_MINUS:
 				camera.FOV(-1.f);
-				break;
-			case KEYBOARD_MULT:
-				camera.aspectRatio(1);
-				break;
-			case KEYBOARD_DIV:
-				camera.aspectRatio(-1);
 				break;
 			case KEYBOARD_F:
 				camera.ToogleFisheye();
@@ -110,10 +98,7 @@ namespace Tmpl8
 			KEYBOARD_P = 80,
 			KEYBOARD_SPACE = 32,
 			KEYBOARD_PLUS = 334,
-			KEYBOARD_MINUS = 333,
-			KEYBOARD_P = 80,
-			KEYBOARD_MULT = 332,
-			KEYBOARD_DIV = 331
+			KEYBOARD_MINUS = 333
 		};
 	};
 };

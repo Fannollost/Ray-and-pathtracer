@@ -255,7 +255,6 @@ void Renderer::Tick(float deltaTime)
 
 	camera.MoveTick();
 	camera.FOVTick();
-	camera.aspectTick();
 
 	if (camera.GetChange() && !scene.raytracer) {
 		scene.SetIterationNumber(1);
