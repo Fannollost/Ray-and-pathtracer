@@ -176,6 +176,7 @@ namespace Tmpl8 {
 			e1 = v1 - v0;
 			e2 = v2 - v0;
 			N = normalize(cross(e1, e2));
+			centroid = (v0 + v1 + v2) * 0.333f;
 		}
 		void Intersect(Ray& ray, float t_min) const {		 //scratchapixel implementation
 			float NdotRayDir = dot(N, ray.D);
@@ -613,7 +614,7 @@ namespace Tmpl8 {
 			instantiateScene2();
 			//GetAllTriangles(); 
 			//cout << size(tri);
-			b->BuildBVH();
+			b->Build();
 			/*for (uint i = 0; i < size(triIdx); i++)
 			{
 				cout << triIdx[i];
@@ -822,7 +823,7 @@ namespace Tmpl8 {
 			//for (int i = 0; i < size(cubes); ++i) cubes[i].Intersect(ray, t_min);
 
 			//for (int i = 0; i < size(triangles); ++i) triangles[i].Intersect(ray, t_min);
-			b->IntersectBVH(ray);
+			b->Intersect(ray);
 			if (!raytracer) for (int i = 0; i < size(lights); ++i) lights[i]->Intersect(ray, t_min);
 		}
 		bool IsOccluded(Ray& ray, float t_min) const
@@ -892,7 +893,6 @@ namespace Tmpl8 {
 		vector<Sphere> spheres;
 		vector<Mesh> triangles;
 		vector<Triangle> tri;
-		uint triIdx[12582];
 		vector<Plane> planes;
 		int aaSamples = 1;
 		int invAaSamples = 1 / aaSamples;
