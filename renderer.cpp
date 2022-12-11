@@ -55,7 +55,6 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 		float3 bias = 0.0001f * ray.hitNormal;
 		float3 norm = outside ? ray.hitNormal : -ray.hitNormal;
 		float r = !outside ? g->ir : (1/g->ir);
-		// compute refraction if it is not a case of total internal reflection
 		if (outside)
 		{
 			energy.x *= exp(g->absorption.x * -ray.t);
@@ -210,7 +209,6 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
 			float3 bias = 0.0001f * ray.hitNormal;
 			float3 norm = outside ? ray.hitNormal : -ray.hitNormal;
 			float r = !outside ? g->ir : (1 / g->ir);
-			// compute refraction if it is not a case of total internal reflection
 			if (outside)
 			{
 				energy.x *= exp(g->absorption.x * -ray.t);
@@ -227,7 +225,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
 				Ray refrRay = Ray(refractionRayOrig, refractionDirection, ray.color);
 				float3 tempCol = g->col * energy;
 				refractionColor = tempCol * Sample(refrRay, depth - 1, energy);
-				totCol += refractionColor * (1 - kr); // check if we should do * (1-totRefl)
+				totCol += refractionColor * (1 - kr);
 			} else{
 				float3 reflectionDirection = normalize(reflect(ray.D, norm));
 				float3 reflectionRayOrig = outside ? ray.IntersectionPoint() + bias : ray.IntersectionPoint() - bias;
@@ -235,7 +233,6 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
 				float3 reflectionColor = g->col * Sample(reflRay, depth - 1, energy);
 				totCol += reflectionColor * kr;
 			}
-			// mix the two
 			break;
 		}
 	}
@@ -286,7 +283,6 @@ void Renderer::Tick(float deltaTime)
 					float g = pow(totCol.y * scene.invAaSamples, GAMMA);
 					float b = pow(totCol.z * scene.invAaSamples, GAMMA);
 					accumulator[x + y * SCRWIDTH] += float3(r,g,b);
-					//cout << totCol.x;
 				}
 			}
 		}
