@@ -5,6 +5,7 @@
 bvh::bvh(Scene* s) { scene = s; };
 
 void bvh::Build() {
+	Timer t;
 	N = size(scene->tri);
 	triIdx = new uint[N];
 	for (int i = 0; i < size(scene->tri); ++i) {	
@@ -16,6 +17,7 @@ void bvh::Build() {
 	//root.firstPrim = 0, root.primCount = N;
 	UpdateNodeBounds(rootNodeIdx);
 	Subdivide(rootNodeIdx);
+	printf("BVH Build time : %5.2f ms \n", t.elapsed() * 1000);
 }
 
 void bvh::UpdateNodeBounds(uint nodeIdx) {
