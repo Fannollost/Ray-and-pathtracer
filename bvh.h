@@ -31,9 +31,9 @@ class bvh
 		float IntersectAABB_SSE(const Ray& ray, const __m128 bmin4, const __m128 bmax4);
 		float EvaluateSAH(BVHNode &node, int axis, float pos);
 	public:
-		uint rootNodeIdx = 0, nodesUsed = 2, N = 12582;
+		uint rootNodeIdx = 0, nodesUsed = 2, N = 12583;
 		class Scene* scene;
-		BVHNode bvhNode[2 * 12582 - 1];
+		BVHNode bvhNode[2 * 12583 - 1];
 	};
 }
 

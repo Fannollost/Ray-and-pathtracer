@@ -34,6 +34,8 @@ namespace Tmpl8 {
 		METAL = 2,
 		GLASS = 3,
 	};
+
+
 	__declspec(align(64)) class Ray
 	{
 	public:
@@ -71,6 +73,7 @@ namespace Tmpl8 {
 		material* m;
 	};
 
+	
 	class Light {
 	public:
 		Light() = default;
@@ -595,6 +598,16 @@ namespace Tmpl8 {
 		float3 absorption;
 	};
 
+	typedef struct {
+		union {
+			Triangle triangle;
+			Sphere sphere;
+			Plane plane;
+		} objData;
+
+		int objType;
+	} Primitive;
+
 	// -----------------------------------------------------------
 	// Scene class
 	// We intersect this. The query is internally forwarded to the
@@ -640,7 +653,10 @@ namespace Tmpl8 {
 			for (int t = 0; t < b->N; t++) {
 				fscanf(file, "%f %f %f %f %f %f %f %f %f\n",
 					&a, &c, &d, &e, &f, &g, &h, &i, &j);
-				tri.push_back(Triangle(t, m, float3(a, c, d), float3(e, f, g), float3(h, i, j)));
+				Primitive p = {};
+				p.objData.triangle = { Triangle(t, m, float3(a, c, d), float3(e, f, g), float3(h, i, j)) };
+				p.objType = { 0 };
+				primitives.push_back(p);
 			}
 			fclose(file);
 		}
@@ -695,10 +711,14 @@ namespace Tmpl8 {
 
 			planes.push_back(Plane(0, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 1));			// 2: floor
 
-			spheres.push_back(Sphere(7, blueMetal, float3(-0.7f, -0.5f, 2.0f), 0.5f));
-			spheres.push_back(Sphere(7, greenMetal, float3(-1.9f, -0.5f, 2.0f), 0.5f));
-			spheres.push_back(Sphere(7, yellowMetal, float3(-3.1f, -0.5f, 2.0f), 0.5f));
-			spheres.push_back(Sphere(7, pinkMetal, float3(-4.3f, -0.5f, 2.0f), 0.5f));
+			Primitive p = {};
+			p.objData.sphere = { Sphere(7, blueMetal, float3(-0.7f, -0.5f, 2.0f), 0.5f) };
+			p.objType = { 1 };
+			primitives.push_back(p);
+			//spheres.push_back(Sphere(7, blueMetal, float3(-0.7f, -0.5f, 2.0f), 0.5f));
+			//spheres.push_back(Sphere(7, greenMetal, float3(-1.9f, -0.5f, 2.0f), 0.5f));
+			//spheres.push_back(Sphere(7, yellowMetal, float3(-3.1f, -0.5f, 2.0f), 0.5f));
+			//spheres.push_back(Sphere(7, pinkMetal, float3(-4.3f, -0.5f, 2.0f), 0.5f));
 			//triangles.push_back(Mesh(10, standardMetal, "Resources/icos.obj", float3(0.5f, -0.51f, 2), 0.5f));
 			ParseUnityFile("Resources/unity.tri", blueDiff);
 		}
@@ -892,7 +912,10 @@ namespace Tmpl8 {
 		vector<Sphere> spheres;
 		vector<Mesh> triangles;
 		vector<Triangle> tri;
+		vector<Primitive> primitives;
+		uint primIdx[12583];
 		uint triIdx[12582];
+		uint sphIdx[5];
 		vector<Plane> planes;
 		int aaSamples = 1;
 		int invAaSamples = 1 / aaSamples;

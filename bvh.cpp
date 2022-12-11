@@ -6,13 +6,24 @@ bvh::bvh(Scene* s) { scene = s; };
 
 void bvh::BuildBVH() {
 	int count = 0;
-	for (int i = 0; i < size(scene->tri); ++i) {
-		scene->tri[i].centroid = (scene->tri[i].v0 +
-				scene->tri[i].v1 + scene->tri[i].v2) * 0.3333f;
-			count++;	
-			scene->triIdx[i] = i;
+	for (int i = 0; i < size(scene->primitives); ++i) {
+		switch (scene->primitives[i].objType) {
+			//cout << i;
+			case 0: {
+				scene->primitives[i].objData.triangle.centroid =
+					(scene->primitives[i].objData.triangle.v0 + scene->primitives[i].objData.triangle.v1 + scene->primitives[i].objData.triangle.v2) * 0.3333f;
+				break;
+			}
+			case 1: {
+				//handle sphere
+				break;
+			}
+		}
+		count++;	
+		scene->primIdx[i] = i;
 	}
-	N = count;
+
+	N = count;																		
 	BVHNode& root = bvhNode[rootNodeIdx];
 	root.triCount = count;
 	root.leftFirst = 0;
@@ -25,15 +36,29 @@ void bvh::UpdateNodeBounds(uint nodeIdx) {
 	BVHNode& node = bvhNode[nodeIdx];
 	node.aabbMin = float3(1e30f);
 	node.aabbMax = float3(-1e30f);
+
 	for (uint first = node.leftFirst, i = 0; i < node.triCount; i++) {
-		uint leafTriIdx = scene->triIdx[first + i];
-		Triangle& leafTri = scene->tri[leafTriIdx];
-		node.aabbMin = fminf(node.aabbMin, leafTri.v0);
-		node.aabbMin = fminf(node.aabbMin, leafTri.v1);
-		node.aabbMin = fminf(node.aabbMin, leafTri.v2);
-		node.aabbMax = fmaxf(node.aabbMax, leafTri.v0);
-		node.aabbMax = fmaxf(node.aabbMax, leafTri.v1);
-		node.aabbMax = fmaxf(node.aabbMax, leafTri.v2);
+		uint leafPrimIdx = scene->primIdx[first + i];
+		switch (scene->primitives[leafPrimIdx].objType) {
+			case 0: {
+				Triangle& leafTri = scene->primitives[leafPrimIdx].objData.triangle;
+				node.aabbMin = fminf(node.aabbMin, leafTri.v0);
+				node.aabbMin = fminf(node.aabbMin, leafTri.v1);
+				node.aabbMin = fminf(node.aabbMin, leafTri.v2);
+				node.aabbMax = fmaxf(node.aabbMax, leafTri.v0);
+				node.aabbMax = fmaxf(node.aabbMax, leafTri.v1);
+				node.aabbMax = fmaxf(node.aabbMax, leafTri.v2);
+				break;
+			}
+			case 1: {
+				Sphere& leafSph = scene->primitives[leafPrimIdx].objData.sphere;
+				node.aabbMin = fminf(node.aabbMin, leafSph.pos + sqrt(leafSph.r2));//remove this and add member radius to sphere
+				node.aabbMin = fminf(node.aabbMin, leafSph.pos - sqrt(leafSph.r2));//remove this and add member radius to sphere
+				node.aabbMax = fmaxf(node.aabbMax, leafSph.pos + sqrt(leafSph.r2));
+				node.aabbMax = fmaxf(node.aabbMax, leafSph.pos - sqrt(leafSph.r2));
+				break;
+			}
+		}
 	}
 }
 
@@ -44,8 +69,18 @@ void bvh::Subdivide(uint nodeIdx) {
 	float bestPos = 0, bestCost = 1e30f;
 	for (int axis = 0; axis < 3; axis++) for (uint i = 0; i < node.triCount; i++)
 	{
-		Triangle& triangle = scene->tri[scene->triIdx[node.leftFirst + i]];
-		float candidatePos = triangle.centroid[axis];
+		float candidatePos = 0;
+		switch (scene->primitives[scene->primIdx[node.leftFirst + i]].objType) {
+			case 0: {
+				Triangle& triangle = scene->primitives[scene->primIdx[node.leftFirst + i]].objData.triangle;
+				candidatePos = triangle.centroid[axis];
+				break;
+			}
+			case 1: {
+				Sphere& sphere = scene->primitives[scene->primIdx[node.leftFirst + i]].objData.sphere;
+				candidatePos = sphere.pos[axis];
+			}
+		}
 		float cost = EvaluateSAH(node, axis, candidatePos);
 		if (cost < bestCost)
 			bestPos = candidatePos, bestAxis = axis, bestCost = cost;
@@ -61,10 +96,20 @@ void bvh::Subdivide(uint nodeIdx) {
 	int j = i + node.triCount - 1;
 	while (i <= j)
 	{
-		if (scene->tri[scene->triIdx[i]].centroid[axis] < splitPos)
+		float pos;
+		switch (scene->primitives[scene->primIdx[node.leftFirst + i]].objType) {
+			case 0:{
+				pos = scene->primitives[scene->primIdx[node.leftFirst + i]].objData.triangle.centroid[axis];
+			}
+			case 1: {
+				pos = scene->primitives[scene->primIdx[node.leftFirst + i]].objData.sphere.pos[axis];
+			}
+		}
+
+		if (pos < splitPos)
 			i++;
 		else
-			swap(scene->triIdx[i], scene->triIdx[j--]);
+			swap(scene->primIdx[i], scene->primIdx[j--]);
 	}
 	// abort split if one of the sides is empty
 	int leftCount = i - node.leftFirst;
@@ -92,25 +137,46 @@ float bvh::EvaluateSAH(BVHNode& node, int axis, float pos)
 	int leftCount = 0, rightCount = 0;
 	for (uint i = 0; i < node.triCount; i++)
 	{
-		Triangle& triangle = scene->tri[scene->triIdx[node.leftFirst + i]];
-		if (triangle.centroid[axis] < pos)
-		{
-			leftCount++;
-			leftBox.Grow(triangle.v0);
-			leftBox.Grow(triangle.v1);
-			leftBox.Grow(triangle.v2);
+		switch (scene->primitives[scene->primIdx[node.leftFirst + i]].objType) {
+		case 0: {
+			Triangle& triangle = scene->primitives[scene->primIdx[node.leftFirst + i]].objData.triangle;
+			if (triangle.centroid[axis] < pos)
+			{
+				leftCount++;
+				leftBox.Grow(triangle.v0);
+				leftBox.Grow(triangle.v1);
+				leftBox.Grow(triangle.v2);
+			}
+			else
+			{
+				rightCount++;
+				rightBox.Grow(triangle.v0);
+				rightBox.Grow(triangle.v1);
+				rightBox.Grow(triangle.v2);
+			}
+			break;
 		}
-		else
-		{
-			rightCount++;
-			rightBox.Grow(triangle.v0);
-			rightBox.Grow(triangle.v1);
-			rightBox.Grow(triangle.v2);
+		case 1: {
+			Sphere& sphere = scene->primitives[scene->primIdx[node.leftFirst + i]].objData.sphere;
+			if (sphere.pos[axis] < pos) {
+				leftCount++;
+				leftBox.Grow(sphere.pos + sqrt(sphere.r2));
+				leftBox.Grow(sphere.pos - sqrt(sphere.r2));
+			}
+			else {
+				rightCount++;
+				rightBox.Grow(sphere.pos + sqrt(sphere.r2));
+				rightBox.Grow(sphere.pos - sqrt(sphere.r2));
+			}
+			break;
 		}
+		}
+
+		float cost = leftCount * leftBox.Area() + rightCount * rightBox.Area();
+		return cost > 0 ? cost : 1e30f;
 	}
-	float cost = leftCount * leftBox.Area() + rightCount * rightBox.Area();
-	return cost > 0 ? cost : 1e30f;
 }
+
 void bvh::IntersectBVH(Ray& ray) {
 	float t_min = 0.0001f;
 	BVHNode* node = &bvhNode[rootNodeIdx], *stack[64];
@@ -119,7 +185,18 @@ void bvh::IntersectBVH(Ray& ray) {
 		//if (!IntersectAABB(ray, node->aabbMin, node->aabbMax)) return;
 		if (node->triCount > 0) {
 			for (uint i = 0; i < node->triCount; i++) {
-				scene->tri[scene->triIdx[node->leftFirst + i]].Intersect(ray, t_min);
+				Primitive p = scene->primitives[scene->primIdx[node->leftFirst + i]];
+				switch (p.objType) {
+					case 0:{
+						p.objData.triangle.Intersect(ray, t_min);
+						break;
+					}
+					case 1: {
+						p.objData.sphere.Intersect(ray, t_min);
+						break;
+					}
+				}
+				//scene->tri[scene->triIdx[node->leftFirst + i]].Intersect(ray, t_min);
 			}
 			if (stackPtr == 0) break; else node = stack[--stackPtr];
 			continue;
