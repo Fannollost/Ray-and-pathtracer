@@ -617,8 +617,11 @@ namespace Tmpl8 {
 			instantiateScene3();
 			
 			SetTime(0);
-		}
 
+			// Note: once we have triangle support we should get rid of the class
+			// hierarchy: virtuals reduce performance somewhat.
+		}
+		
 		void instantiateScene1() {
 			defaultAnim = true;
 			animOn = raytracer && defaultAnim;
@@ -633,13 +636,8 @@ namespace Tmpl8 {
 			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.6f, 0.4f, 2, raytracer);
 			diffuse* specReflDiff = new diffuse(float3(0.7f), white, 0.6f, 0.4f, 50, raytracer, 0.0f);
 			metal* standardMetal = new metal(0.7f, white, raytracer);
-
-
-			// we store all primitives in one continuous buffer
-			//lights.push_back(new DirectionalLight(11, float3(0, 2, 0), 10.0f, white, float3(0, -1, 1), 0.9, raytracer));
-			lights.push_back(new AreaLight(11, float3(0.1f, 1.95f, 1.5f), 5.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
+			lights.push_back(new AreaLight(11, float3(0.1f, 1.95f, 1.5f), 7.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
 			lights.push_back(new AreaLight(12, float3(0, -0.95, 0.5f), 2.0f, white, 0.5f, float3(0, 1, 0), 4, raytracer));
-
 			planes.push_back(Plane(0, redDiff, float3(1, 0, 0), 3));			// 0: left wall
 			planes.push_back(Plane(1, greenDiff, float3(-1, 0, 0), 2.99f));		// 1: right wall
 			planes.push_back(Plane(2, specReflDiff, float3(0, 1, 0), 1));			// 2: floor
@@ -648,10 +646,11 @@ namespace Tmpl8 {
 			planes.push_back(Plane(5, specularDiff, float3(0, 0, -1), 3.99f));		// 5: back wall
 
 			if (animOn) spheres.push_back(Sphere(7, standardGlass, float3(-0.7f, -0.4f, 2.0f), 0.5f));			// 1: bouncing ball
-			else spheres.push_back(Sphere(7, standardGlass, float3(-1.5f, 0, 2), 0.5f));		    // 1: static ball
-			if (animOn) cubes.push_back(Cube(9, blueDiff, float3(0), float3(1.15f)));		// 3: spinning cube
+			else spheres.push_back(Sphere(7, standardGlass, float3(-1.5f, -0.5, 2), 0.5f));		    // 1: static ball
+			spheres.push_back(Sphere(8, new diffuse(0.8f, white, 0, 0.3f, 0.7f, raytracer), float3(0, 2.5f, -3.07f), 8));		// 2: rounded corners
+			if (animOn) cubes.push_back(Cube(9, blueDiff, float3(0), float3(1.15f)));		// 3: spinning cube			
 			else cubes.push_back(Cube(9, blueDiff, float3(1, -0.4f, 2.0f), float3(1)));
-			triangles.push_back(Mesh(10, standardMetal, "Resources/ico.obj", float3(0, -0.5, 2.5f), 0.5f));
+			triangles.push_back(Mesh(10, greenDiff, "Resources/ico.obj", float3(0, -0.5, 2.5f), 0.5f));
 
 		}
 
@@ -662,19 +661,17 @@ namespace Tmpl8 {
 
 			glass* standardGlass = new glass(1.5f, white, float3(0.00f), 0.0f, 0, raytracer);
 			glass* blueGlass = new glass(1.5f, babyblue, float3(0.0f), 0.0f, 0, raytracer);
-
+			metal* standardMetal = new metal(0.7f, white, raytracer);
 			// we store all primitives in one continuous buffer
-
-			lights.push_back(new AreaLight(11, float3(0.1f, 1.8f, 1.5f), 5.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
-			lights.push_back(new AreaLight(12, float3(0, -0.9, 0.5f), 5.0f, white, 0.5f, float3(0, 1, 0), 4, raytracer));
-			
+			lights.push_back(new AreaLight(11, float3(1.8f, 2.0f, 5.5f), 10.0f, white, 2.0f, float3(0, 1, 0), 4, raytracer));
+			//lights.push_back(new AreaLight(12, float3(0.1f, 1.8f, 1.5f), 5.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
 
 			planes.push_back(Plane(0, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 1));			// 2: floor
 
-			spheres.push_back(Sphere(7, standardGlass, float3(-0.7f, -0.4f, 2.0f), 0.5f));
+			spheres.push_back(Sphere(7, standardGlass, float3(-0.7f, -0.5f, 2.0f), 0.5f));
 			triangles.push_back(Mesh(10, blueGlass, "Resources/ico.obj", float3(0.5f, -0.51f, 2), 0.5f));
-
 		}
+
 
 		void instantiateScene3() {
 
@@ -696,6 +693,28 @@ namespace Tmpl8 {
 			lights.push_back(new DirectionalLight(12, float3(5, 3, -1), 10.0f, white, float3(-1, -1, 1), 1, raytracer));
 
 			planes.push_back(Plane(0, new diffuse(0.8f, red, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 1));
+
+			float3 threePos = float3(0, 0, 2);
+			float threeScale = 2.5f;
+			triangles.push_back(Mesh(0, greenDiff, "Resources/three.obj", threePos, threeScale));
+			spheres.push_back(Sphere(1, standardGlass, float3(0.410241, -0.085121, -0.122131) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
+			spheres.push_back(Sphere(2, standardGlass, float3(0.122131, -0.085121, 0.410241) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
+			spheres.push_back(Sphere(3, standardGlass, float3(-0.410241, -0.085121, 0.122131) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
+			spheres.push_back(Sphere(4, standardGlass, float3(-0.122131, -0.085121, -0.410241) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
+			spheres.push_back(Sphere(5, standardGlass, float3(0.500000, -0.367977, -0.001909) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
+			spheres.push_back(Sphere(6, standardGlass, float3(0.001909, -0.367977, 0.500000) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
+			spheres.push_back(Sphere(7, standardGlass, float3(-0.500000, -0.367977, 0.001909) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
+			spheres.push_back(Sphere(8, standardGlass, float3(-0.001909, -0.367977, -0.500000) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
+			spheres.push_back(Sphere(8, standardGlass, float3(0.236091, 0.198982, -0.236091) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
+			spheres.push_back(Sphere(8, standardGlass, float3(0.236091, 0.198982, 0.236091) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
+			spheres.push_back(Sphere(8, standardGlass, float3(-0.236091, 0.198982, 0.236091) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
+			spheres.push_back(Sphere(8, standardGlass, float3(-0.236091, 0.198982, -0.236091) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
+			cubes.push_back(Cube(9, goldDiff, float3(2, -0.5, 2.5), float3(1)));
+			cubes.push_back(Cube(9, pinkDiff, float3(2.2, -0.75, 1), float3(0.5)));
+			cubes.push_back(Cube(9, blueDiff, float3(1.5, -0.875, 1.5), float3(0.25)));
+			cubes.push_back(Cube(9, redDiff, float3(2.2, -0.875, 1.8), float3(0.25)));
+			cubes.push_back(Cube(9, greenDiff, float3(1.55, -0.925, 1.25), float3(0.15)));
+			triangles.push_back(Mesh(9, goldMetal, "Resources/stellatedDode.obj", float3(0.000000, 0.561019, 0.000000) * threeScale + threePos + float3(0, 0.25f, 0), 0.4f));
 
 			float3 threePos = float3(0, 0, 2);
 			float threeScale = 2.5f;
@@ -739,25 +758,27 @@ namespace Tmpl8 {
 			}
 
 		}
-
 		void FindNearest(Ray& ray, float t_min) const
 		{
 			ray.objIdx = -1;
 			for (int i = 0; i < size(planes); ++i) planes[i].Intersect(ray, t_min);
 
 			for (int i = 0; i < size(spheres); ++i) spheres[i].Intersect(ray, t_min);
+			for (int i = 0; i < size(cubes); ++i) cubes[i].Intersect(ray, t_min);
 
 			for (int i = 0; i < size(cubes); ++i) cubes[i].Intersect(ray, t_min);
 
 			for (int i = 0; i < size(triangles); ++i) triangles[i].Intersect(ray, t_min);
 
-			if(!raytracer) for(int i = 0; i < size(lights); ++i) lights[i]->Intersect(ray, t_min);
+			if (!raytracer) for (int i = 0; i < size(lights); ++i) lights[i]->Intersect(ray, t_min);
 		}
 		bool IsOccluded(Ray& ray, float t_min) const
 		{
 			float rayLength = ray.t;
+			// skip planes: it is not possible for the walls to occlude anything
 			for (int i = 0; i < size(planes); ++i) planes[i].Intersect(ray, t_min);
 			for (int i = 0; i < size(spheres); ++i) spheres[i].Intersect(ray, t_min);
+			for (int i = 0; i < size(cubes); ++i) cubes[i].Intersect(ray, t_min);
 			for (int i = 0; i < size(triangles); ++i) triangles[i].Intersect(ray, t_min);
 			return ray.t < rayLength;
 			// technically this is wasteful: 
@@ -765,7 +786,6 @@ namespace Tmpl8 {
 			// - we store objIdx and t when we just need a yes/no
 			// - we don't 'early out' after the first occlusion
 		}
-
 		float3 GetAlbedo(int objIdx, float3 I) const
 		{
 			if (objIdx == -1) return float3(0); // or perhaps we should just crash
@@ -801,21 +821,23 @@ namespace Tmpl8 {
 		void SetIterationNumber(int i) { iterationNumber = i; }
 		int GetIterationNumber() { return iterationNumber; }
 
+
 		void toogleRaytracer() {
 			raytracer = !raytracer;
-			animOn = raytracer && defaultAnim;
 			SetIterationNumber(1);
+			animOn = raytracer && defaultAnim;
 		}
+
 		__declspec(align(64)) // start a new cacheline here
 			float animTime = 0;
 
-		vector<Light *> lights;
-		vector<Cube> cubes;
-		vector<Sphere> spheres;
-		vector<Mesh> triangles;	
-		vector<Plane> planes;
 		int skydomeX, skydomeY, skydomeN;
 		unsigned char* skydome;
+		vector<Light*> lights;
+		vector<Cube> cubes;
+		vector<Sphere> spheres;
+		vector<Mesh> triangles;
+		vector<Plane> planes;
 		int aaSamples = 1;
 		int invAaSamples = 1 / aaSamples;
 		int iterationNumber = 1;

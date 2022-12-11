@@ -24,8 +24,7 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 	float t_min = 0.001f;
 	scene.FindNearest(ray, t_min);
 	if (ray.objIdx == -1) return scene.GetSkyColor(ray);
-
-	if (ray.objIdx >= 11 && ray.objIdx < 11 + size(scene.lights)){
+	if (ray.objIdx >= 11 && ray.objIdx < 11 + size(scene.lights)) {
 		return scene.lights[ray.objIdx - 11]->GetLightIntensityAt(ray.IntersectionPoint(), ray.hitNormal);
 	}
 	float3 totCol = float3(0);
@@ -67,7 +66,6 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 			energy = energy;
 		} 
 
-		
 		if (kr < 1) {
 			float3 refractionDirection = normalize(g->RefractRay(ray.D, norm,r));
 			float3 refractionRayOrig = outside ? ray.IntersectionPoint() - bias : ray.IntersectionPoint() + bias;
@@ -139,9 +137,9 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
 	float eps = 0.0001f;
 	scene.FindNearest(ray, t_min);
 	if (ray.objIdx == -1) return scene.GetSkyColor(ray);
-	if (ray.objIdx >= 11 && ray.objIdx < 11+size(scene.lights))
+	if (ray.objIdx >= 11 && ray.objIdx < 11 + size(scene.lights)) {
 		return scene.lights[ray.objIdx - 11]->GetLightIntensityAt(ray.IntersectionPoint(), ray.hitNormal);
-
+	}
 	//return float3(0);
 	float3 intersectionPoint = ray.IntersectionPoint();
 	float3 normal = ray.hitNormal;
@@ -188,8 +186,8 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
 			for (int i = 0; i < N; ++i) {
 				float3 rayToHemi = RandomInHemisphere(normal);
 				float3 cos_i = dot(rayToHemi, normal);
-				indirectLightning += 0.15 * cos_i * Sample(Ray(intersectionPoint + rayToHemi * eps, rayToHemi, float3(0)),
-					depth - 1, energy) * 2 * PI;
+				indirectLightning += m->col* cos_i * Sample(Ray(intersectionPoint, rayToHemi, float3(0)),
+					depth - 1, energy);
 			}
 
 			indirectLightning /= (float)N;
