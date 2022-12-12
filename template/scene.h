@@ -302,7 +302,7 @@ namespace Tmpl8 {
 	class Sphere {
 	public:
 		Sphere() = default;
-		Sphere(int idx, material* m, float3 p, float r) : pos(p), r2(r* r), invr(1 / r), objIdx(idx), mat(m) {}
+		Sphere(int idx, material* m, float3 p, float r) : pos(p), r2(r* r), invr(1 / r), objIdx(idx), mat(m), r(r) { }
 		void Intersect(Ray& ray, float t_min) const {
 			float3 oc = ray.O - this->pos;
 			float b = dot(oc, ray.D);
@@ -333,7 +333,7 @@ namespace Tmpl8 {
 			return float3(0.93f);
 		}
 		float3 pos = 0;
-		float r2 = 0, invr = 0;
+		float r2 = 0, invr = 0, r;
 		int objIdx = -1;
 		material* mat;
 	};
@@ -611,9 +611,11 @@ namespace Tmpl8 {
 			
 			//Instantiate scene
 			b = new bvh(this);
+			
 			instantiateScene2();
 			//GetAllTriangles(); 
 			//cout << size(tri);
+			
 			b->Build();
 			/*for (uint i = 0; i < size(triIdx); i++)
 			{
@@ -685,7 +687,7 @@ namespace Tmpl8 {
 
 			glass* standardGlass = new glass(1.5f, white, float3(0.00f), 0.0f, 0, raytracer);
 			glass* blueGlass = new glass(1.5f, babyblue, float3(0.1f), 0.0f, 0, raytracer);
-			metal* blueMetal = new metal(0.7f, babyblue, raytracer);
+			metal* redMetal = new metal(0.7f, red, raytracer);
 			metal* standardMetal = new metal(0.7f, white, raytracer);
 			metal* greenMetal = new metal(0.7f, green, raytracer);
 			metal* yellowMetal = new metal(0.7f, gold, raytracer);
@@ -696,10 +698,10 @@ namespace Tmpl8 {
 
 			planes.push_back(Plane(0, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 1));			// 2: floor
 
-			spheres.push_back(Sphere(7, blueMetal, float3(-0.7f, -0.5f, 2.0f), 0.5f));
-			spheres.push_back(Sphere(7, greenMetal, float3(-1.9f, -0.5f, 2.0f), 0.5f));
-			spheres.push_back(Sphere(7, yellowMetal, float3(-3.1f, -0.5f, 2.0f), 0.5f));
-			spheres.push_back(Sphere(7, pinkMetal, float3(-4.3f, -0.5f, 2.0f), 0.5f));
+			spheres.push_back(Sphere(7, blueGlass, float3(-0.7f, -0.5f, 2.0f), 0.5f));
+			spheres.push_back(Sphere(8, greenMetal, float3(-1.9f, -0.5f, 2.0f), 0.5f));
+			spheres.push_back(Sphere(9, yellowMetal, float3(-3.1f, -0.5f, 2.0f), 0.5f));
+			spheres.push_back(Sphere(6, pinkMetal, float3(-4.3f, -0.5f, 2.0f), 0.5f));
 			//triangles.push_back(Mesh(10, standardMetal, "Resources/icos.obj", float3(0.5f, -0.51f, 2), 0.5f));
 			ParseUnityFile("Resources/unity.tri", blueDiff);
 		}

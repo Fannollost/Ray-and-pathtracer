@@ -1,5 +1,6 @@
 #pragma once
-
+#define TRIANGLES 0
+#define SPHERES 1
 namespace Tmpl8{
 	class Scene;
 	class Ray;
@@ -17,26 +18,27 @@ class bvh
 			};
 			union
 			{
-				struct { float3 aabbMax; uint triCount; };
+				struct { float3 aabbMax; uint primCount; };
 				__m128 aabbMax4;
 			};
-			bool isLeaf() { return triCount > 0; }
+			bool isLeaf() { return primCount > 0; }
 		};
 	
 		void Build();
 		void UpdateNodeBounds(uint nodeIdx);
-		float FindBestSplitPlane(BVHNode& node, int& axis, float& splitPos);
-		float CalculateNodeCost(BVHNode& node);
 		void Subdivide(uint rootNodeIdx);
 		void Intersect(Ray& ray);
 		float IntersectAABB(const Ray& ray, const float3 bmin, const float3 bmax);
 		float IntersectAABB_SSE(const Ray& ray, const __m128 bmin4, const __m128 bmax4);
 		float EvaluateSAH(BVHNode &node, int axis, float pos);
+		float CalculateNodeCost(BVHNode& node);
+		float FindBestSplitPlane(BVHNode& node, int& axis, float& splitPos);
+		void SubdividePrim(uint rootNodeIdx);
 	public:
-		uint rootNodeIdx = 0, nodesUsed = 2, N = 12582;
-		uint* triIdx;
+		uint rootNodeIdx = 0, nodesUsed = 2, NTri = 12582, NSph = 4, N = NTri;// +NSph;
+		uint* primitiveIdx;
 		class Scene* scene;
-		BVHNode bvhNode[2 * 12582 - 1];
+		BVHNode bvhNode[2 * (12582 + 4)]; //- 1];
 	};
 	
 	struct aabb
@@ -51,6 +53,7 @@ class bvh
 		}
 	};
 
-	struct Bin { aabb bounds; int triCount = 0; };
+	struct Bin { aabb bounds; int primCount = 0; };
+
 }
 
