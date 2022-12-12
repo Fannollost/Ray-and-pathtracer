@@ -684,10 +684,12 @@ namespace Tmpl8 {
 			//Loading sky texture
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.8f, 0.2f, 1, raytracer);
-
+			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.8f, 0.2f, 1, raytracer);
+			diffuse* whiteDiff = new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer);
+			diffuse* greenDiff = new diffuse(float3(0.8f), green, 0.6f, 0.4f, 2, raytracer);
 			glass* standardGlass = new glass(1.5f, white, float3(0.00f), 0.0f, 0, raytracer);
 			glass* blueGlass = new glass(1.5f, babyblue, float3(0.1f), 0.0f, 0, raytracer);
-			metal* redMetal = new metal(0.7f, red, raytracer);
+			metal* blueMetal = new metal(0.7f, blue, raytracer);
 			metal* standardMetal = new metal(0.7f, white, raytracer);
 			metal* greenMetal = new metal(0.7f, green, raytracer);
 			metal* yellowMetal = new metal(0.7f, gold, raytracer);
@@ -696,14 +698,16 @@ namespace Tmpl8 {
 			lights.push_back(new AreaLight(11, float3(1.8f, 2.0f, 5.5f), 10.0f, white, 2.0f, float3(0, 1, 0), 4, raytracer));
 			//lights.push_back(new AreaLight(12, float3(0.1f, 1.8f, 1.5f), 5.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
 
-			planes.push_back(Plane(0, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 1));			// 2: floor
+			planes.push_back(Plane(0, redDiff, float3(0, 1, 0), 1));			// 0: floor
+			planes.push_back(Plane(4, blueDiff, float3(0, 0, -1), 10));			// 4: front wall
+			planes.push_back(Plane(1, greenDiff, float3(-1, 0, 0), 2.99f));		// 1: right wall
 
-			spheres.push_back(Sphere(7, blueGlass, float3(-0.7f, -0.5f, 2.0f), 0.5f));
+			spheres.push_back(Sphere(7, blueMetal, float3(-0.7f, -0.5f, 2.0f), 0.5f));
 			spheres.push_back(Sphere(8, greenMetal, float3(-1.9f, -0.5f, 2.0f), 0.5f));
 			spheres.push_back(Sphere(9, yellowMetal, float3(-3.1f, -0.5f, 2.0f), 0.5f));
 			spheres.push_back(Sphere(6, pinkMetal, float3(-4.3f, -0.5f, 2.0f), 0.5f));
 			//triangles.push_back(Mesh(10, standardMetal, "Resources/icos.obj", float3(0.5f, -0.51f, 2), 0.5f));
-			ParseUnityFile("Resources/unity.tri", blueDiff);
+			ParseUnityFile("Resources/unity.tri", standardGlass);
 		}
 
 

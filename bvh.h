@@ -36,7 +36,7 @@ class bvh
 		void Split(uint nodeIdx);
 		void SubdividePrim(uint rootNodeIdx);
 	public:
-		uint rootNodeIdx = 0, nodesUsed = 2, NTri = 12582, NSph = 4, NPla = 1, N = NTri + NSph + NPla;
+		uint rootNodeIdx = 0, nodesUsed = 2, NTri = 12582, NSph = 4, NPla = 3, N = NTri + NSph + NPla;
 		uint* primitiveIdx;
 		class Scene* scene;
 		BVHNode bvhNode[2 * (12582 + 4)]; //- 1];
