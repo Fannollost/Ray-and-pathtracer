@@ -20,7 +20,6 @@ void bvh::Build() {
 	
 	UpdateNodeBounds(rootNodeIdx);
 	Split(rootNodeIdx);
-	//SubdividePrim(rootNodeIdx);
 
 	printf("BVH Build time : %5.2f ms \n", t.elapsed() * 1000);
 }
@@ -46,9 +45,25 @@ void bvh::UpdateNodeBounds(uint nodeIdx) {
 			node.aabbMax = fmaxf(node.aabbMax, leafSph.pos + float3(leafSph.r));
 		}
 		else {
-			//useless but more explicit
-			node.aabbMin = float3(1e30f);
-			node.aabbMax = float3(-1e30f);
+			leafIdx -= NTri + NSph;
+			Plane& leafPla = scene->planes[leafIdx];
+			float3 normal = normalize(leafPla.N);
+			if (normal.x + normal.y + normal.z == 1 && (normal.x == 1 || normal.y == 1 || normal.z == 1)) {
+				if (normal.x == 1) {
+					node.aabbMin = float3(0, -1e30f, -1e30f);
+					node.aabbMax = float3(0, 1e30f, 1e30f);
+				} else
+				if (normal.y == 1) {
+					node.aabbMin = float3(-1e30f, 0, -1e30f);
+					node.aabbMax = float3(1e30f, 0, 1e30f);
+				} else
+				if (normal.z == 1) {
+					node.aabbMin = float3(-1e30f, -1e30f, 0);
+					node.aabbMax = float3(1e30f, 1e30f, 0);
+				}
+			}
+			node.aabbMin = float3(-1e30f);
+			node.aabbMax = float3(1e30f);
 			return;
 		}
 	}
@@ -146,7 +161,7 @@ void bvh::Split(uint nodeIdx) {
 	int rightChildIdx = nodesUsed++;
 	bvhNode[leftChildIdx].leftFirst = 0;
 	bvhNode[leftChildIdx].primCount = NTri + NSph;
-	bvhNode[rightChildIdx].leftFirst = node.leftFirst + NTri + NSph;
+	bvhNode[rightChildIdx].leftFirst = NTri + NSph;
 	bvhNode[rightChildIdx].primCount = NPla;
 	node.leftFirst = leftChildIdx;
 	node.primCount = 0;
