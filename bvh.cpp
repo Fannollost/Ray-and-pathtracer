@@ -6,9 +6,8 @@ bvh::bvh(Scene* s) { scene = s; };
 
 void bvh::Build() {
 	Timer t;
-
 	
-	N = NTri + NSph;
+	N = NTri + NSph + NPla;
 	primitiveIdx = new uint[N];
 
 	for (uint i = 0; i < N; ++i) {
@@ -20,10 +19,9 @@ void bvh::Build() {
 	root.leftFirst = 0;
 	
 	UpdateNodeBounds(rootNodeIdx);
+	Split(rootNodeIdx);
+	//SubdividePrim(rootNodeIdx);
 
-	SubdividePrim(rootNodeIdx);
-	//Subdivide(rootNodeIdx);
-	
 	printf("BVH Build time : %5.2f ms \n", t.elapsed() * 1000);
 }
 
@@ -41,11 +39,17 @@ void bvh::UpdateNodeBounds(uint nodeIdx) {
 			node.aabbMax = fmaxf(node.aabbMax, leafTri.v0);
 			node.aabbMax = fmaxf(node.aabbMax, leafTri.v1);
 			node.aabbMax = fmaxf(node.aabbMax, leafTri.v2);
-		} else if (leafIdx >= NTri && leafIdx< N){
+		} else if (leafIdx >= NTri && leafIdx< NTri+NSph){
 			leafIdx -= NTri;
 			Sphere& leafSph = scene->spheres[leafIdx];
-			node.aabbMin = fminf(node.aabbMin, leafSph.pos - float3(2*leafSph.r));
-			node.aabbMax = fmaxf(node.aabbMax, leafSph.pos + float3(2*leafSph.r));
+			node.aabbMin = fminf(node.aabbMin, leafSph.pos - float3(leafSph.r));
+			node.aabbMax = fmaxf(node.aabbMax, leafSph.pos + float3(leafSph.r));
+		}
+		else {
+			//useless but more explicit
+			node.aabbMin = float3(1e30f);
+			node.aabbMax = float3(-1e30f);
+			return;
 		}
 	}
 }
@@ -64,7 +68,7 @@ float bvh::FindBestSplitPlane(BVHNode& node, int& axis, float& splitPos)
 				Triangle& triangle = scene->tri[primIdx];
 				boundsMin = min(boundsMin, triangle.centroid[a]);
 				boundsMax = max(boundsMax, triangle.centroid[a]);
-			}else if (primIdx >= NTri && primIdx < N) {
+			}else if (primIdx >= NTri && primIdx < NTri + NSph) {
 				primIdx -= NTri;
 				Sphere& sphere = scene->spheres[primIdx];
 				boundsMin = min(boundsMin, sphere.pos[a]);
@@ -88,7 +92,7 @@ float bvh::FindBestSplitPlane(BVHNode& node, int& axis, float& splitPos)
 				bin[binIdx].bounds.grow(triangle.v0);
 				bin[binIdx].bounds.grow(triangle.v1);
 				bin[binIdx].bounds.grow(triangle.v2);
-			} else if (primIdx >= NTri && primIdx < N) {
+			} else if (primIdx >= NTri && primIdx < NTri + NSph) {
 				primIdx -= NTri;
 				Sphere& sphere = scene->spheres[primIdx];
 				binIdx = min(BINS - 1,
@@ -134,16 +138,34 @@ float bvh::CalculateNodeCost(BVHNode& node) {
 	return node.primCount * surfaceArea;
 }
 
-void bvh::SubdividePrim(uint nodeIdx) {
-	cout << "Here" << endl;
+void bvh::Split(uint nodeIdx) {
 	BVHNode& node = bvhNode[nodeIdx];
 
 	// create child nodes
 	int leftChildIdx = nodesUsed++;
 	int rightChildIdx = nodesUsed++;
 	bvhNode[leftChildIdx].leftFirst = 0;
+	bvhNode[leftChildIdx].primCount = NTri + NSph;
+	bvhNode[rightChildIdx].leftFirst = node.leftFirst + NTri + NSph;
+	bvhNode[rightChildIdx].primCount = NPla;
+	node.leftFirst = leftChildIdx;
+	node.primCount = 0;
+	UpdateNodeBounds(leftChildIdx);
+	UpdateNodeBounds(rightChildIdx);
+	// recurse
+	SubdividePrim(leftChildIdx);
+}
+
+
+void bvh::SubdividePrim(uint nodeIdx) {
+	BVHNode& node = bvhNode[nodeIdx];
+
+	// create child nodes
+	int leftChildIdx = nodesUsed++;
+	int rightChildIdx = nodesUsed++;
+	bvhNode[leftChildIdx].leftFirst = node.leftFirst;
 	bvhNode[leftChildIdx].primCount = NTri;
-	bvhNode[rightChildIdx].leftFirst = NTri;
+	bvhNode[rightChildIdx].leftFirst = node.leftFirst+NTri;
 	bvhNode[rightChildIdx].primCount = NSph;
 	node.leftFirst = leftChildIdx;
 	node.primCount = 0;
@@ -255,9 +277,13 @@ void bvh::Intersect(Ray& ray) {
 				uint primIdx = primitiveIdx[node->leftFirst + i];
 				if (primIdx < NTri) {
 					scene->tri[primIdx].Intersect(ray, t_min);
-				} else if(primIdx >=NTri && primIdx < N){
+				} else if(primIdx >=NTri && primIdx < NTri + NSph){
 					primIdx -= NTri;
 					scene->spheres[primIdx].Intersect(ray, t_min);
+				}
+				else {
+					primIdx -= NTri + NSph;
+					scene->planes[primIdx].Intersect(ray, t_min);
 				}
 			}
 			if (stackPtr == 0) break; else node = stack[--stackPtr];

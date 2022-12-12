@@ -31,10 +31,10 @@ namespace Tmpl8
 		void KeyUp(int key) {
 			switch (key) {
 			case KEYBOARD_W:
-				camera.MoveCameraY(-1);
+				camera.MoveCameraZY(-1,majPressed);
 				break;
 			case KEYBOARD_S:
-				camera.MoveCameraY(1);
+				camera.MoveCameraZY(1,majPressed);
 				break;
 			case KEYBOARD_D:
 				camera.MoveCameraX(-1);
@@ -48,15 +48,19 @@ namespace Tmpl8
 			case KEYBOARD_MINUS:
 				camera.FOV(1.f);
 				break;
+			case KEYBOARD_MAJ:
+				majPressed = false;
+				camera.transferYZ();
+				break;
 			}
 		}
 		void KeyDown(int key) {
 			switch (key) {
 			case KEYBOARD_W:
-				camera.MoveCameraY(1);
+				camera.MoveCameraZY(1, majPressed);
 				break;
 			case KEYBOARD_S:
-				camera.MoveCameraY(-1);
+				camera.MoveCameraZY(-1, majPressed);
 				break;
 			case KEYBOARD_D:
 				camera.MoveCameraX(1);
@@ -79,6 +83,10 @@ namespace Tmpl8
 			case KEYBOARD_P:
 				scene.toogleRaytracer();
 				break;
+			case KEYBOARD_MAJ:
+				majPressed = true;
+				camera.transferYZ();
+				break;
 			}
 			/* implement if you want to handle keys */
 		}
@@ -89,6 +97,7 @@ namespace Tmpl8
 		Scene scene;
 		Camera camera;
 		float2 xBox = float2(-1, 1), yBox = float2(-1, 1), zBox = float2(-1, 1);	//makeboudningbox
+		bool majPressed = false;
 		enum UserInput {
 			KEYBOARD_W = 87,
 			KEYBOARD_D = 68,
@@ -98,7 +107,8 @@ namespace Tmpl8
 			KEYBOARD_P = 80,
 			KEYBOARD_SPACE = 32,
 			KEYBOARD_PLUS = 334,
-			KEYBOARD_MINUS = 333
+			KEYBOARD_MINUS = 333,
+			KEYBOARD_MAJ = 340
 		};
 	};
 };

@@ -870,6 +870,8 @@ namespace Tmpl8 {
 			sOrient = sOrient > 0 ? 1 : -1;
 			int y = ((cHeight + 1) / 2) * (skydomeY-1);
 			int x = (((sOrient * acos(cOrient))+PI)/ TWOPI )* (skydomeX-1);
+			if (x >= skydomeX) x  = skydomeX - 1;
+			if (y >= skydomeY) y  = skydomeY - 1;
 			uint8_t* pixelOffset = skydome + (x + skydomeX * y) * skydomeN;
 			return float3(uint3(pixelOffset[0], pixelOffset[1], pixelOffset[2]))/255;
 		}

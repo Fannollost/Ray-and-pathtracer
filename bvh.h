@@ -33,9 +33,10 @@ class bvh
 		float EvaluateSAH(BVHNode &node, int axis, float pos);
 		float CalculateNodeCost(BVHNode& node);
 		float FindBestSplitPlane(BVHNode& node, int& axis, float& splitPos);
+		void Split(uint nodeIdx);
 		void SubdividePrim(uint rootNodeIdx);
 	public:
-		uint rootNodeIdx = 0, nodesUsed = 2, NTri = 12582, NSph = 4, N = NTri;// +NSph;
+		uint rootNodeIdx = 0, nodesUsed = 2, NTri = 12582, NSph = 4, NPla = 1, N = NTri + NSph + NPla;
 		uint* primitiveIdx;
 		class Scene* scene;
 		BVHNode bvhNode[2 * (12582 + 4)]; //- 1];

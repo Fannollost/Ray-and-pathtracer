@@ -45,7 +45,7 @@ public:
 	float3 topLeft, topRight, bottomLeft, screenCenter;
 	float speed;
 	float yAngle = 0;
-	float2 mov = float2(0.f);
+	float3 mov = float3(0.f);
 	float fovChange = 0.f;
 	bool paused = false;
 	bool fishEye = false;
@@ -61,7 +61,7 @@ public:
 
 	void MoveTick() {
 		screenCenter = topLeft + .5f * (topRight - topLeft) + .5f * (bottomLeft - topLeft);
-		float3 velocity = (speed * mov[1] * normalize(screenCenter - camPos)) + (speed * mov[0] * normalize(topRight - topLeft));
+		float3 velocity = speed * ((mov[2] * normalize(screenCenter - camPos)) + (mov[0] * normalize(topRight - topLeft)) + float3(0, 1,0) * mov[1]);
 		if (length(velocity) > 0) {
 			camPos += velocity;
 			topLeft += velocity;
@@ -89,8 +89,20 @@ public:
 	}
 
 
-	void MoveCameraY(int dir) {
-		mov[1] += dir;
+	void MoveCameraZY(int dir, bool maj) {
+		if (maj) {
+			mov[2] = 0;
+			mov[1] += dir;
+		} else {
+			mov[1] = 0;
+			mov[2] += dir;
+		}
+	}
+
+	void transferYZ() {
+		float tmp = mov[1];
+		mov [1] = mov[2];
+		mov[2] = tmp;
 	}
 
 	void MoveCameraX(int dir) {
