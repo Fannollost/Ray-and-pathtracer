@@ -692,6 +692,7 @@ namespace Tmpl8 {
 			metal* blueMetal = new metal(0.7f, blue, raytracer);
 			metal* standardMetal = new metal(0.7f, white, raytracer);
 			metal* greenMetal = new metal(0.7f, green, raytracer);
+			metal* redMetal = new metal(0.7f, red, raytracer);
 			metal* yellowMetal = new metal(0.7f, gold, raytracer);
 			metal* pinkMetal = new metal(0.7f, pink, raytracer);
 			// we store all primitives in one continuous buffer
@@ -707,7 +708,7 @@ namespace Tmpl8 {
 			spheres.push_back(Sphere(9, yellowMetal, float3(-3.1f, -0.5f, 2.0f), 0.5f));
 			spheres.push_back(Sphere(6, pinkMetal, float3(-4.3f, -0.5f, 2.0f), 0.5f));
 			//triangles.push_back(Mesh(10, standardMetal, "Resources/icos.obj", float3(0.5f, -0.51f, 2), 0.5f));
-			ParseUnityFile("Resources/unity.tri", standardGlass);
+			ParseUnityFile("Resources/unity.tri", redMetal);
 		}
 
 

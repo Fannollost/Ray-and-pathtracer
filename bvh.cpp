@@ -50,16 +50,16 @@ void bvh::UpdateNodeBounds(uint nodeIdx) {
 			float3 normal = normalize(leafPla.N);
 			if (normal.x + normal.y + normal.z == 1 && (normal.x == 1 || normal.y == 1 || normal.z == 1)) {
 				if (normal.x == 1) {
-					node.aabbMin = float3(0, -1e30f, -1e30f);
-					node.aabbMax = float3(0, 1e30f, 1e30f);
+					node.aabbMin = fminf(node.aabbMin, float3(0, -1e30f, -1e30f));
+					node.aabbMax = fmaxf(node.aabbMax, float3(0, 1e30f, 1e30f));
 				} else
 				if (normal.y == 1) {
-					node.aabbMin = float3(-1e30f, 0, -1e30f);
-					node.aabbMax = float3(1e30f, 0, 1e30f);
+					node.aabbMin = fminf(node.aabbMin, float3(-1e30f, 0, -1e30f));
+					node.aabbMax = fmaxf(node.aabbMax, float3(1e30f, 0, 1e30f));
 				} else
 				if (normal.z == 1) {
-					node.aabbMin = float3(-1e30f, -1e30f, 0);
-					node.aabbMax = float3(1e30f, 1e30f, 0);
+					node.aabbMin = fminf(node.aabbMin, float3(-1e30f, -1e30f, 0));
+					node.aabbMax = fmaxf(node.aabbMax, float3(1e30f, 1e30f, 0));
 				}
 			}
 			node.aabbMin = float3(-1e30f);
