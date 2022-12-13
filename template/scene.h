@@ -203,8 +203,28 @@ namespace Tmpl8 {
 				ray.t = t, ray.objIdx = objIdx, ray.m = mat,
 					ray.SetNormal(GetNormal(ray.IntersectionPoint()));
 			}
+		}
+		bool IsOccluding(Ray& ray, float t_min) const {		 //scratchapixel implementation
+			float NdotRayDir = dot(N, ray.D);
+			if (fabs(NdotRayDir) < t_min) return false;
+			float d = -dot(N, v0);
+			float t = -(dot(N, ray.O) + d) / NdotRayDir;
+			if (t < 0) return false;
+			float3 p = ray.O + t * ray.D;
+			float3 c;
 
-
+			float3 vp0 = p - v0;
+			c = cross(e1, vp0);
+			if (dot(N, c) < 0) return false;
+			float3 vp1 = p - v1;
+			float3 e3 = v2 - v1;
+			c = cross(e3, vp1);
+			if (dot(N, c) < 0) return false;
+			float3 e4 = v0 - v2;
+			float3 vp2 = p - v2;
+			c = cross(e4, vp2);
+			if (dot(N, c) < 0) return false;
+			if (t < ray.t && t > t_min) return true;
 		}
 		float3 GetNormal(const float3 I) const { return N; }
 		float3 v0, v1, v2, e1, e2, N, centroid;
@@ -260,6 +280,12 @@ namespace Tmpl8 {
 				triangles[i].Intersect(ray, t_min);
 			}
 			//triangles[0].Intersect(ray, t_min);
+		}
+		bool IsOccluding(Ray& ray, float t_min) const {
+			for (int i = 0; i < triangles.size(); i++) {
+				if(triangles[i].IsOccluding(ray, t_min)) return true;
+			}
+			return false;
 		}
 		float3 GetNormal(const float3 I) const
 		{
@@ -324,6 +350,16 @@ namespace Tmpl8 {
 				return;
 			}
 		}
+		bool IsOccluding(Ray& ray, float t_min) const {
+			float3 oc = ray.O - this->pos;
+			float b = dot(oc, ray.D);
+			float c = dot(oc, oc) - this->r2;
+			float t, d = b * b - c;
+			if (d <= 0) return false;
+			d = sqrtf(d), t = -b - d;
+			float t2 = d - b;
+			return ((t < ray.t && t > t_min) || (t2 < ray.t&& t2 > t_min));
+		}
 		float3 GetNormal(const float3 I) const
 		{
 			return (I - this->pos) * invr;
@@ -352,6 +388,11 @@ namespace Tmpl8 {
 			float t = -(dot(ray.O, this->N) + this->d) / (dot(ray.D, this->N));
 			if (t < ray.t && t > t_min) ray.t = t, ray.objIdx = objIdx, ray.m = mat,
 				ray.SetNormal(N);
+		}
+		bool IsOccluding(Ray& ray, float t_min) const
+		{
+			float t = -(dot(ray.O, this->N) + this->d) / (dot(ray.D, this->N));
+			return (t < ray.t && t > t_min);
 		}
 		float3 GetNormal(const float3 I) const
 		{
@@ -430,6 +471,25 @@ namespace Tmpl8 {
 				if (tmax < ray.t) ray.t = tmax, ray.objIdx = objIdx, ray.m = mat,
 					ray.SetNormal(GetNormal(ray.IntersectionPoint()));
 			}
+		}
+		bool IsOccluding(Ray& ray, float t_min) const {
+			// 'rotate' the cube by transforming the ray into object space
+			// using the inverse of the cube transform.
+			float3 O = TransformPosition(ray.O, invM);
+			float3 D = TransformVector(ray.D, invM);
+			float rDx = 1 / D.x, rDy = 1 / D.y, rDz = 1 / D.z;
+			int signx = D.x < 0, signy = D.y < 0, signz = D.z < 0;
+			float tmin = (b[signx].x - O.x) * rDx;
+			float tmax = (b[1 - signx].x - O.x) * rDx;
+			float tymin = (b[signy].y - O.y) * rDy;
+			float tymax = (b[1 - signy].y - O.y) * rDy;
+			if (tmin > tymax || tymin > tmax) return false;
+			tmin = max(tmin, tymin), tmax = min(tmax, tymax);
+			float tzmin = (b[signz].z - O.z) * rDz;
+			float tzmax = (b[1 - signz].z - O.z) * rDz;
+			if (tmin > tzmax || tzmin > tmax) return false;
+			tmin = max(tmin, tzmin), tmax = min(tmax, tzmax);
+			return (tmin > t_min || tmax > t_min);
 		}
 		float3 GetNormal(const float3 I) const
 		{
@@ -610,17 +670,13 @@ namespace Tmpl8 {
 		{
 			
 			//Instantiate scene
-			b = new bvh(this);
+			
 			
 			instantiateScene2();
-			//GetAllTriangles(); 
-			//cout << size(tri);
-			
+			//GetAllTriangles();
+			b = new bvh(this);
 			b->Build();
-			/*for (uint i = 0; i < size(triIdx); i++)
-			{
-				cout << triIdx[i];
-			} */
+
 			SetTime(0);
 
 			// Note: once we have triangle support we should get rid of the class
@@ -640,10 +696,13 @@ namespace Tmpl8 {
 		void ParseUnityFile(char* path, material* m) {
 			FILE* file = fopen(path, "r");
 			float a, c, d, e, f, g, h, i,j;
-			for (int t = 0; t < b->N; t++) {
-				fscanf(file, "%f %f %f %f %f %f %f %f %f\n",
+			int res = 1;
+			int count = 0;
+			while(res>0) {
+				count++;
+				res = fscanf(file, "%f %f %f %f %f %f %f %f %f\n",
 					&a, &c, &d, &e, &f, &g, &h, &i, &j);
-				tri.push_back(Triangle(t, m, float3(a, c, d), float3(e, f, g), float3(h, i, j)));
+				tri.push_back(Triangle(i, m, float3(a, c, d), float3(e, f, g), float3(h, i, j)));
 			}
 			fclose(file);
 		}
@@ -697,7 +756,7 @@ namespace Tmpl8 {
 			metal* pinkMetal = new metal(0.7f, pink, raytracer);
 			// we store all primitives in one continuous buffer
 			lights.push_back(new AreaLight(11, float3(1.8f, 2.0f, 5.5f), 10.0f, white, 2.0f, float3(0, 1, 0), 4, raytracer));
-			//lights.push_back(new AreaLight(12, float3(0.1f, 1.8f, 1.5f), 5.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
+			lights.push_back(new AreaLight(12, float3(0.1f, 1.8f, 1.5f), 5.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
 
 			planes.push_back(Plane(0, redDiff, float3(0, 1, 0), 1));			// 0: floor
 			planes.push_back(Plane(4, blueDiff, float3(0, 0, -1), 10));			// 4: front wall
@@ -836,16 +895,17 @@ namespace Tmpl8 {
 		bool IsOccluded(Ray& ray, float t_min) const
 		{
 			float rayLength = ray.t;
-			// skip planes: it is not possible for the walls to occlude anything
-			for (int i = 0; i < size(planes); ++i) planes[i].Intersect(ray, t_min);
-			for (int i = 0; i < size(spheres); ++i) spheres[i].Intersect(ray, t_min);
-			for (int i = 0; i < size(cubes); ++i) cubes[i].Intersect(ray, t_min);
-			for (int i = 0; i < size(triangles); ++i) triangles[i].Intersect(ray, t_min);
-			return ray.t < rayLength;
-			// technically this is wasteful: 
+			for (int i = 0; i < size(planes); ++i)
+				if(planes[i].IsOccluding(ray, t_min)) return true;
+			for (int i = 0; i < size(spheres); ++i) 
+				if (spheres[i].IsOccluding(ray, t_min)) return true;
+			for (int i = 0; i < size(cubes); ++i)
+				if (cubes[i].IsOccluding(ray, t_min)) return true;
+			for (int i = 0; i < size(triangles); ++i)
+				if (triangles[i].IsOccluding(ray, t_min)) return true;
+
+			return false;
 			// - we potentially search beyond rayLength
-			// - we store objIdx and t when we just need a yes/no
-			// - we don't 'early out' after the first occlusion
 		}
 		float3 GetAlbedo(int objIdx, float3 I) const
 		{

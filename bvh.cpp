@@ -5,10 +5,18 @@
 bvh::bvh(Scene* s) { scene = s; };
 
 void bvh::Build() {
-	Timer t;
-	
+
+	NTri = size(scene->tri);
+	NSph = size(scene->spheres);
+	NPla = size(scene->planes);
+	cout << "#Tri : " << NTri << endl;
+	cout << "#Sph : " << NSph << endl;
+	cout << "#Pla : " << NPla << endl;
 	N = NTri + NSph + NPla;
 	primitiveIdx = new uint[N];
+	bvhNode = new BVHNode[2 * (N + 1) - 1];
+
+	Timer t;
 
 	for (uint i = 0; i < N; ++i) {
 		primitiveIdx[i] = i;
@@ -156,19 +164,23 @@ float bvh::CalculateNodeCost(BVHNode& node) {
 void bvh::Split(uint nodeIdx) {
 	BVHNode& node = bvhNode[nodeIdx];
 
-	// create child nodes
-	int leftChildIdx = nodesUsed++;
-	int rightChildIdx = nodesUsed++;
-	bvhNode[leftChildIdx].leftFirst = 0;
-	bvhNode[leftChildIdx].primCount = NTri + NSph;
-	bvhNode[rightChildIdx].leftFirst = NTri + NSph;
-	bvhNode[rightChildIdx].primCount = NPla;
-	node.leftFirst = leftChildIdx;
-	node.primCount = 0;
-	UpdateNodeBounds(leftChildIdx);
-	UpdateNodeBounds(rightChildIdx);
-	// recurse
-	SubdividePrim(leftChildIdx);
+	if (NPla > 0 && (NSph + NTri > 0)) {
+		// create child nodes
+		int leftChildIdx = nodesUsed++;
+		int rightChildIdx = nodesUsed++;
+		bvhNode[leftChildIdx].leftFirst = 0;
+		bvhNode[leftChildIdx].primCount = NTri + NSph;
+		bvhNode[rightChildIdx].leftFirst = NTri + NSph;
+		bvhNode[rightChildIdx].primCount = NPla;
+		node.leftFirst = leftChildIdx;
+		node.primCount = 0;
+		UpdateNodeBounds(leftChildIdx);
+		UpdateNodeBounds(rightChildIdx);
+		// recurse
+		SubdividePrim(leftChildIdx);
+	} else {
+		Subdivide(nodeIdx);
+	}
 }
 
 
@@ -178,17 +190,22 @@ void bvh::SubdividePrim(uint nodeIdx) {
 	// create child nodes
 	int leftChildIdx = nodesUsed++;
 	int rightChildIdx = nodesUsed++;
-	bvhNode[leftChildIdx].leftFirst = node.leftFirst;
-	bvhNode[leftChildIdx].primCount = NTri;
-	bvhNode[rightChildIdx].leftFirst = node.leftFirst+NTri;
-	bvhNode[rightChildIdx].primCount = NSph;
-	node.leftFirst = leftChildIdx;
-	node.primCount = 0;
-	UpdateNodeBounds(leftChildIdx);
-	UpdateNodeBounds(rightChildIdx);
-	// recurse
-	Subdivide(leftChildIdx);
-	Subdivide(rightChildIdx);
+	if (NTri > 0 && NSph > 0) {
+		bvhNode[leftChildIdx].leftFirst = node.leftFirst;
+		bvhNode[leftChildIdx].primCount = NTri;
+		bvhNode[rightChildIdx].leftFirst = node.leftFirst + NTri;
+		bvhNode[rightChildIdx].primCount = NSph;
+		node.leftFirst = leftChildIdx;
+		node.primCount = 0;
+		UpdateNodeBounds(leftChildIdx);
+		UpdateNodeBounds(rightChildIdx);
+		// recurse
+		Subdivide(leftChildIdx);
+		Subdivide(rightChildIdx);
+	}
+	else {
+		Subdivide(nodeIdx);
+	}
 }
 
 void bvh::Subdivide(uint nodeIdx) {
@@ -317,6 +334,51 @@ void bvh::Intersect(Ray& ray) {
 		if (dist1 > dist2) { swap(dist1, dist2); swap(c1, c2); }
 		if (dist1 == 1e30f) {
 			if (stackPtr == 0) break; else node = stack[--stackPtr];
+		}
+		else {
+			node = c1;
+			if (dist2 != 1e30f) stack[stackPtr++] = c2;
+		}
+	}
+}
+
+bool bvh::IsOccluded(Ray& ray) {
+	float t_min = 0.0001f;
+	BVHNode* node = &bvhNode[rootNodeIdx], * stack[64];
+	uint stackPtr = 0;
+	while (1) {
+		//if (!IntersectAABB(ray, node->aabbMin, node->aabbMax)) return;
+		if (node->primCount > 0) {
+			for (uint i = 0; i < node->primCount; i++) {
+				uint primIdx = primitiveIdx[node->leftFirst + i];
+				if (primIdx < NTri) {
+					if (scene->tri[primIdx].IsOccluding(ray, t_min)) return true;
+				}
+				else if (primIdx >= NTri && primIdx < NTri + NSph) {
+					primIdx -= NTri;
+					if (scene->spheres[primIdx].IsOccluding(ray, t_min)) return true;
+				}
+				else {
+					primIdx -= NTri + NSph;
+					if (scene->planes[primIdx].IsOccluding(ray, t_min)) return true;
+				}
+			}
+			if (stackPtr == 0) return false; else node = stack[--stackPtr];
+			continue;
+		}
+
+		BVHNode* c1 = &bvhNode[node->leftFirst];
+		BVHNode* c2 = &bvhNode[node->leftFirst + 1];
+#ifdef USE_SSE
+		float dist1 = IntersectAABB_SSE(ray, c1->aabbMin4, c1->aabbMax4);
+		float dist2 = IntersectAABB_SSE(ray, c2->aabbMin4, c2->aabbMax4);
+#else
+		float dist1 = IntersectAABB(ray, c1->aabbMin, c1->aabbMax);
+		float dist2 = IntersectAABB(ray, c2->aabbMin, c2->aabbMax);
+#endif
+		if (dist1 > dist2) { swap(dist1, dist2); swap(c1, c2); }
+		if (dist1 == 1e30f) {
+			if (stackPtr == 0) return false; else node = stack[--stackPtr];
 		}
 		else {
 			node = c1;
