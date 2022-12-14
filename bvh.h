@@ -4,25 +4,26 @@
 namespace Tmpl8{
 	class Scene;
 	class Ray;
+	class DataCollector;
+struct BVHNode
+{
+	union
+	{
+		struct { float3 aabbMin; uint leftFirst; };
+		__m128 aabbMin4;
+	};
+	union
+	{
+		struct { float3 aabbMax; uint primCount; };
+		__m128 aabbMax4;
+	};
+	bool isLeaf() { return primCount > 0; }
+};
+
 class bvh
 {
 	public:
 		bvh(Scene* s);
-	
-		struct BVHNode
-		{
-			union
-			{
-				struct { float3 aabbMin; uint leftFirst; };
-				__m128 aabbMin4;
-			};
-			union
-			{
-				struct { float3 aabbMax; uint primCount; };
-				__m128 aabbMax4;
-			};
-			bool isLeaf() { return primCount > 0; }
-		};
 	
 		void Build();
 		void UpdateNodeBounds(uint nodeIdx);
@@ -41,7 +42,8 @@ class bvh
 		uint* primitiveIdx;
 		class Scene* scene;
 		BVHNode* bvhNode; //- 1];
-	};
+		class DataCollector* dataCollector;
+};
 	
 	struct aabb
 	{

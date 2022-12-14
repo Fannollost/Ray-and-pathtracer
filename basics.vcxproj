@@ -123,6 +123,7 @@
   <!-- END Custom section -->
   <ItemGroup>
     <ClCompile Include="bvh.cpp" />
+    <ClCompile Include="DataCollector.cpp" />
     <ClCompile Include="renderer.cpp" />
     <ClCompile Include="template\template.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -132,6 +133,7 @@
   <ItemGroup>
     <ClInclude Include="bvh.h" />
     <ClInclude Include="camera.h" />
+    <ClInclude Include="DataCollector.h" />
     <ClInclude Include="material.h" />
     <ClInclude Include="renderer.h" />
     <ClInclude Include="template\common.h" />

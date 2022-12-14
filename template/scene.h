@@ -29,6 +29,7 @@ namespace Tmpl8 {
 	class diffuse;
 	class metal;
 	class Triangle;
+	class DataCollector;
 	enum MAT_TYPE {
 		DIFFUSE = 1,
 		METAL = 2,
@@ -676,7 +677,7 @@ namespace Tmpl8 {
 			//GetAllTriangles();
 			b = new bvh(this);
 			b->Build();
-
+			
 			SetTime(0);
 
 			// Note: once we have triangle support we should get rid of the class

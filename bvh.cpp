@@ -2,7 +2,10 @@
 #include "bvh.h"
 //#define USE_SSE			//FASTER without? very weird
 
-bvh::bvh(Scene* s) { scene = s; };
+bvh::bvh(Scene* s) { 
+	scene = s; 
+	dataCollector = new DataCollector();
+}
 
 void bvh::Build() {
 
@@ -15,9 +18,7 @@ void bvh::Build() {
 	N = NTri + NSph + NPla;
 	primitiveIdx = new uint[N];
 	bvhNode = new BVHNode[2 * (N + 1) - 1];
-
 	Timer t;
-
 	for (uint i = 0; i < N; ++i) {
 		primitiveIdx[i] = i;
 	}
@@ -28,7 +29,8 @@ void bvh::Build() {
 	
 	UpdateNodeBounds(rootNodeIdx);
 	Split(rootNodeIdx);
-
+	dataCollector->UpdateTreeDepth(root);
+	dataCollector->UpdateNodeCount(nodesUsed);
 	printf("BVH Build time : %5.2f ms \n", t.elapsed() * 1000);
 }
 
