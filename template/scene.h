@@ -229,95 +229,7 @@ namespace Tmpl8 {
 		float3 GetNormal(const float3 I) const { return N; }
 		float3 v0, v1, v2, e1, e2, N, centroid;
 		int objIdx = -1;
-		float3 col;
 		material* mat;
-	};
-
-	// -----------------------------------------------------------
-	// Sphere primitive
-	// Basic sphere, with explicit support for rays that start
-	// inside it. Good candidate for a dielectric material.
-	// -----------------------------------------------------------
-	class Mesh {
-	public:
-		Mesh() = default;
-		Mesh(int idx,  material* m, const char* path, float3 pos, float scale) : objIdx(idx), mat(m), meshPath(path) {
-			ifstream file(meshPath, ios::in);
-			if (!file)
-			{
-				std::cerr << "Cannot open " << meshPath << std::endl;
-				exit(1);
-			}
-			string line;
-			float x, y, z;
-			while (getline(file, line))
-			{
-				if (line.substr(0, 2) == "v ") {
-					istringstream v(line.substr(2));
-					v >> x; v >> y; v >> z;
-					vertices.push_back(float3(x*scale+pos.x, y * scale +pos.y, z * scale +pos.z));
-				}
-				else if (line.substr(0, 2) == "vn") {
-					istringstream v(line.substr(3));
-					v >> x; v >> y; v >> z;
-					verticesNormal.push_back(float3(x * scale + pos.x, y * scale + pos.y, z * scale + pos.z));
-				}
-				else if (line.substr(0, 2) == "f ") {
-					int v0, v1, v2;
-					int temp;
-					const char* constL = line.c_str();
-					sscanf(constL, "f %i//%i %i//%i %i//%i", &v0, &temp, &v1, &temp, &v2, &temp);
-					faces.push_back(int3(v0, v1, v2));
-				}
-			}
-			for (int i = 0; i < faces.size(); i++) {
-				triangles.push_back(Triangle(objIdx*1000+i, mat, vertices[(faces[i] - 1).x] , vertices[(faces[i] - 1).y] , vertices[(faces[i] - 1).z]));
-			}
-		}
-
-		void Intersect(Ray& ray, float t_min) const {
-			for (int i = 0; i < triangles.size(); i++) {
-				triangles[i].Intersect(ray, t_min);
-			}
-			//triangles[0].Intersect(ray, t_min);
-		}
-		bool IsOccluding(Ray& ray, float t_min) const {
-			for (int i = 0; i < triangles.size(); i++) {
-				if(triangles[i].IsOccluding(ray, t_min)) return true;
-			}
-			return false;
-		}
-		float3 GetNormal(const float3 I) const
-		{
-			float3 res;
-			int n = 0;
-			for (int i = 0; i < triangles.size(); i++) {
-				float3 p0 = I - triangles[i].v0;
-				float e1Coord = dot(triangles[i].e1, p0);
-				float e2Coord = dot(triangles[i].e2, p0);
-				if (fabs(dot(triangles[i].N, p0)) < 1 / LARGE_FLOAT && e1Coord > 0 && e1Coord < 1 && e2Coord > 0 && e2Coord < 1) {
-					res = triangles[i].N;
-					n++;
-				}	
-			}
-			return res;
-		}
-		float3 GetAlbedo(const float3 I) const
-		{
-			return float3(1.f);
-		}
-
-		const char* meshPath;
-		float3 col = 0;
-		int objIdx = -1;
-		material* mat;
-		int size = 0;
-		int vertexNb = 0;
-		int facesNb = 0;
-		vector<float3> vertices;
-		vector<float3> verticesNormal;
-		vector<int3> faces;
-		vector<Triangle> triangles;
 	};
 
 	// -----------------------------------------------------------
@@ -672,8 +584,7 @@ namespace Tmpl8 {
 			//Instantiate scene
 			
 			
-			instantiateScene2();
-			//GetAllTriangles();
+			instantiateScene5();
 			b = new bvh(this);
 			b->Build();
 
@@ -682,30 +593,7 @@ namespace Tmpl8 {
 			// Note: once we have triangle support we should get rid of the class
 			// hierarchy: virtuals reduce performance somewhat.
 		}
-		
-		void GetAllTriangles() {
-			vector<Triangle> buff;
-			for (int i = 0; i < size(triangles); i++)
-			{
-				for (int j = 0; j < size(triangles[i].triangles); j++) {
-					tri.push_back(triangles[i].triangles[j]);
-				}
-			}
-		}
 
-		void ParseUnityFile(char* path, material* m) {
-			FILE* file = fopen(path, "r");
-			float a, c, d, e, f, g, h, i,j;
-			int res = 1;
-			int count = 0;
-			while(res>0) {
-				count++;
-				res = fscanf(file, "%f %f %f %f %f %f %f %f %f\n",
-					&a, &c, &d, &e, &f, &g, &h, &i, &j);
-				tri.push_back(Triangle(i, m, float3(a, c, d), float3(e, f, g), float3(h, i, j)));
-			}
-			fclose(file);
-		}
 		void instantiateScene1() {
 			defaultAnim = true;
 			animOn = raytracer && defaultAnim;
@@ -733,8 +621,8 @@ namespace Tmpl8 {
 			else spheres.push_back(Sphere(7, standardGlass, float3(-1.5f, -0.5, 2), 0.5f));		    // 1: static ball
 			spheres.push_back(Sphere(8, new diffuse(0.8f, white, 0, 0.3f, 0.7f, raytracer), float3(0, 2.5f, -3.07f), 8));		// 2: rounded corners
 			if (animOn) cubes.push_back(Cube(9, blueDiff, float3(0), float3(1.15f)));		// 3: spinning cube			
-			//else cubes.push_back(Cube(9, standardGlass, float3(1.2f, -0.5f, 2.5f), float3(1)));
-			triangles.push_back(Mesh(10, greenDiff, "Resources/ico.obj", float3(0.1f, -0.6f, 1.5f), 0.5f));
+			else cubes.push_back(Cube(9, standardGlass, float3(1.2f, -0.5f, 2.5f), float3(1)));
+			ParseOBJFile("Resources/ico.obj", greenDiff,  float3(0.1f, -0.6f, 1.5f), 0.5f);
 
 		}
 
@@ -798,7 +686,7 @@ namespace Tmpl8 {
 
 			float3 threePos = float3(0, 0, 2);
 			float threeScale = 2.5f;
-			triangles.push_back(Mesh(0, greenDiff, "Resources/three.obj", threePos, threeScale));
+			ParseOBJFile("Resources/three.obj", greenDiff, threePos, threeScale);
 			spheres.push_back(Sphere(1, blueMetal, float3(0.410241, -0.085121, -0.122131) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
 			spheres.push_back(Sphere(2, pinkGlass, float3(0.122131, -0.085121, 0.410241) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
 			spheres.push_back(Sphere(3, blueMetal, float3(-0.410241, -0.085121, 0.122131) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
@@ -816,9 +704,9 @@ namespace Tmpl8 {
 			cubes.push_back(Cube(9, blueDiff, float3(1.5, -0.875, 1.5), float3(0.25)));
 			cubes.push_back(Cube(9, redDiff, float3(2.2, -0.875, 1.8), float3(0.25)));
 			cubes.push_back(Cube(9, greenDiff, float3(1.55, -0.925, 1.25), float3(0.15)));
-			triangles.push_back(Mesh(9, goldMetal, "Resources/stellatedDode.obj", float3(0.000000, 0.561019, 0.000000) * threeScale + threePos + float3(0, 0.25f, 0), 0.4f));
+			ParseOBJFile("Resources/stellatedDode.obj", goldMetal, float3(0.000000, 0.561019, 0.000000) * threeScale + threePos + float3(0, 0.25f, 0), 0.4f);
 
-			triangles.push_back(Mesh(0, greenDiff, "Resources/three.obj", threePos, threeScale));
+			ParseOBJFile("Resources/three.obj", greenDiff,  threePos, threeScale);
 			spheres.push_back(Sphere(1, standardGlass, float3(0.410241, -0.085121, -0.122131) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
 			spheres.push_back(Sphere(2, standardGlass, float3(0.122131, -0.085121, 0.410241) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
 			spheres.push_back(Sphere(3, standardGlass, float3(-0.410241, -0.085121, 0.122131) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
@@ -836,7 +724,7 @@ namespace Tmpl8 {
 			cubes.push_back(Cube(9, blueDiff, float3(1.5, -0.875, 1.5), float3(0.25)));
 			cubes.push_back(Cube(9, redDiff, float3(2.2, -0.875, 1.8), float3(0.25)));
 			cubes.push_back(Cube(9, greenDiff, float3(1.55, -0.925, 1.25), float3(0.15)));
-			triangles.push_back(Mesh(9, goldMetal, "Resources/stellatedDode.obj", float3(0.000000, 0.561019, 0.000000) * threeScale + threePos +float3(0, 0.25f, 0), 0.4f));			
+			ParseOBJFile ("Resources/stellatedDode.obj", goldMetal,  float3(0.000000, 0.561019, 0.000000) * threeScale + threePos +float3(0, 0.25f, 0), 0.4f);
 		}
 
 		void instantiateScene4() {
@@ -859,7 +747,76 @@ namespace Tmpl8 {
 			spheres.push_back(Sphere(8, standardMetal, float3(-2.2f, -0.5f, 2.0f), 0.5f));
 			spheres.push_back(Sphere(9, lightDiff, float3(-3.7f, -0.5f, 2.0f), 0.5f));
 			spheres.push_back(Sphere(5, goldDiff, float3(1.8f, -0.5f, 2.0f), 0.5f));
-			triangles.push_back(Mesh(10, standardMetal, "Resources/ico.obj", float3(0.5f, -0.51f, 2), 0.5f));
+			ParseOBJFile("Resources/ico.obj", standardMetal, float3(0.5f, -0.51f, 2), 0.5f);
+		}
+
+		void instantiateScene5() {
+
+			//Loading sky texture
+			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
+
+			diffuse* goldDiff = new diffuse(float3(0.8f), gold, 0.6f, 0.4f, 30, raytracer);
+
+			lights.push_back(new AreaLight(11, float3(1.8f, 2.0f, 0.5f), 10.0f, white, 2.0f, float3(0, 1, 0), 4, raytracer));
+
+			planes.push_back(Plane(0, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 0));			// 2: floor
+
+			ParseOBJFile("Resources/lowBigB.obj", goldDiff, float3(0), 1);
+		}
+
+
+		void ParseUnityFile(char* path, material* m) {
+			FILE* file = fopen(path, "r");
+			float a, c, d, e, f, g, h, i, j;
+			int res = 1;
+			int count = 0;
+			while (res > 0) {
+				count++;
+				res = fscanf(file, "%f %f %f %f %f %f %f %f %f\n",
+					&a, &c, &d, &e, &f, &g, &h, &i, &j);
+				tri.push_back(Triangle(i, m, float3(a, c, d), float3(e, f, g), float3(h, i, j)));
+				original.push_back(Triangle(i, m, float3(a, c, d), float3(e, f, g), float3(h, i, j)));
+			}
+			fclose(file);
+		}
+
+		void ParseOBJFile(char* path, material* m, float3 pos, float scale) {
+			vector<float3> vertices;
+			vector<float3> verticesNormal;
+			vector<int3> faces;
+			vector<Triangle> meshes;
+			ifstream file(path, ios::in);
+			if (!file)
+			{
+				std::cerr << "Cannot open " << path << std::endl;
+				exit(1);
+			}
+			string line;
+			float x, y, z;
+			while (getline(file, line))
+			{
+				if (line.substr(0, 2) == "v ") {
+					istringstream v(line.substr(2));
+					v >> x; v >> y; v >> z;
+					vertices.push_back(float3(x * scale + pos.x, y * scale + pos.y, z * scale + pos.z));
+				}
+				else if (line.substr(0, 2) == "vn") {
+					istringstream v(line.substr(3));
+					v >> x; v >> y; v >> z;
+					verticesNormal.push_back(float3(x * scale + pos.x, y * scale + pos.y, z * scale + pos.z));
+				}
+				else if (line.substr(0, 2) == "f ") {
+					int v0, v1, v2;
+					int temp;
+					const char* constL = line.c_str();
+					sscanf(constL, "f %i//%i %i//%i %i//%i", &v0, &temp, &v1, &temp, &v2, &temp);
+					faces.push_back(int3(v0, v1, v2));
+				}
+			}
+			for (int i = 0; i < faces.size(); i++) {
+				tri.push_back(Triangle(size(tri) + i, m, vertices[(faces[i] - 1).x], vertices[(faces[i] - 1).y], vertices[(faces[i] - 1).z]));
+				original.push_back(Triangle(size(tri) + i, m, vertices[(faces[i] - 1).x], vertices[(faces[i] - 1).y], vertices[(faces[i] - 1).z]));
+			}
 		}
 
 		void SetTime(float t)
@@ -880,18 +837,35 @@ namespace Tmpl8 {
 				if (size(spheres) >= 1) spheres[0].pos = float3(-1.4f, -0.5f + tm, 2);
 			}
 
+			/*if (swingOn) {
+				float r = fmodf(t, 2 * PI);
+				float a = sinf(r) * 0.5f;
+				for (int i = 0; i < size(tri); i++) for (int j = 0; j < 3; j++)
+				{
+					float3 o = (&original[i].v0)[j];
+					float s = a * (o.y - 0.2f) * 0.2f;
+					float x = o.x * cosf(s) - o.y * sinf(s);
+					float y = o.x * sinf(s) + o.y * cosf(s);
+					(&tri[i].v0)[j] = float3(x, y, o.z);
+				}	
+			}*/
+			if (swingOn || animOn)b->Refit();
 		}
+
 		void FindNearest(Ray& ray, float t_min) const
 		{
 			ray.objIdx = -1;
-			//for (int i = 0; i < size(planes); ++i) planes[i].Intersect(ray, t_min);
-			//for (int i = 0; i < size(spheres); ++i) spheres[i].Intersect(ray, t_min);
-			//for (int i = 0; i < size(cubes); ++i) cubes[i].Intersect(ray, t_min);
-
-			//for (int i = 0; i < size(triangles); ++i) triangles[i].Intersect(ray, t_min);
+			/*for (int i = 0; i < size(planes); ++i) planes[i].Intersect(ray, t_min);
+			for (int i = 0; i < size(spheres); ++i) spheres[i].Intersect(ray, t_min);
+			for (int i = 0; i < size(cubes); ++i) cubes[i].Intersect(ray, t_min);
+			for (int i = 0; i < size(tri); ++i) tri[i].Intersect(ray, t_min);*/
+			
 			b->Intersect(ray);
-			if (!raytracer) for (int i = 0; i < size(lights); ++i) lights[i]->Intersect(ray, t_min);
+			
+
+			//if (!raytracer) for (int i = 0; i < size(lights); ++i) lights[i]->Intersect(ray, t_min);
 		}
+
 		bool IsOccluded(Ray& ray, float t_min) const
 		{
 			float rayLength = ray.t;
@@ -899,10 +873,10 @@ namespace Tmpl8 {
 				if(planes[i].IsOccluding(ray, t_min)) return true;
 			for (int i = 0; i < size(spheres); ++i) 
 				if (spheres[i].IsOccluding(ray, t_min)) return true;
-			for (int i = 0; i < size(cubes); ++i)
-				if (cubes[i].IsOccluding(ray, t_min)) return true;
-			for (int i = 0; i < size(triangles); ++i)
-				if (triangles[i].IsOccluding(ray, t_min)) return true;
+			/*for (int i = 0; i < size(cubes); ++i)
+				if (cubes[i].IsOccluding(ray, t_min)) return true;*/
+			for (int i = 0; i < size(tri); ++i)
+				if (tri[i].IsOccluding(ray, t_min)) return true;
 
 			return false;
 			// - we potentially search beyond rayLength
@@ -960,16 +934,17 @@ namespace Tmpl8 {
 		vector<Light*> lights;
 		vector<Cube> cubes;
 		vector<Sphere> spheres;
-		vector<Mesh> triangles;
 		vector<Triangle> tri;
+		vector<Triangle> original;
 		vector<Plane> planes;
 		int aaSamples = 1;
 		int invAaSamples = 1 / aaSamples;
 		int iterationNumber = 1;
 		bool raytracer = true;
 		float mediumIr = 1.0f;
-		bool defaultAnim = false;
+		bool defaultAnim = true;
 		bool animOn = raytracer && defaultAnim; // set to false while debugging to prevent some cast error from primitive object type
+		bool swingOn = true;
 		const float3 white = float3(1.0, 1.0, 1.0);
 		const float3 red = float3(255, 0, 0) / 255;
 		const float3 blue = float3(0, 0, 255) / 255;

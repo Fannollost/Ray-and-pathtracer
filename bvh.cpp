@@ -188,9 +188,9 @@ void bvh::SubdividePrim(uint nodeIdx) {
 	BVHNode& node = bvhNode[nodeIdx];
 
 	// create child nodes
-	int leftChildIdx = nodesUsed++;
-	int rightChildIdx = nodesUsed++;
 	if (NTri > 0 && NSph > 0) {
+		int leftChildIdx = nodesUsed++;
+		int rightChildIdx = nodesUsed++;
 		bvhNode[leftChildIdx].leftFirst = node.leftFirst;
 		bvhNode[leftChildIdx].primCount = NTri;
 		bvhNode[rightChildIdx].leftFirst = node.leftFirst + NTri;
@@ -236,7 +236,6 @@ void bvh::Subdivide(uint nodeIdx) {
 				swap(primitiveIdx[i], primitiveIdx[j--]);
 		}
 	}
-
 	// abort split if one of the sides is empty
 	int leftCount = i - node.leftFirst;
 	if (leftCount == 0 || leftCount == node.primCount) return;
@@ -296,6 +295,25 @@ float bvh::EvaluateSAH(BVHNode& node, int axis, float pos)
 	}
 	float cost = leftCount * leftBox.area() + rightCount * rightBox.area();
 	return cost > 0 ? cost : 1e30f;
+}
+
+void bvh::Refit()
+{
+	for (int i = nodesUsed - 1; i >= 0; i--) if (i != 1)
+	{
+		BVHNode& node = bvhNode[i];
+		if (node.isLeaf())
+		{
+			// leaf node: adjust bounds to contained triangles
+			UpdateNodeBounds(i);
+			continue;
+		}
+		// interior node: adjust bounds to child node bounds
+		BVHNode& leftChild = bvhNode[node.leftFirst];
+		BVHNode& rightChild = bvhNode[node.leftFirst + 1];
+		node.aabbMin = fminf(leftChild.aabbMin, rightChild.aabbMin);
+		node.aabbMax = fmaxf(leftChild.aabbMax, rightChild.aabbMax);
+	}
 }
 
 void bvh::Intersect(Ray& ray) {

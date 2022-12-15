@@ -98,7 +98,7 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 			Ray r = Ray(ray.IntersectionPoint() + lightRayDirection * 1e-4f ,lightRayDirection, ray.color, sqrt(len2));
 			((diffuse*)m)->scatter(ray, attenuation, scattered, lightRayDirection,
 				scene.lights[i]->GetLightIntensityAt(ray.IntersectionPoint(), N), N, energy);
-			if (scene.IsOccluded(r,t_min)){//scene.b->IsOccluded(r)) {
+			if (scene.b->IsOccluded(r)) {
 				continue;
 			}
 
@@ -169,7 +169,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
 				((diffuse*)m)->scatter(ray, attenuation, scattered, lightRayDirection,
 					scene.lights[i]->GetLightIntensityAt(ray.IntersectionPoint(), normal), normal, energy);
 				float cos_o = dot(-lightRayDirection, scene.lights[i]->normal);
-				if (scene.IsOccluded(r, t_min)) { //scene.b->IsOccluded(r)) {
+				if (scene.b->IsOccluded(r)) {
 					continue;
 				}
 

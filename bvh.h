@@ -36,6 +36,7 @@ class bvh
 		void Split(uint nodeIdx);
 		void SubdividePrim(uint rootNodeIdx);
 		bool IsOccluded(Ray& ray);
+		void Refit();
 	public:
 		uint rootNodeIdx = 0, nodesUsed = 2, NTri = 0, NSph = 0, NPla = 0, N = 0;
 		uint* primitiveIdx;
