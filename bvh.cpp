@@ -9,7 +9,7 @@ bvh::bvh(Scene* s) {
 
 void bvh::Build() {
 
-	NTri = size(scene->tri);
+	NTri = scene->getTriangleNb();
 	NSph = size(scene->spheres);
 	NPla = size(scene->planes);
 	cout << "#Tri : " << NTri << endl;
@@ -40,7 +40,7 @@ void bvh::UpdateNodeBounds(uint nodeIdx) {
 	for (uint first = node.leftFirst, i = 0; i < node.primCount; i++) {
 		uint leafIdx = primitiveIdx[first + i];
 		if (leafIdx < NTri ) {
-			Triangle& leafTri = scene->tri[leafIdx];
+			Triangle& leafTri = scene->getTriangle(leafIdx);
 			node.aabbMin = fminf(node.aabbMin, leafTri.v0);
 			node.aabbMin = fminf(node.aabbMin, leafTri.v1);
 			node.aabbMin = fminf(node.aabbMin, leafTri.v2);
@@ -92,7 +92,7 @@ float bvh::FindBestSplitPlane(BVHNode& node, int& axis, float& splitPos)
 		{
 			uint primIdx = primitiveIdx[node.leftFirst + i];
 			if (primIdx < NTri) {
-				Triangle& triangle = scene->tri[primIdx];
+				Triangle& triangle = scene->getTriangle(primIdx);
 				boundsMin = min(boundsMin, triangle.centroid[a]);
 				boundsMax = max(boundsMax, triangle.centroid[a]);
 			}else if (primIdx >= NTri && primIdx < NTri + NSph) {
@@ -112,7 +112,7 @@ float bvh::FindBestSplitPlane(BVHNode& node, int& axis, float& splitPos)
 			uint primIdx = primitiveIdx[node.leftFirst + i];
 			int binIdx; 
 			if (primIdx < NTri) {
-				Triangle& triangle = scene->tri[primIdx];
+				Triangle& triangle = scene->getTriangle(primIdx);
 				binIdx = min(BINS - 1,
 					(int)((triangle.centroid[a] - boundsMin) * scale));
 				bin[binIdx].primCount++;
@@ -229,7 +229,7 @@ void bvh::Subdivide(uint nodeIdx) {
 	{
 		uint primIdx = primitiveIdx[i];
 		if (primIdx < NTri) {
-			if (scene->tri[primIdx].centroid[axis] < splitPos)
+			if (scene->getTriangle(primIdx).centroid[axis] < splitPos)
 				i++;
 			else
 				swap(primitiveIdx[i], primitiveIdx[j--]);
@@ -271,7 +271,7 @@ float bvh::EvaluateSAH(BVHNode& node, int axis, float pos)
 	{
 		uint primIdx = primitiveIdx[node.leftFirst + i];
 		if (primIdx < NTri) {
-			Triangle& triangle = scene->tri[primIdx];
+			Triangle& triangle = scene->getTriangle(primIdx);
 			if (triangle.centroid[axis] < pos) {
 				leftCount++;
 				leftBox.grow(triangle.v0);
@@ -335,7 +335,7 @@ void bvh::Intersect(Ray& ray) {
 			for (uint i = 0; i < node->primCount; i++) {
 				uint primIdx = primitiveIdx[node->leftFirst + i];
 				if (primIdx < NTri) {
-					scene->tri[primIdx].Intersect(ray, t_min);
+					scene->getTriangle(primIdx).Intersect(ray, t_min);
 				} else if(primIdx >=NTri && primIdx < NTri + NSph){
 					primIdx -= NTri;
 					scene->spheres[primIdx].Intersect(ray, t_min);
@@ -384,7 +384,7 @@ bool bvh::IsOccluded(Ray& ray) {
 			for (uint i = 0; i < node->primCount; i++) {
 				uint primIdx = primitiveIdx[node->leftFirst + i];
 				if (primIdx < NTri) {
-					if (scene->tri[primIdx].IsOccluding(ray, t_min)) return true;
+					if (scene->getTriangle(primIdx).IsOccluding(ray, t_min)) return true;
 				}
 				else if (primIdx >= NTri && primIdx < NTri + NSph) {
 					primIdx -= NTri;

@@ -14,10 +14,10 @@ public:
 	Camera()
 	{
 		// setup a basic view frustum
-		camPos = float3( 0, 0, -2 );
-		topLeft = float3( -aspect, 1, 0 );
-		topRight = float3( aspect, 1, 0 );
-		bottomLeft = float3( -aspect, -1, 0 );
+		camPos = float3( 0, 1, -2 );
+		topLeft = float3( -aspect, 2, 0 );
+		topRight = float3( aspect, 2, 0 );
+		bottomLeft = float3( -aspect, 0, 0 );
 		screenCenter = topLeft + .5f * (topRight - topLeft) + .5f * (bottomLeft - topLeft);
 		speed = 0.1f;
 	}

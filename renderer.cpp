@@ -21,7 +21,7 @@ enum MAT_TYPE {
 float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 {
 	if (depth <= 0) return float3(0, 0, 0);
-	float t_min = 0.001f;
+	float t_min = 1e-6;
 	scene.FindNearest(ray, t_min);
 	if (ray.objIdx == -1) return scene.GetSkyColor(ray);
 	if (ray.objIdx >= 11 && ray.objIdx < 11 + size(scene.lights)) {

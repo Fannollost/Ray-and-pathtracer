@@ -164,7 +164,7 @@ namespace Tmpl8 {
 
 		float sinAngle;
 	};
-
+	
 	// -----------------------------------------------------------
 	// Triangle Primitive
 	// 
@@ -173,7 +173,13 @@ namespace Tmpl8 {
 	class Triangle {
 	public:
 		Triangle() = default;
-		Triangle(int idx, material* m, int3 facesIdx, float3* vertices) : objIdx(idx), v0(vertices[facesIdx].x), v1(vertices[facesIdx].y), v2(vertices[facesIdx].z), mat(m) {
+		Triangle(int idx, material* m, float3 ver0, float3 ver1, float3 ver2) : objIdx(idx), v0(ver0), v1(ver1), v2(ver2), mat(m) {
+			e1 = v1 - v0;
+			e2 = v2 - v0;
+			N = normalize(cross(e1, e2));
+			centroid = (v0 + v1 + v2) * 0.333f;
+		}
+		Triangle(int idx, material* m, int3 facesIdx, vector<float3> vertices) : objIdx(idx), v0(vertices[facesIdx.x]), v1(vertices[facesIdx.y]), v2(vertices[facesIdx.z]), mat(m) {
 			e1 = v1 - v0;
 			e2 = v2 - v0;
 			N = normalize(cross(e1, e2));
@@ -202,7 +208,7 @@ namespace Tmpl8 {
 
 			if (t < ray.t && t > t_min) {
 				ray.t = t, ray.objIdx = objIdx, ray.m = mat,
-					ray.SetNormal(GetNormal(ray.IntersectionPoint()));
+					ray.SetNormal(N);
 			}
 		}
 		bool IsOccluding(Ray& ray, float t_min) const {		 //scratchapixel implementation
@@ -227,10 +233,105 @@ namespace Tmpl8 {
 			if (dot(N, c) < 0) return false;
 			if (t < ray.t && t > t_min) return true;
 		}
+		void update(int3 faces, vector<float3> vertices) {
+			v0 = vertices[faces.x];
+			v1 = vertices[faces.y];
+			v2 = vertices[faces.z];
+			e1 = v1 - v0;
+			e2 = v2 - v0;
+			N = normalize(cross(e1, e2));
+			centroid = (v0 + v1 + v2) * 0.333f;
+		}
 		float3 GetNormal(const float3 I) const { return N; }
-		float3 v0, v1, v2, e1, e2, N, centroid;
+		float3 v0, v1, v2, e1, e2, centroid, N;
 		int objIdx = -1;
 		material* mat;
+	};
+
+	// -----------------------------------------------------------
+	// Mesh Primitive
+	// 
+	// 
+	// -----------------------------------------------------------
+	class Mesh {
+	public:
+		Mesh() = default;
+		Mesh(int idGroup, const char* path, material* m) : groupIdx(idGroup), mat(m) {
+			FILE* file = fopen(path, "r");
+			float a, c, d, e, f, g, h, i, j;
+			int res = 1;
+			int count = 0;
+			while (res > 0) {
+				
+				res = fscanf(file, "%f %f %f %f %f %f %f %f %f\n",
+					&a, &c, &d, &e, &f, &g, &h, &i, &j);
+				originalVerts.push_back(float3(a, c, d));
+				vertices.push_back(float3(a, c, d));
+				originalVerts.push_back(float3(e, f, g));
+				vertices.push_back(float3(e, f, g));
+				originalVerts.push_back(float3(h, i, j));
+				vertices.push_back(float3(h, i, j));
+				faces.push_back(int3(count*3,count*3+1,count*3+2));
+				tri.push_back(Triangle(1000 * idGroup + i, m, float3(a, c, d), float3(e, f, g), float3(h, i, j)));
+				count++;
+			}
+			fclose(file);
+		}
+		Mesh(int idGroup, string path, material* m, float3 pos, float scale) : groupIdx(idGroup), mat(m) {
+			ifstream file(path, ios::in);
+			if (!file)
+			{
+				std::cerr << "Cannot open " << path << std::endl;
+				exit(1);
+			}
+			string line;
+			float x, y, z;
+			while (getline(file, line))
+			{
+				if (line.substr(0, 2) == "v ") {
+					istringstream v(line.substr(2));
+					v >> x; v >> y; v >> z;
+					vertices.push_back(float3(x * scale + pos.x, y * scale + pos.y, z * scale + pos.z));
+					originalVerts.push_back(float3(x * scale + pos.x, y * scale + pos.y, z * scale + pos.z));
+				}
+				else if (line.substr(0, 2) == "f ") {
+					int v0, v1, v2;
+					int temp;
+					const char* constL = line.c_str();
+					sscanf(constL, "f %i//%i %i//%i %i//%i", &v0, &temp, &v1, &temp, &v2, &temp);
+					faces.push_back(int3(v0, v1, v2));
+				}
+			}
+			for (uint i = 0; i < size(faces); i++) {
+				tri.push_back(Triangle(1000 * idGroup + i, m, (faces[i] - 1), vertices));
+			}
+		}
+		uint getSize() {
+			return size(faces);
+		}
+		bool IsOccluding(Ray& ray, float t_min) const {
+			for (int i = 0; i < size(faces); i++) {
+				tri[i].IsOccluding(ray, t_min);
+			}
+
+		}
+		void Intersect(Ray& ray, float t_min) const {
+			float3 v0, v1, v2;
+			for (int i = 0; i < size(faces); i++) {
+				tri[i].Intersect(ray, t_min);
+			}
+		}
+		void update() {
+			for (int i = 0; i < size(faces); i++) {
+				tri[i].update((faces[i] - 1), vertices);
+			}
+		}
+		vector<float3> vertices;
+		vector<int3> faces;
+		vector<Triangle> tri;
+		vector<float3> originalVerts;
+		material* mat;
+		int groupIdx = -1;
 	};
 
 	// -----------------------------------------------------------
@@ -585,7 +686,7 @@ namespace Tmpl8 {
 			//Instantiate scene
 			
 			
-			instantiateScene2();
+			instantiateScene5();
 			b = new bvh(this);
 			b->Build();
 			
@@ -647,7 +748,7 @@ namespace Tmpl8 {
 			spheres.push_back(Sphere(8, new diffuse(0.8f, white, 0, 0.3f, 0.7f, raytracer), float3(0, 2.5f, -3.07f), 8));		// 2: rounded corners
 			if (animOn) cubes.push_back(Cube(9, blueDiff, float3(0), float3(1.15f)));		// 3: spinning cube			
 			else cubes.push_back(Cube(9, standardGlass, float3(1.2f, -0.5f, 2.5f), float3(1)));
-			ParseOBJFile("Resources/ico.obj", greenDiff,  float3(0.1f, -0.6f, 1.5f), 0.5f);
+			meshes.push_back(Mesh(1,"Resources/ico.obj", greenDiff,  float3(0.1f, -0.6f, 1.5f), 0.5f));
 
 		}
 
@@ -668,10 +769,10 @@ namespace Tmpl8 {
 			metal* yellowMetal = new metal(0.7f, gold, raytracer);
 			metal* pinkMetal = new metal(0.7f, pink, raytracer);
 			// we store all primitives in one continuous buffer
-			lights.push_back(new AreaLight(11, float3(1.8f, 2.0f, 5.5f), 10.0f, white, 2.0f, float3(0, 1, 0), 4, raytracer));
-			lights.push_back(new AreaLight(12, float3(0.1f, 1.8f, 1.5f), 5.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
+			lights.push_back(new AreaLight(11, float3(1, 2.0f, 1), 10.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
+			lights.push_back(new AreaLight(12, float3(-1, 2.0f, -1), 5.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
 
-			planes.push_back(Plane(0, redDiff, float3(0, 1, 0), 1));			// 0: floor
+			planes.push_back(Plane(0, whiteDiff, float3(0, 1, 0), 1));			// 0: floor
 			planes.push_back(Plane(4, blueDiff, float3(0, 0, -1), 10));			// 4: front wall
 			planes.push_back(Plane(1, greenDiff, float3(-1, 0, 0), 2.99f));		// 1: right wall
 
@@ -680,7 +781,7 @@ namespace Tmpl8 {
 			spheres.push_back(Sphere(9, yellowMetal, float3(-3.1f, -0.5f, 2.0f), 0.5f));
 			spheres.push_back(Sphere(6, pinkMetal, float3(-4.3f, -0.5f, 2.0f), 0.5f));
 			//triangles.push_back(Mesh(10, standardMetal, "Resources/icos.obj", float3(0.5f, -0.51f, 2), 0.5f));
-			ParseUnityFile("Resources/unity.tri", redMetal);
+			meshes.push_back(Mesh(1,"Resources/unity.tri", redMetal));
 		}
 
 
@@ -711,7 +812,7 @@ namespace Tmpl8 {
 
 			float3 threePos = float3(0, 0, 2);
 			float threeScale = 2.5f;
-			ParseOBJFile("Resources/three.obj", greenDiff, threePos, threeScale);
+			meshes.push_back(Mesh(1,"Resources/three.obj", greenDiff, threePos, threeScale));
 			spheres.push_back(Sphere(1, blueMetal, float3(0.410241, -0.085121, -0.122131) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
 			spheres.push_back(Sphere(2, pinkGlass, float3(0.122131, -0.085121, 0.410241) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
 			spheres.push_back(Sphere(3, blueMetal, float3(-0.410241, -0.085121, 0.122131) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
@@ -729,9 +830,9 @@ namespace Tmpl8 {
 			cubes.push_back(Cube(9, blueDiff, float3(1.5, -0.875, 1.5), float3(0.25)));
 			cubes.push_back(Cube(9, redDiff, float3(2.2, -0.875, 1.8), float3(0.25)));
 			cubes.push_back(Cube(9, greenDiff, float3(1.55, -0.925, 1.25), float3(0.15)));
-			ParseOBJFile("Resources/stellatedDode.obj", goldMetal, float3(0.000000, 0.561019, 0.000000) * threeScale + threePos + float3(0, 0.25f, 0), 0.4f);
+			meshes.push_back(Mesh(2,"Resources/stellatedDode.obj", goldMetal, float3(0.000000, 0.561019, 0.000000) * threeScale + threePos + float3(0, 0.25f, 0), 0.4f));
 
-			ParseOBJFile("Resources/three.obj", greenDiff,  threePos, threeScale);
+			meshes.push_back(Mesh(3,"Resources/three.obj", greenDiff,  threePos, threeScale));
 			spheres.push_back(Sphere(1, standardGlass, float3(0.410241, -0.085121, -0.122131) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
 			spheres.push_back(Sphere(2, standardGlass, float3(0.122131, -0.085121, 0.410241) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
 			spheres.push_back(Sphere(3, standardGlass, float3(-0.410241, -0.085121, 0.122131) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
@@ -749,7 +850,7 @@ namespace Tmpl8 {
 			cubes.push_back(Cube(9, blueDiff, float3(1.5, -0.875, 1.5), float3(0.25)));
 			cubes.push_back(Cube(9, redDiff, float3(2.2, -0.875, 1.8), float3(0.25)));
 			cubes.push_back(Cube(9, greenDiff, float3(1.55, -0.925, 1.25), float3(0.15)));
-			ParseOBJFile ("Resources/stellatedDode.obj", goldMetal,  float3(0.000000, 0.561019, 0.000000) * threeScale + threePos +float3(0, 0.25f, 0), 0.4f);
+			meshes.push_back(Mesh(4,"Resources/stellatedDode.obj", goldMetal,  float3(0.000000, 0.561019, 0.000000) * threeScale + threePos +float3(0, 0.25f, 0), 0.4f));
 		}
 
 		void instantiateScene4() {
@@ -772,7 +873,7 @@ namespace Tmpl8 {
 			spheres.push_back(Sphere(8, standardMetal, float3(-2.2f, -0.5f, 2.0f), 0.5f));
 			spheres.push_back(Sphere(9, lightDiff, float3(-3.7f, -0.5f, 2.0f), 0.5f));
 			spheres.push_back(Sphere(5, goldDiff, float3(1.8f, -0.5f, 2.0f), 0.5f));
-			ParseOBJFile("Resources/ico.obj", standardMetal, float3(0.5f, -0.51f, 2), 0.5f);
+			meshes.push_back(Mesh(1,"Resources/ico.obj", standardMetal, float3(0.5f, -0.51f, 2), 0.5f));
 		}
 
 		void instantiateScene5() {
@@ -782,15 +883,17 @@ namespace Tmpl8 {
 
 			diffuse* goldDiff = new diffuse(float3(0.8f), gold, 0.6f, 0.4f, 30, raytracer);
 
-			lights.push_back(new AreaLight(11, float3(1.8f, 2.0f, 0.5f), 10.0f, white, 2.0f, float3(0, 1, 0), 4, raytracer));
+			lights.push_back(new AreaLight(11, float3(1, 2.0f, 1), 10.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
+			lights.push_back(new AreaLight(12, float3(-1, 2.0f, -1), 5.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
 
 			planes.push_back(Plane(0, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 0));			// 2: floor
 
-			ParseOBJFile("Resources/lowBigB.obj", goldDiff, float3(0), 1);
+			meshes.push_back(Mesh(1,"Resources/lowBigB.obj", goldDiff, float3(0), 1));
+			//meshes.push_back(Mesh(1,"Resources/BigB.obj", goldDiff, float3(0,0.5f,0), 1));
 		}
 
 
-		void ParseUnityFile(char* path, material* m) {
+		/*void ParseUnityFile(char* path, material* m) {
 			FILE* file = fopen(path, "r");
 			float a, c, d, e, f, g, h, i, j;
 			int res = 1;
@@ -803,46 +906,7 @@ namespace Tmpl8 {
 				original.push_back(Triangle(i, m, float3(a, c, d), float3(e, f, g), float3(h, i, j)));
 			}
 			fclose(file);
-		}
-
-		void ParseOBJFile(char* path, material* m, float3 pos, float scale) {
-			vector<float3> vertices;
-			vector<float3> verticesNormal;
-			vector<int3> faces;
-			vector<Triangle> meshes;
-			ifstream file(path, ios::in);
-			if (!file)
-			{
-				std::cerr << "Cannot open " << path << std::endl;
-				exit(1);
-			}
-			string line;
-			float x, y, z;
-			while (getline(file, line))
-			{
-				if (line.substr(0, 2) == "v ") {
-					istringstream v(line.substr(2));
-					v >> x; v >> y; v >> z;
-					vertices.push_back(float3(x * scale + pos.x, y * scale + pos.y, z * scale + pos.z));
-				}
-				else if (line.substr(0, 2) == "vn") {
-					istringstream v(line.substr(3));
-					v >> x; v >> y; v >> z;
-					verticesNormal.push_back(float3(x * scale + pos.x, y * scale + pos.y, z * scale + pos.z));
-				}
-				else if (line.substr(0, 2) == "f ") {
-					int v0, v1, v2;
-					int temp;
-					const char* constL = line.c_str();
-					sscanf(constL, "f %i//%i %i//%i %i//%i", &v0, &temp, &v1, &temp, &v2, &temp);
-					faces.push_back(int3(v0, v1, v2));
-				}
-			}
-			for (int i = 0; i < faces.size(); i++) {
-				tri.push_back(Triangle(size(tri) + i, m, vertices[(faces[i] - 1).x], vertices[(faces[i] - 1).y], vertices[(faces[i] - 1).z]));
-				original.push_back(Triangle(size(tri) + i, m, vertices[(faces[i] - 1).x], vertices[(faces[i] - 1).y], vertices[(faces[i] - 1).z]));
-			}
-		}
+		}*/
 
 		void SetTime(float t)
 		{
@@ -851,7 +915,7 @@ namespace Tmpl8 {
 			// light source animation: swing
 			animTime = t;
 
-			if (animOn) {
+			/*if (animOn) {
 				// cube animation: spin
 				mat4 M2base = mat4::RotateX(PI / 4) * mat4::RotateZ(PI / 4);
 				mat4 M2 = mat4::Translate(float3(1.4f, 0, 2)) * mat4::RotateY(animTime * 0.5f) * M2base;
@@ -860,21 +924,25 @@ namespace Tmpl8 {
 				// sphere animation: bounce
 				float tm = 1 - sqrf(fmodf(animTime, 2.0f) - 1);
 				if (size(spheres) >= 1) spheres[0].pos = float3(-1.4f, -0.5f + tm, 2);
-			}
+			}*/
 
-			/*if (swingOn) {
+			if (animOn) {
 				float r = fmodf(t, 2 * PI);
 				float a = sinf(r) * 0.5f;
-				for (int i = 0; i < size(tri); i++) for (int j = 0; j < 3; j++)
+				for (int i = 0; i < size(meshes); i++)
 				{
-					float3 o = (&original[i].v0)[j];
-					float s = a * (o.y - 0.2f) * 0.2f;
-					float x = o.x * cosf(s) - o.y * sinf(s);
-					float y = o.x * sinf(s) + o.y * cosf(s);
-					(&tri[i].v0)[j] = float3(x, y, o.z);
-				}	
-			}*/
-			if (swingOn || animOn)b->Refit();
+					for (int j = 0; j < size(meshes[i].vertices); j++)
+					{
+						float3 o = meshes[i].originalVerts[j];
+						float s = a * o.y * 0.2f;
+						float x = o.x * cosf(s) - o.y * sinf(s);
+						float y = o.x * sinf(s) + o.y * cosf(s);
+						meshes[i].vertices[j] = float3(x, y, o.z);
+					}
+					meshes[i].update();
+				}
+			}
+			if (animOn) b->Refit();
 		}
 
 		void FindNearest(Ray& ray, float t_min) const
@@ -883,12 +951,11 @@ namespace Tmpl8 {
 			/*for (int i = 0; i < size(planes); ++i) planes[i].Intersect(ray, t_min);
 			for (int i = 0; i < size(spheres); ++i) spheres[i].Intersect(ray, t_min);
 			for (int i = 0; i < size(cubes); ++i) cubes[i].Intersect(ray, t_min);
-			for (int i = 0; i < size(tri); ++i) tri[i].Intersect(ray, t_min);*/
+			for (int i = 0; i < size(meshes); ++i) meshes[i].Intersect(ray, t_min);*/
+			if (!raytracer) for (int i = 0; i < size(lights); ++i) lights[i]->Intersect(ray, t_min);
 			
 			b->Intersect(ray);
 			
-
-			//if (!raytracer) for (int i = 0; i < size(lights); ++i) lights[i]->Intersect(ray, t_min);
 		}
 
 		bool IsOccluded(Ray& ray, float t_min) const
@@ -898,10 +965,10 @@ namespace Tmpl8 {
 				if(planes[i].IsOccluding(ray, t_min)) return true;
 			for (int i = 0; i < size(spheres); ++i) 
 				if (spheres[i].IsOccluding(ray, t_min)) return true;
-			/*for (int i = 0; i < size(cubes); ++i)
-				if (cubes[i].IsOccluding(ray, t_min)) return true;*/
-			for (int i = 0; i < size(tri); ++i)
-				if (tri[i].IsOccluding(ray, t_min)) return true;
+			for (int i = 0; i < size(cubes); ++i)
+				if (cubes[i].IsOccluding(ray, t_min)) return true;
+			for (int i = 0; i < size(meshes); ++i)
+				if (meshes[i].IsOccluding(ray, t_min)) return true;
 
 			return false;
 			// - we potentially search beyond rayLength
@@ -940,9 +1007,26 @@ namespace Tmpl8 {
 			return float3(uint3(pixelOffset[0], pixelOffset[1], pixelOffset[2]))/255;
 		}
 
-		void SetIterationNumber(int i) { iterationNumber = i; }
-		int GetIterationNumber() { return iterationNumber; }
+		uint getTriangleNb() {
+			uint acc = 0;
+			for (int i = 0; i < size(meshes); i++) {
+				acc += meshes[i].getSize();
+			}
+			return acc;
+		}
 
+		Triangle getTriangle(uint idx) {
+			int i = 0;
+			while (idx >= size(meshes[i].faces) && i < getTriangleNb()) {
+				idx -= size(meshes[i].faces);
+				i++;
+			}
+			return meshes[i].tri[idx];
+		}
+
+		void SetIterationNumber(int i) { iterationNumber = i; }
+
+		int GetIterationNumber() { return iterationNumber; }
 
 		void toogleRaytracer() {
 			raytracer = !raytracer;
@@ -964,8 +1048,7 @@ namespace Tmpl8 {
 		vector<Light*> lights;
 		vector<Cube> cubes;
 		vector<Sphere> spheres;
-		vector<Triangle> tri;
-		vector<Triangle> original;
+		vector<Mesh> meshes;
 		vector<Plane> planes;
 		int aaSamples = 1;
 		int invAaSamples = 1 / aaSamples;
@@ -975,7 +1058,6 @@ namespace Tmpl8 {
 		float mediumIr = 1.0f;
 		bool defaultAnim = true;
 		bool animOn = raytracer && defaultAnim; // set to false while debugging to prevent some cast error from primitive object type
-		bool swingOn = true;
 		const float3 white = float3(1.0, 1.0, 1.0);
 		const float3 red = float3(255, 0, 0) / 255;
 		const float3 blue = float3(0, 0, 255) / 255;
