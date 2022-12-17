@@ -172,7 +172,7 @@ namespace Tmpl8 {
 	class Triangle {
 	public:
 		Triangle() = default;
-		Triangle(int idx, material* m, float3 ver0, float3 ver1, float3 ver2) : objIdx(idx), v0(ver0), v1(ver1), v2(ver2), mat(m) {
+		Triangle(int idx, material* m, int3 facesIdx, float3* vertices) : objIdx(idx), v0(vertices[facesIdx].x), v1(vertices[facesIdx].y), v2(vertices[facesIdx].z), mat(m) {
 			e1 = v1 - v0;
 			e2 = v2 - v0;
 			N = normalize(cross(e1, e2));
