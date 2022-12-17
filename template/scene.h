@@ -585,7 +585,7 @@ namespace Tmpl8 {
 			//Instantiate scene
 			
 			
-			instantiateScene5();
+			instantiateScene2();
 			b = new bvh(this);
 			b->Build();
 			
@@ -617,29 +617,8 @@ namespace Tmpl8 {
 			myFile.close();
 
 		}
-		void GetAllTriangles() {
-			vector<Triangle> buff;
-			for (int i = 0; i < size(triangles); i++)
-			{
-				for (int j = 0; j < size(triangles[i].triangles); j++) {
-					tri.push_back(triangles[i].triangles[j]);
-				}
-			}
-		}
 
-		void ParseUnityFile(char* path, material* m) {
-			FILE* file = fopen(path, "r");
-			float a, c, d, e, f, g, h, i,j;
-			int res = 1;
-			int count = 0;
-			while(res>0) {
-				count++;
-				res = fscanf(file, "%f %f %f %f %f %f %f %f %f\n",
-					&a, &c, &d, &e, &f, &g, &h, &i, &j);
-				tri.push_back(Triangle(i, m, float3(a, c, d), float3(e, f, g), float3(h, i, j)));
-			}
-			fclose(file);
-		}
+
 		void instantiateScene1() {
 			defaultAnim = true;
 			animOn = raytracer && defaultAnim;
