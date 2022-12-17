@@ -2,7 +2,10 @@
 #include "bvh.h"
 //#define USE_SSE			//FASTER without? very weird
 
-bvh::bvh(Scene* s) { scene = s; };
+bvh::bvh(Scene* s) { 
+	scene = s; 
+	dataCollector = new DataCollector();
+}
 
 void bvh::Build() {
 
@@ -15,9 +18,7 @@ void bvh::Build() {
 	N = NTri + NSph + NPla;
 	primitiveIdx = new uint[N];
 	bvhNode = new BVHNode[2 * (N + 1) - 1];
-
 	Timer t;
-
 	for (uint i = 0; i < N; ++i) {
 		primitiveIdx[i] = i;
 	}
@@ -28,7 +29,7 @@ void bvh::Build() {
 	
 	UpdateNodeBounds(rootNodeIdx);
 	Split(rootNodeIdx);
-
+	dataCollector->UpdateNodeCount(nodesUsed);
 	printf("BVH Build time : %5.2f ms \n", t.elapsed() * 1000);
 }
 
@@ -46,11 +47,13 @@ void bvh::UpdateNodeBounds(uint nodeIdx) {
 			node.aabbMax = fmaxf(node.aabbMax, leafTri.v0);
 			node.aabbMax = fmaxf(node.aabbMax, leafTri.v1);
 			node.aabbMax = fmaxf(node.aabbMax, leafTri.v2);
+			dataCollector->UpdateSummedArea(node.aabbMin, node.aabbMax);
 		} else if (leafIdx >= NTri && leafIdx< NTri+NSph){
 			leafIdx -= NTri;
 			Sphere& leafSph = scene->spheres[leafIdx];
 			node.aabbMin = fminf(node.aabbMin, leafSph.pos - float3(leafSph.r));
 			node.aabbMax = fmaxf(node.aabbMax, leafSph.pos + float3(leafSph.r));
+			dataCollector->UpdateSummedArea(node.aabbMin, node.aabbMax);
 		}
 		else {
 			leafIdx -= NTri + NSph;
@@ -69,10 +72,11 @@ void bvh::UpdateNodeBounds(uint nodeIdx) {
 					node.aabbMin = fminf(node.aabbMin, float3(-1e30f, -1e30f, 0));
 					node.aabbMax = fmaxf(node.aabbMax, float3(1e30f, 1e30f, 0));
 				}
+			} else{
+				node.aabbMin = float3(-1e30f);
+				node.aabbMax = float3(1e30f);
+				return;
 			}
-			node.aabbMin = float3(-1e30f);
-			node.aabbMax = float3(1e30f);
-			return;
 		}
 	}
 }
@@ -141,6 +145,7 @@ float bvh::FindBestSplitPlane(BVHNode& node, int& axis, float& splitPos)
 			rightBox.grow(bin[BINS - 1 - i].bounds);
 			rightArea[BINS - 2 - i] = rightBox.area();
 		}
+
 		// calculate SAH cost for the 7 planes
 		scale = (boundsMax - boundsMin) / BINS;
 		for (int i = 0; i < BINS - 1; i++)
@@ -163,7 +168,6 @@ float bvh::CalculateNodeCost(BVHNode& node) {
 
 void bvh::Split(uint nodeIdx) {
 	BVHNode& node = bvhNode[nodeIdx];
-
 	if (NPla > 0 && (NSph + NTri > 0)) {
 		// create child nodes
 		int leftChildIdx = nodesUsed++;
@@ -209,6 +213,7 @@ void bvh::SubdividePrim(uint nodeIdx) {
 }
 
 void bvh::Subdivide(uint nodeIdx) {
+
 	BVHNode& node = bvhNode[nodeIdx];
 	// determine split axis using SAH
 	int axis; float splitPos;
@@ -248,11 +253,13 @@ void bvh::Subdivide(uint nodeIdx) {
 	bvhNode[rightChildIdx].primCount = node.primCount - leftCount;
 	node.leftFirst = leftChildIdx;
 	node.primCount = 0;
+	dataCollector->UpdateTreeDepth(false);
 	UpdateNodeBounds(leftChildIdx);
 	UpdateNodeBounds(rightChildIdx);
 	// recurse
 	Subdivide(leftChildIdx);
 	Subdivide(rightChildIdx);
+	dataCollector->UpdateTreeDepth(true);
 }
 
 float bvh::EvaluateSAH(BVHNode& node, int axis, float pos)
@@ -320,7 +327,9 @@ void bvh::Intersect(Ray& ray) {
 	float t_min = 0.0001f;
 	BVHNode* node = &bvhNode[rootNodeIdx], *stack[64];
 	uint stackPtr = 0;
+	int traversalSteps = 0;
 	while(1){
+		traversalSteps++;
 		//if (!IntersectAABB(ray, node->aabbMin, node->aabbMax)) return;
 		if (node->primCount > 0) {
 			for (uint i = 0; i < node->primCount; i++) {
@@ -335,8 +344,13 @@ void bvh::Intersect(Ray& ray) {
 					primIdx -= NTri + NSph;
 					scene->planes[primIdx].Intersect(ray, t_min);
 				}
+				dataCollector->UpdateIntersectedPrimitives();
 			}
-			if (stackPtr == 0) break; else node = stack[--stackPtr];
+			if (stackPtr == 0) { 
+				dataCollector->UpdateAverageTraversalSteps(traversalSteps);
+				break; 
+			}
+			else node = stack[--stackPtr];
 			continue;
 		}
 

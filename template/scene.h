@@ -29,6 +29,7 @@ namespace Tmpl8 {
 	class diffuse;
 	class metal;
 	class Triangle;
+	class DataCollector;
 	enum MAT_TYPE {
 		DIFFUSE = 1,
 		METAL = 2,
@@ -584,15 +585,39 @@ namespace Tmpl8 {
 			//Instantiate scene
 			
 			
-			instantiateScene5();
+			instantiateScene2();
 			b = new bvh(this);
 			b->Build();
-
+			
 			SetTime(0);
 
 			// Note: once we have triangle support we should get rid of the class
 			// hierarchy: virtuals reduce performance somewhat.
 		}
+		
+		void ExportData() {
+			std::ofstream myFile(exportFile);
+			for (int i = 0; i < size(names); ++i) {
+				myFile << names[i];
+				if (i != size(names) - 1) myFile << ",";
+			}
+			myFile << "\n";
+			//cout << b->dataCollector->GetTreeDepth() << endl;
+			//Insert for loop over all BVH's?
+			// {
+			myFile << b->dataCollector->GetNodeCount() << ",";
+			myFile << b->dataCollector->GetSummedNodeArea() << ",";
+			//We should check if we want this per ray or per screen. Per screen gives some big ass numbers haha
+			myFile << b->dataCollector->GetIntersectedPrimitives(totIterationNumber) / (1280 * 720) << ",";	
+			myFile << b->dataCollector->GetAverageTraversalSteps(totIterationNumber) / (1280 * 720) << ",";
+			myFile << b->dataCollector->GetTreeDepth();
+			myFile << "\n";
+			b->dataCollector->ResetDataCollector();
+			// }
+			myFile.close();
+
+		}
+
 
 		void instantiateScene1() {
 			defaultAnim = true;
@@ -929,6 +954,11 @@ namespace Tmpl8 {
 			float animTime = 0;
 
 		int skydomeX, skydomeY, skydomeN;
+		string exportFile = "bvhData.csv";
+		vector<string> names = { "Total Node Count", "Summed Node Area"
+			, "Average Primitive Intersections per screen", "Average Traversal Steps per screen",
+			"Max Tree Depth" };
+
 		unsigned char* skydome;
 		bvh* b;
 		vector<Light*> lights;
@@ -940,6 +970,7 @@ namespace Tmpl8 {
 		int aaSamples = 1;
 		int invAaSamples = 1 / aaSamples;
 		int iterationNumber = 1;
+		int totIterationNumber = 0;
 		bool raytracer = true;
 		float mediumIr = 1.0f;
 		bool defaultAnim = true;

@@ -243,6 +243,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
 // -----------------------------------------------------------
 void Renderer::Tick(float deltaTime)
 {
+	scene.totIterationNumber++;
 	// animation
 	if (!camera.paused && scene.raytracer) {
 		static float animTime = 0;
