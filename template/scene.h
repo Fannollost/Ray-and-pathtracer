@@ -684,6 +684,28 @@ namespace Tmpl8 {
 			// hierarchy: virtuals reduce performance somewhat.
 		}
 		
+		void ExportData() {
+			std::ofstream myFile(exportFile);
+			for (int i = 0; i < size(names); ++i) {
+				myFile << names[i];
+				if (i != size(names) - 1) myFile << ",";
+			}
+			myFile << "\n";
+			//cout << b->dataCollector->GetTreeDepth() << endl;
+			//Insert for loop over all BVH's?
+			// {
+			myFile << b->dataCollector->GetNodeCount() << ",";
+			myFile << b->dataCollector->GetSummedNodeArea() << ",";
+			//We should check if we want this per ray or per screen. Per screen gives some big ass numbers haha
+			myFile << b->dataCollector->GetIntersectedPrimitives(totIterationNumber) / (1280 * 720) << ",";	
+			myFile << b->dataCollector->GetAverageTraversalSteps(totIterationNumber) / (1280 * 720) << ",";
+			myFile << b->dataCollector->GetTreeDepth();
+			myFile << "\n";
+			b->dataCollector->ResetDataCollector();
+			// }
+			myFile.close();
+
+		}
 		void GetAllTriangles() {
 			vector<Triangle> buff;
 			for (int i = 0; i < size(triangles); i++)
@@ -956,6 +978,11 @@ namespace Tmpl8 {
 			float animTime = 0;
 
 		int skydomeX, skydomeY, skydomeN;
+		string exportFile = "bvhData.csv";
+		vector<string> names = { "Total Node Count", "Summed Node Area"
+			, "Average Primitive Intersections per screen", "Average Traversal Steps per screen",
+			"Max Tree Depth" };
+
 		unsigned char* skydome;
 		bvh* b;
 		vector<Light*> lights;
@@ -967,6 +994,7 @@ namespace Tmpl8 {
 		int aaSamples = 1;
 		int invAaSamples = 1 / aaSamples;
 		int iterationNumber = 1;
+		int totIterationNumber = 0;
 		bool raytracer = true;
 		float mediumIr = 1.0f;
 		bool defaultAnim = false;

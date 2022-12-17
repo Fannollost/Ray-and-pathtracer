@@ -29,8 +29,6 @@ void bvh::Build() {
 	
 	UpdateNodeBounds(rootNodeIdx);
 	Split(rootNodeIdx);
-	cout << dataCollector->GetSummedNodeArea() << endl;
-	//dataCollector->UpdateTreeDepth(root);
 	dataCollector->UpdateNodeCount(nodesUsed);
 	printf("BVH Build time : %5.2f ms \n", t.elapsed() * 1000);
 }
@@ -311,7 +309,9 @@ void bvh::Intersect(Ray& ray) {
 	float t_min = 0.0001f;
 	BVHNode* node = &bvhNode[rootNodeIdx], *stack[64];
 	uint stackPtr = 0;
+	int traversalSteps = 0;
 	while(1){
+		traversalSteps++;
 		//if (!IntersectAABB(ray, node->aabbMin, node->aabbMax)) return;
 		if (node->primCount > 0) {
 			for (uint i = 0; i < node->primCount; i++) {
@@ -326,8 +326,13 @@ void bvh::Intersect(Ray& ray) {
 					primIdx -= NTri + NSph;
 					scene->planes[primIdx].Intersect(ray, t_min);
 				}
+				dataCollector->UpdateIntersectedPrimitives();
 			}
-			if (stackPtr == 0) break; else node = stack[--stackPtr];
+			if (stackPtr == 0) { 
+				dataCollector->UpdateAverageTraversalSteps(traversalSteps);
+				break; 
+			}
+			else node = stack[--stackPtr];
 			continue;
 		}
 
