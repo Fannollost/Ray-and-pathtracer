@@ -29,6 +29,7 @@ namespace Tmpl8 {
 	class diffuse;
 	class metal;
 	class Triangle;
+	class DataCollector;
 	enum MAT_TYPE {
 		DIFFUSE = 1,
 		METAL = 2,
@@ -587,13 +588,58 @@ namespace Tmpl8 {
 			instantiateScene5();
 			b = new bvh(this);
 			b->Build();
-
+			
 			SetTime(0);
 
 			// Note: once we have triangle support we should get rid of the class
 			// hierarchy: virtuals reduce performance somewhat.
 		}
+		
+		void ExportData() {
+			std::ofstream myFile(exportFile);
+			for (int i = 0; i < size(names); ++i) {
+				myFile << names[i];
+				if (i != size(names) - 1) myFile << ",";
+			}
+			myFile << "\n";
+			//cout << b->dataCollector->GetTreeDepth() << endl;
+			//Insert for loop over all BVH's?
+			// {
+			myFile << b->dataCollector->GetNodeCount() << ",";
+			myFile << b->dataCollector->GetSummedNodeArea() << ",";
+			//We should check if we want this per ray or per screen. Per screen gives some big ass numbers haha
+			myFile << b->dataCollector->GetIntersectedPrimitives(totIterationNumber) / (1280 * 720) << ",";	
+			myFile << b->dataCollector->GetAverageTraversalSteps(totIterationNumber) / (1280 * 720) << ",";
+			myFile << b->dataCollector->GetTreeDepth();
+			myFile << "\n";
+			b->dataCollector->ResetDataCollector();
+			// }
+			myFile.close();
 
+		}
+		void GetAllTriangles() {
+			vector<Triangle> buff;
+			for (int i = 0; i < size(triangles); i++)
+			{
+				for (int j = 0; j < size(triangles[i].triangles); j++) {
+					tri.push_back(triangles[i].triangles[j]);
+				}
+			}
+		}
+
+		void ParseUnityFile(char* path, material* m) {
+			FILE* file = fopen(path, "r");
+			float a, c, d, e, f, g, h, i,j;
+			int res = 1;
+			int count = 0;
+			while(res>0) {
+				count++;
+				res = fscanf(file, "%f %f %f %f %f %f %f %f %f\n",
+					&a, &c, &d, &e, &f, &g, &h, &i, &j);
+				tri.push_back(Triangle(i, m, float3(a, c, d), float3(e, f, g), float3(h, i, j)));
+			}
+			fclose(file);
+		}
 		void instantiateScene1() {
 			defaultAnim = true;
 			animOn = raytracer && defaultAnim;
@@ -929,6 +975,11 @@ namespace Tmpl8 {
 			float animTime = 0;
 
 		int skydomeX, skydomeY, skydomeN;
+		string exportFile = "bvhData.csv";
+		vector<string> names = { "Total Node Count", "Summed Node Area"
+			, "Average Primitive Intersections per screen", "Average Traversal Steps per screen",
+			"Max Tree Depth" };
+
 		unsigned char* skydome;
 		bvh* b;
 		vector<Light*> lights;
@@ -940,6 +991,7 @@ namespace Tmpl8 {
 		int aaSamples = 1;
 		int invAaSamples = 1 / aaSamples;
 		int iterationNumber = 1;
+		int totIterationNumber = 0;
 		bool raytracer = true;
 		float mediumIr = 1.0f;
 		bool defaultAnim = true;

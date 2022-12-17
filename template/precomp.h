@@ -1529,6 +1529,7 @@ public:
 // In your own .cpp files just add #include "precomp.h".
 #include <cmath>
 #include "bvh.h"
+#include "DataCollector.h"
 
 // InstructionSet.cpp
 // Compile by using: cl /EHsc /W4 InstructionSet.cpp

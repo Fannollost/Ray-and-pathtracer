@@ -87,6 +87,8 @@ namespace Tmpl8
 				majPressed = true;
 				camera.transferYZ();
 				break;
+			case KEYBOARD_B:
+				scene.ExportData();
 			}
 			/* implement if you want to handle keys */
 		}
@@ -99,6 +101,7 @@ namespace Tmpl8
 		float2 xBox = float2(-1, 1), yBox = float2(-1, 1), zBox = float2(-1, 1);	//makeboudningbox
 		bool majPressed = false;
 		enum UserInput {
+			KEYBOARD_B = 66,
 			KEYBOARD_W = 87,
 			KEYBOARD_D = 68,
 			KEYBOARD_S = 83,
