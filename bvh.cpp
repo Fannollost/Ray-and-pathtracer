@@ -29,7 +29,8 @@ void bvh::Build() {
 	
 	UpdateNodeBounds(rootNodeIdx);
 	Split(rootNodeIdx);
-	dataCollector->UpdateTreeDepth(root);
+	cout << dataCollector->GetSummedNodeArea() << endl;
+	//dataCollector->UpdateTreeDepth(root);
 	dataCollector->UpdateNodeCount(nodesUsed);
 	printf("BVH Build time : %5.2f ms \n", t.elapsed() * 1000);
 }
@@ -48,11 +49,13 @@ void bvh::UpdateNodeBounds(uint nodeIdx) {
 			node.aabbMax = fmaxf(node.aabbMax, leafTri.v0);
 			node.aabbMax = fmaxf(node.aabbMax, leafTri.v1);
 			node.aabbMax = fmaxf(node.aabbMax, leafTri.v2);
+			dataCollector->UpdateSummedArea(node.aabbMin, node.aabbMax);
 		} else if (leafIdx >= NTri && leafIdx< NTri+NSph){
 			leafIdx -= NTri;
 			Sphere& leafSph = scene->spheres[leafIdx];
 			node.aabbMin = fminf(node.aabbMin, leafSph.pos - float3(leafSph.r));
 			node.aabbMax = fmaxf(node.aabbMax, leafSph.pos + float3(leafSph.r));
+			dataCollector->UpdateSummedArea(node.aabbMin, node.aabbMax);
 		}
 		else {
 			leafIdx -= NTri + NSph;
@@ -71,10 +74,11 @@ void bvh::UpdateNodeBounds(uint nodeIdx) {
 					node.aabbMin = fminf(node.aabbMin, float3(-1e30f, -1e30f, 0));
 					node.aabbMax = fmaxf(node.aabbMax, float3(1e30f, 1e30f, 0));
 				}
+			} else{
+				node.aabbMin = float3(-1e30f);
+				node.aabbMax = float3(1e30f);
+				return;
 			}
-			node.aabbMin = float3(-1e30f);
-			node.aabbMax = float3(1e30f);
-			return;
 		}
 	}
 }
@@ -143,6 +147,7 @@ float bvh::FindBestSplitPlane(BVHNode& node, int& axis, float& splitPos)
 			rightBox.grow(bin[BINS - 1 - i].bounds);
 			rightArea[BINS - 2 - i] = rightBox.area();
 		}
+
 		// calculate SAH cost for the 7 planes
 		scale = (boundsMax - boundsMin) / BINS;
 		for (int i = 0; i < BINS - 1; i++)
@@ -165,7 +170,6 @@ float bvh::CalculateNodeCost(BVHNode& node) {
 
 void bvh::Split(uint nodeIdx) {
 	BVHNode& node = bvhNode[nodeIdx];
-
 	if (NPla > 0 && (NSph + NTri > 0)) {
 		// create child nodes
 		int leftChildIdx = nodesUsed++;
@@ -211,6 +215,7 @@ void bvh::SubdividePrim(uint nodeIdx) {
 }
 
 void bvh::Subdivide(uint nodeIdx) {
+
 	BVHNode& node = bvhNode[nodeIdx];
 	// determine split axis using SAH
 	int axis; float splitPos;
@@ -251,11 +256,13 @@ void bvh::Subdivide(uint nodeIdx) {
 	bvhNode[rightChildIdx].primCount = node.primCount - leftCount;
 	node.leftFirst = leftChildIdx;
 	node.primCount = 0;
+	dataCollector->UpdateTreeDepth(false);
 	UpdateNodeBounds(leftChildIdx);
 	UpdateNodeBounds(rightChildIdx);
 	// recurse
 	Subdivide(leftChildIdx);
 	Subdivide(rightChildIdx);
+	dataCollector->UpdateTreeDepth(true);
 }
 
 float bvh::EvaluateSAH(BVHNode& node, int axis, float pos)
