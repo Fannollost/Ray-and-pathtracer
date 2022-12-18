@@ -686,7 +686,7 @@ namespace Tmpl8 {
 			//Instantiate scene
 			
 			
-			instantiateScene5();
+			instantiateScene2();
 			b = new bvh(this);
 			b->Build();
 			
@@ -711,7 +711,9 @@ namespace Tmpl8 {
 			//We should check if we want this per ray or per screen. Per screen gives some big ass numbers haha
 			myFile << b->dataCollector->GetIntersectedPrimitives(totIterationNumber) / (1280 * 720) << ",";	
 			myFile << b->dataCollector->GetAverageTraversalSteps(totIterationNumber) / (1280 * 720) << ",";
-			myFile << b->dataCollector->GetTreeDepth();
+			myFile << b->dataCollector->GetTreeDepth() << ",";
+			myFile << totalFrames / totIterationNumber << ",";
+			myFile << b->dataCollector->GetBuildTime();
 			myFile << "\n";
 			b->dataCollector->ResetDataCollector();
 			// }
@@ -776,8 +778,8 @@ namespace Tmpl8 {
 			planes.push_back(Plane(4, blueDiff, float3(0, 0, -1), 10));			// 4: front wall
 			planes.push_back(Plane(1, greenDiff, float3(-1, 0, 0), 2.99f));		// 1: right wall
 
-			spheres.push_back(Sphere(7, blueMetal, float3(-0.7f, -0.5f, 2.0f), 0.5f));
-			spheres.push_back(Sphere(8, greenMetal, float3(-1.9f, -0.5f, 2.0f), 0.5f));
+			spheres.push_back(Sphere(7, standardGlass, float3(-0.7f, -0.5f, 2.0f), 0.5f));
+			spheres.push_back(Sphere(8, blueGlass, float3(-1.9f, -0.5f, 2.0f), 0.5f));
 			spheres.push_back(Sphere(9, yellowMetal, float3(-3.1f, -0.5f, 2.0f), 0.5f));
 			spheres.push_back(Sphere(6, pinkMetal, float3(-4.3f, -0.5f, 2.0f), 0.5f));
 			//triangles.push_back(Mesh(10, standardMetal, "Resources/icos.obj", float3(0.5f, -0.51f, 2), 0.5f));
@@ -888,8 +890,8 @@ namespace Tmpl8 {
 
 			planes.push_back(Plane(0, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 0));			// 2: floor
 
-			meshes.push_back(Mesh(1,"Resources/lowBigB.obj", goldDiff, float3(0), 1));
-			//meshes.push_back(Mesh(1,"Resources/BigB.obj", goldDiff, float3(0,0.5f,0), 1));
+			//meshes.push_back(Mesh(1,"Resources/lowBigB.obj", goldDiff, float3(0), 1));
+			meshes.push_back(Mesh(1,"Resources/BigB.obj", goldDiff, float3(-50.0f,0.5f,0), 0.1f));
 		}
 
 
@@ -1028,6 +1030,8 @@ namespace Tmpl8 {
 
 		int GetIterationNumber() { return iterationNumber; }
 
+		void SetFPS(float fps) { totalFrames += fps; }
+
 		void toogleRaytracer() {
 			raytracer = !raytracer;
 			SetIterationNumber(1);
@@ -1041,7 +1045,7 @@ namespace Tmpl8 {
 		string exportFile = "bvhData.csv";
 		vector<string> names = { "Total Node Count", "Summed Node Area"
 			, "Average Primitive Intersections per screen", "Average Traversal Steps per screen",
-			"Max Tree Depth" };
+			"Max Tree Depth", "Average FPS", "BVH Build time"};
 
 		unsigned char* skydome;
 		bvh* b;
@@ -1056,7 +1060,8 @@ namespace Tmpl8 {
 		int totIterationNumber = 0;
 		bool raytracer = true;
 		float mediumIr = 1.0f;
-		bool defaultAnim = true;
+		float totalFrames = 0;
+		bool defaultAnim = false;
 		bool animOn = raytracer && defaultAnim; // set to false while debugging to prevent some cast error from primitive object type
 		const float3 white = float3(1.0, 1.0, 1.0);
 		const float3 red = float3(255, 0, 0) / 255;

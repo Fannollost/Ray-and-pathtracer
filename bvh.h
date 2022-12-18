@@ -20,6 +20,14 @@ struct BVHNode
 	bool isLeaf() { return primCount > 0; }
 };
 
+enum SplitMethod {
+	BINNEDSAH = 0,
+	MIDDLE = 1,
+	EQUALCOUNTS = 2,
+	LONGESTAXIS = 3,
+	SAH = 4
+};
+
 class bvh
 {
 	public:
@@ -34,6 +42,7 @@ class bvh
 		float EvaluateSAH(BVHNode &node, int axis, float pos);
 		float CalculateNodeCost(BVHNode& node);
 		float FindBestSplitPlane(BVHNode& node, int& axis, float& splitPos);
+		
 		void Split(uint nodeIdx);
 		void SubdividePrim(uint rootNodeIdx);
 		bool IsOccluded(Ray& ray);
@@ -44,6 +53,8 @@ class bvh
 		class Scene* scene;
 		BVHNode* bvhNode; //- 1];
 		class DataCollector* dataCollector;
+		int splitMethod;
+		
 };
 	
 	struct aabb

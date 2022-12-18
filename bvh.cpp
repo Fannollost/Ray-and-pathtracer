@@ -2,8 +2,9 @@
 #include "bvh.h"
 //#define USE_SSE			//FASTER without? very weird
 
-bvh::bvh(Scene* s) { 
+bvh::bvh(Scene* s) {
 	scene = s; 
+	splitMethod = LONGESTAXIS;
 	dataCollector = new DataCollector();
 }
 
@@ -30,6 +31,7 @@ void bvh::Build() {
 	UpdateNodeBounds(rootNodeIdx);
 	Split(rootNodeIdx);
 	dataCollector->UpdateNodeCount(nodesUsed);
+	dataCollector->UpdateBuildTime(t.elapsed() * 1000);
 	printf("BVH Build time : %5.2f ms \n", t.elapsed() * 1000);
 }
 
@@ -160,6 +162,7 @@ float bvh::FindBestSplitPlane(BVHNode& node, int& axis, float& splitPos)
 	return bestCost;
 }
 
+
 float bvh::CalculateNodeCost(BVHNode& node) {
 	float3 e = node.aabbMax - node.aabbMin; // extent of parent
 	float surfaceArea = e.x * e.y + e.y * e.z + e.z * e.x;
@@ -217,10 +220,56 @@ void bvh::Subdivide(uint nodeIdx) {
 	BVHNode& node = bvhNode[nodeIdx];
 	// determine split axis using SAH
 	int axis; float splitPos;
-	float splitCost = FindBestSplitPlane(node, axis, splitPos);
-	
-	float nosplitCost = CalculateNodeCost(node);
-	if (splitCost >= nosplitCost) return;
+	switch (splitMethod) {
+		case SplitMethod::BINNEDSAH: {
+			float splitCost = FindBestSplitPlane(node, axis, splitPos);
+			
+			float nosplitCost = CalculateNodeCost(node);
+			if (splitCost >= nosplitCost) return;
+			break;
+		}
+		case SplitMethod::LONGESTAXIS: {
+			float3 extent = node.aabbMax - node.aabbMin;
+			axis = 0;
+			if (extent.y > extent.x) axis = 1;
+			if (extent.z > extent[axis]) axis = 2;
+			splitPos = node.aabbMin[axis] + extent[axis] * 0.5f;
+			break;
+		}
+		case SplitMethod::MIDDLE: {
+			float3 extent = node.aabbMax - node.aabbMin;
+			axis = 0;
+			if (extent.y > extent.x) axis = 1;
+			if (extent.z > extent[axis]) axis = 2;
+			//splitPos = node.aabbMin[axis] + extent[axis] * 0.5f;
+			splitPos = (node.aabbMin[axis] + node.aabbMax[axis]) * 0.5f;
+			break;
+		}
+		case SplitMethod::SAH: {
+			int bestAxis = -1;
+			float bestPos = 0, bestCost = 1e30f;
+			float candidatePos = 0;
+			for(int a = 0; a < 3; a++) for(uint i = 0; i < node.primCount; i++){
+				uint primIdx = primitiveIdx[node.leftFirst + i];
+				if (primIdx < NTri) {
+					Triangle& triangle = scene->getTriangle(primIdx);
+					candidatePos = triangle.centroid[a];
+				}
+				else if (primIdx >= NTri && primIdx < NTri + NSph) {
+					primIdx -= NTri;
+					Sphere& sphere = scene->spheres[primIdx];
+					candidatePos = sphere.pos[a];
+				}
+				float splitCost = EvaluateSAH(node, axis, splitPos);
+				if (splitCost < bestCost)
+					bestPos = candidatePos, bestAxis = a, bestCost = splitCost;
+			}
+
+			axis = bestAxis;
+			splitPos = bestPos;
+			break;
+		}
+	}
 
 	// in-place partition
 	int i = node.leftFirst;
