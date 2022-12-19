@@ -4,7 +4,7 @@
 
 bvh::bvh(Scene* s) {
 	scene = s; 
-	splitMethod = LONGESTAXIS;
+	splitMethod = BINNEDSAH;
 	dataCollector = new DataCollector();
 }
 
@@ -260,7 +260,7 @@ void bvh::Subdivide(uint nodeIdx) {
 					Sphere& sphere = scene->spheres[primIdx];
 					candidatePos = sphere.pos[a];
 				}
-				float splitCost = EvaluateSAH(node, axis, splitPos);
+				float splitCost = EvaluateSAH(node, axis, candidatePos);
 				if (splitCost < bestCost)
 					bestPos = candidatePos, bestAxis = a, bestCost = splitCost;
 			}

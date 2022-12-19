@@ -23,9 +23,8 @@ struct BVHNode
 enum SplitMethod {
 	BINNEDSAH = 0,
 	MIDDLE = 1,
-	EQUALCOUNTS = 2,
-	LONGESTAXIS = 3,
-	SAH = 4
+	LONGESTAXIS = 2,
+	SAH = 3
 };
 
 class bvh
