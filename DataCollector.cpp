@@ -1,6 +1,4 @@
 #include "precomp.h"
-#include "DataCollector.h"
-
 
 DataCollector::DataCollector() {
 	ResetDataCollector();

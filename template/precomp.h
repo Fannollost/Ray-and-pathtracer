@@ -1529,6 +1529,8 @@ public:
 // In your own .cpp files just add #include "precomp.h".
 #include <cmath>
 #include "bvh.h"
+#include "bvhInstance.h"
+#include "tlas.h"
 #include "DataCollector.h"
 
 // InstructionSet.cpp

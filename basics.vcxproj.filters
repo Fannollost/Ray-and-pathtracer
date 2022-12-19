@@ -7,6 +7,8 @@
     </ClCompile>
     <ClCompile Include="bvh.cpp" />
     <ClCompile Include="DataCollector.cpp" />
+    <ClCompile Include="tlas.cpp" />
+    <ClCompile Include="bvhInstance.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="camera.h" />
@@ -25,6 +27,8 @@
     </ClInclude>
     <ClInclude Include="bvh.h" />
     <ClInclude Include="DataCollector.h" />
+    <ClInclude Include="tlas.h" />
+    <ClInclude Include="bvhInstance.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="template">

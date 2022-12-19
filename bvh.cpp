@@ -1,17 +1,28 @@
 #include "precomp.h"
-#include "bvh.h"
+
 //#define USE_SSE			//FASTER without? very weird
 
-bvh::bvh(Scene* s) { 
+bvh::bvh(Scene* s) {
 	scene = s; 
+	dataCollector = new DataCollector();
+	mesh = nullptr;
+}
+bvh::bvh(Mesh* m) {
+	mesh = m;
+	scene = nullptr;
 	dataCollector = new DataCollector();
 }
 
 void bvh::Build() {
-
-	NTri = scene->getTriangleNb();
-	NSph = size(scene->spheres);
-	NPla = size(scene->planes);
+	if (scene != nullptr) {
+		NTri = scene->getTriangleNb();
+		NSph = size(scene->spheres);
+		NPla = size(scene->planes);
+	}else if (mesh != nullptr) {
+		NTri = size(mesh->faces);
+		NSph = 0;
+		NPla = 0;
+	}
 	cout << "#Tri : " << NTri << endl;
 	cout << "#Sph : " << NSph << endl;
 	cout << "#Pla : " << NPla << endl;
@@ -26,11 +37,21 @@ void bvh::Build() {
 	BVHNode& root = bvhNode[rootNodeIdx];
 	root.primCount = N;
 	root.leftFirst = 0;
-	
+
 	UpdateNodeBounds(rootNodeIdx);
 	Split(rootNodeIdx);
 	dataCollector->UpdateNodeCount(nodesUsed);
 	printf("BVH Build time : %5.2f ms \n", t.elapsed() * 1000);
+
+}
+
+Triangle bvh::getTriangle(uint idx) {
+	if (scene != nullptr) {
+		return scene->getTriangle(idx);
+	}
+	else if (mesh != nullptr) {
+		return mesh->tri[idx];
+	}
 }
 
 void bvh::UpdateNodeBounds(uint nodeIdx) {
@@ -40,7 +61,7 @@ void bvh::UpdateNodeBounds(uint nodeIdx) {
 	for (uint first = node.leftFirst, i = 0; i < node.primCount; i++) {
 		uint leafIdx = primitiveIdx[first + i];
 		if (leafIdx < NTri ) {
-			Triangle& leafTri = scene->getTriangle(leafIdx);
+			Triangle& leafTri = getTriangle(leafIdx);
 			node.aabbMin = fminf(node.aabbMin, leafTri.v0);
 			node.aabbMin = fminf(node.aabbMin, leafTri.v1);
 			node.aabbMin = fminf(node.aabbMin, leafTri.v2);
@@ -92,7 +113,7 @@ float bvh::FindBestSplitPlane(BVHNode& node, int& axis, float& splitPos)
 		{
 			uint primIdx = primitiveIdx[node.leftFirst + i];
 			if (primIdx < NTri) {
-				Triangle& triangle = scene->getTriangle(primIdx);
+				Triangle& triangle = getTriangle(primIdx);
 				boundsMin = min(boundsMin, triangle.centroid[a]);
 				boundsMax = max(boundsMax, triangle.centroid[a]);
 			}else if (primIdx >= NTri && primIdx < NTri + NSph) {
@@ -112,7 +133,7 @@ float bvh::FindBestSplitPlane(BVHNode& node, int& axis, float& splitPos)
 			uint primIdx = primitiveIdx[node.leftFirst + i];
 			int binIdx; 
 			if (primIdx < NTri) {
-				Triangle& triangle = scene->getTriangle(primIdx);
+				Triangle& triangle = getTriangle(primIdx);
 				binIdx = min(BINS - 1,
 					(int)((triangle.centroid[a] - boundsMin) * scale));
 				bin[binIdx].primCount++;
@@ -229,7 +250,7 @@ void bvh::Subdivide(uint nodeIdx) {
 	{
 		uint primIdx = primitiveIdx[i];
 		if (primIdx < NTri) {
-			if (scene->getTriangle(primIdx).centroid[axis] < splitPos)
+			if (getTriangle(primIdx).centroid[axis] < splitPos)
 				i++;
 			else
 				swap(primitiveIdx[i], primitiveIdx[j--]);
@@ -271,7 +292,7 @@ float bvh::EvaluateSAH(BVHNode& node, int axis, float pos)
 	{
 		uint primIdx = primitiveIdx[node.leftFirst + i];
 		if (primIdx < NTri) {
-			Triangle& triangle = scene->getTriangle(primIdx);
+			Triangle& triangle = getTriangle(primIdx);
 			if (triangle.centroid[axis] < pos) {
 				leftCount++;
 				leftBox.grow(triangle.v0);
@@ -328,14 +349,21 @@ void bvh::Intersect(Ray& ray) {
 	BVHNode* node = &bvhNode[rootNodeIdx], *stack[64];
 	uint stackPtr = 0;
 	int traversalSteps = 0;
+	// backup ray and transform original
+	Ray backupRay = ray;
+	ray.O = TransformPosition(ray.O, invTransform);
+	ray.D = TransformVector(ray.D, invTransform);
+	ray.rD = float3(1 / ray.D.x, 1 / ray.D.y, 1 / ray.D.z);
+
+	// trace transformed ray
 	while(1){
 		traversalSteps++;
-		//if (!IntersectAABB(ray, node->aabbMin, node->aabbMax)) return;
+		if (!IntersectAABB(ray, node->aabbMin, node->aabbMax)) return;
 		if (node->primCount > 0) {
 			for (uint i = 0; i < node->primCount; i++) {
 				uint primIdx = primitiveIdx[node->leftFirst + i];
 				if (primIdx < NTri) {
-					scene->getTriangle(primIdx).Intersect(ray, t_min);
+					getTriangle(primIdx).Intersect(ray, t_min);
 				} else if(primIdx >=NTri && primIdx < NTri + NSph){
 					primIdx -= NTri;
 					scene->spheres[primIdx].Intersect(ray, t_min);
@@ -384,7 +412,7 @@ bool bvh::IsOccluded(Ray& ray) {
 			for (uint i = 0; i < node->primCount; i++) {
 				uint primIdx = primitiveIdx[node->leftFirst + i];
 				if (primIdx < NTri) {
-					if (scene->getTriangle(primIdx).IsOccluding(ray, t_min)) return true;
+					if (getTriangle(primIdx).IsOccluding(ray, t_min)) return true;
 				}
 				else if (primIdx >= NTri && primIdx < NTri + NSph) {
 					primIdx -= NTri;

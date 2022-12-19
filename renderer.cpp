@@ -24,14 +24,11 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 	float t_min = 1e-6;
 	scene.FindNearest(ray, t_min);
 	if (ray.objIdx == -1) return scene.GetSkyColor(ray);
-	if (ray.objIdx >= 11 && ray.objIdx < 11 + size(scene.lights)) {
+	if (ray.objIdx >= 11 && ray.objIdx < 11 + size(scene.lights))
 		return scene.lights[ray.objIdx - 11]->GetLightIntensityAt(ray.IntersectionPoint(), ray.hitNormal);
-	}
 	float3 totCol = float3(0);
 	material* m = ray.GetMaterial();
 	float3 f = m->col;
-	float3 I = ray.O + ray.t * ray.D;
-	float3 N = ray.hitNormal;
 
 	if (!scene.raytracer) {
 		double p = f.x > f.y && f.x > f.z ? f.x : f.y > f.z ? f.y : f.z;
@@ -83,7 +80,7 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 	}
 	case METAL:	{
 		Ray reflected;
-		((metal*)m)->scatter(ray, reflected, N, energy);
+		((metal*)m)->scatter(ray, reflected, ray.hitNormal, energy);
 		totCol += m->col * Trace(reflected, depth - 1, energy) * energy;
 		break;
 	}
@@ -97,10 +94,8 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 			lightRayDirection = normalize(lightRayDirection);
 			Ray r = Ray(ray.IntersectionPoint() + lightRayDirection * 1e-4f ,lightRayDirection, ray.color, sqrt(len2));
 			((diffuse*)m)->scatter(ray, attenuation, scattered, lightRayDirection,
-				scene.lights[i]->GetLightIntensityAt(ray.IntersectionPoint(), N), N, energy);
-			if (scene.b->IsOccluded(r)) {
-				continue;
-			}
+				scene.lights[i]->GetLightIntensityAt(ray.IntersectionPoint(), ray.hitNormal), ray.hitNormal, energy);
+			//if (scene.b->IsOccluded(r)) continue;
 
 			if (((diffuse*)m)->shinieness != 0)
 				totCol += ((diffuse*)m)->shinieness * m->col * Trace(Ray(ray.IntersectionPoint(), reflect(ray.D, ray.hitNormal), ray.color), depth - 1, energy) * energy;
@@ -169,9 +164,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
 				((diffuse*)m)->scatter(ray, attenuation, scattered, lightRayDirection,
 					scene.lights[i]->GetLightIntensityAt(ray.IntersectionPoint(), normal), normal, energy);
 				float cos_o = dot(-lightRayDirection, scene.lights[i]->normal);
-				if (scene.b->IsOccluded(r)) {
-					continue;
-				}
+				//if (scene.b->IsOccluded(r)) continue;
 
 				if (((diffuse*)m)->shinieness != 0)
 					directLightning += ((diffuse*)m)->shinieness * m->col * Sample(Ray(ray.IntersectionPoint(), reflect(ray.D, ray.hitNormal), ray.color), depth - 1, energy);
