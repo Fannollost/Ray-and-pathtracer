@@ -10,7 +10,7 @@ tlas::tlas(bvhInstance* bvhList, int N)
     nodesUsed = 2;
 }
 
-void tlas::Build()
+void tlas::build()
 {
     // assign a TLASleaf node to each BLAS
     int nodeIdx[256], nodeIndices = blasCount;
@@ -74,8 +74,8 @@ void tlas::Intersect(Ray& ray)
             if (stackPtr == 0) break; else node = stack[--stackPtr];
             continue;
         }
-        TLASNode* child1 = &tlasNode[node->leftRight &0x0000FFFF];
-        TLASNode* child2 = &tlasNode[node->leftRight & 0xFFFF0000];
+        TLASNode* child1 = &tlasNode[node->leftRight & 0x0000FFFF];
+        TLASNode* child2 = &tlasNode[node->leftRight >> 16];
         float dist1 = bvh::IntersectAABB(ray, child1->aabbMin, child1->aabbMax);
         float dist2 = bvh::IntersectAABB(ray, child2->aabbMin, child2->aabbMax);
         if (dist1 > dist2) { swap(dist1, dist2); swap(child1, child2); }

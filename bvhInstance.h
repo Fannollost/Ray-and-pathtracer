@@ -6,7 +6,7 @@ class bvhInstance
 {
 public:
     bvhInstance() = default;
-    bvhInstance(bvh* blas) : bvh(blas) { SetTransform(mat4()); }
+    bvhInstance(bvh* blas) : bvh(blas) { SetTransform(mat4()); bounds = bvh->bounds; }
     void SetTransform(mat4& transform);
     void Intersect(Ray& ray);
 private:

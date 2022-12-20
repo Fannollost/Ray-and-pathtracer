@@ -40,8 +40,10 @@ void bvh::Build() {
 
 	UpdateNodeBounds(rootNodeIdx);
 	Split(rootNodeIdx);
-	dataCollector->UpdateNodeCount(nodesUsed);
+	bounds.grow(root.aabbMin);
+	bounds.grow(root.aabbMax);
 	printf("BVH Build time : %5.2f ms \n", t.elapsed() * 1000);
+	dataCollector->UpdateNodeCount(nodesUsed);
 
 }
 

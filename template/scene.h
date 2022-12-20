@@ -691,11 +691,8 @@ namespace Tmpl8 {
 			
 			if (useTLAS) {
 				instantiateScene6();
-				/*
-				instantiateScene6();
-				tl = new tlas(bvhList, 16);
-				tl.build();
-				*/
+				tl = new tlas(bvhList, bvhCount);
+				tl->build();
 			}
 			else {
 				instantiateScene2();
@@ -916,21 +913,28 @@ namespace Tmpl8 {
 			lights.push_back(new AreaLight(11, float3(1, 6.0f, 4), 2.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
 			lights.push_back(new AreaLight(12, float3(-1, 6.0f, 2), 2.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
 
-			bvhList = new bvhInstance[bvhCount];
-			meshes.push_back(Mesh(1, "Resources/lowBigB.obj", goldDiff, float3(0, 0, 0), 1));
+			meshes.push_back(Mesh(1, "Resources/BigB.obj", goldDiff, float3(0, 0.5f, 0), 1));
 			//meshes.push_back(Mesh(1, "Resources/lowBigB.obj", goldDiff, float3(0, 0, 3), 4));
+			bvhList = new bvhInstance[bvhCount];
+			Transforms = new mat4[bvhCount];
+
 			bvh *b = new bvh(&meshes[0]);
 			b->Build();
-			mat4 Transform =  mat4::Translate(float3(0, 0, 3)) * mat4::Scale(4) * mat4::RotateX(0) * mat4::RotateY((float)PI*0.5f) * mat4::RotateZ(0);
+			
+			Transforms[0] =  mat4::Translate(float3(0, 0, 3)) * mat4::Scale(4) * mat4::RotateX(0) * mat4::RotateY((float)PI * 0.5f) * mat4::RotateZ(0);
 			bvhList[0] = bvhInstance(b);
-			bvhList[0].SetTransform(Transform);
+			bvhList[0].SetTransform(Transforms[0]);
+			Transforms[1] = mat4::Translate(float3(-3, 0, 2)) * mat4::Scale(4) * mat4::RotateX(0) * mat4::RotateY((float)PI * 0.5f) * mat4::RotateZ(0);
+			bvhList[1] = bvhInstance(b);
+			bvhList[1].SetTransform(Transforms[1]);
+			Transforms[2] = mat4::Translate(float3(2, 0, -3)) * mat4::Scale(4) * mat4::RotateX(0) * mat4::RotateY((float)PI * 0.5f) * mat4::RotateZ(0);
+			bvhList[2] = bvhInstance(b);
+			bvhList[2].SetTransform(Transforms[2]);
+			Transforms[3] = mat4::Translate(float3(2, 0, 1)) * mat4::Scale(4) * mat4::RotateX(0) * mat4::RotateY((float)PI * 0.5f) * mat4::RotateZ(0);
+			bvhList[3] = bvhInstance(b);
+			bvhList[3].SetTransform(Transforms[3]);
+
 			planes.push_back(Plane(0, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 0));			// 2: floor
-			/*for (int i = 0; i < 16; i++) {
-				bvhList[i] = bvhInstance(b);
-				//define orientation scale and position
-				mat4 R = mat4::RotateX( orientation[i].x ) * mat4::RotateY( orientation[i].y ) * mat4::RotateZ( orientation[i].z ) * mat4::Scale( 0.2f );
-				bvhList[i].SetTransform( mat4::Translate( position[i] ) * R );
-			}*/
 		}
 
 		void SetTime(float t)
@@ -984,7 +988,7 @@ namespace Tmpl8 {
 
 			if (useTLAS) {
 				for (int i = 0; i < size(planes); ++i) planes[i].Intersect(ray, t_min);
-				bvhList[0].Intersect(ray); //tl->Intersect(ray);
+				tl->Intersect(ray);
 			}
 			else {
 				b->Intersect(ray);
@@ -1077,7 +1081,9 @@ namespace Tmpl8 {
 			"Max Tree Depth" };
 
 		unsigned char* skydome;
-		bvh* b; tlas* tl; bvhInstance* bvhList; uint bvhCount = 1;
+		bvh* b; tlas* tl; bvhInstance* bvhList; 
+		uint bvhCount = 4;
+		mat4* Transforms;
 		vector<Light*> lights;
 		vector<Cube> cubes;
 		vector<Sphere> spheres;

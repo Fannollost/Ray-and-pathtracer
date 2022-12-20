@@ -15,7 +15,7 @@ class tlas
 public:
     tlas(bvhInstance* bvhList, int N);
 
-    void tlas::Build();
+    void tlas::build();
     int tlas::FindBestMatch(int* list, int N, int A);
     void Intersect(Ray& ray);
 
