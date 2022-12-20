@@ -36,7 +36,7 @@ struct aabb
 
 enum SplitMethod {
 	BINNEDSAH = 0,
-	MIDDLE = 1,
+	SAMESIZE = 1,
 	LONGESTAXIS = 2,
 	SAH = 3
 };

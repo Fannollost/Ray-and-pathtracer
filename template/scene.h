@@ -697,7 +697,7 @@ namespace Tmpl8 {
 				tl->build();
 			}
 			else {
-				instantiateScene3();
+				instantiateScene2();
 
 				b = new bvh(this);
 				b->Build();
@@ -1138,7 +1138,7 @@ namespace Tmpl8 {
 		float totalFrames;
 		bool raytracer = true;
 		float mediumIr = 1.0f;
-		bool defaultAnim = true;
+		bool defaultAnim = false;
 		bool animOn = raytracer && defaultAnim; // set to false while debugging to prevent some cast error from primitive object type
 		bool useTLAS = false;
 		const float3 white = float3(1.0, 1.0, 1.0);

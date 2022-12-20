@@ -4,13 +4,13 @@
 
 bvh::bvh(Scene* s) {
 	scene = s; 
-	splitMethod = BINNEDSAH;
+	splitMethod = MIDDLE;
 	dataCollector = new DataCollector();
 	mesh = nullptr;
 }
 bvh::bvh(Mesh* m) {
 	mesh = m;
-	splitMethod = BINNEDSAH;
+	splitMethod = MIDDLE;
 	scene = nullptr;
 	dataCollector = new DataCollector();
 }
@@ -257,13 +257,31 @@ void bvh::Subdivide(uint nodeIdx) {
 			splitPos = node.aabbMin[axis] + extent[axis] * 0.5f;
 			break;
 		}
-		case SplitMethod::MIDDLE: {
+		case SplitMethod::SAMESIZE: {
 			float3 extent = node.aabbMax - node.aabbMin;
 			axis = 0;
 			if (extent.y > extent.x) axis = 1;
 			if (extent.z > extent[axis]) axis = 2;
+			int m = node.primCount / 2;
+			vector<tuple<float, int>> sorted;
+			float min = 1e-30f;
+			for (uint i = 0; i < node.primCount; i++)
+			{
+				uint primIdx = primitiveIdx[node.leftFirst + i];
+				if (primIdx < NTri) {
+					Triangle& triangle = scene->getTriangle(primIdx);
+					sorted.push_back(make_tuple(triangle.centroid[axis],primIdx));
+				}
+				else if (primIdx >= NTri && primIdx < NTri + NSph) {
+					primIdx -= NTri;
+					Sphere& sphere = scene->spheres[primIdx];
+					sorted.push_back(make_tuple(sphere.pos[axis], primIdx));
+				}
+			}
+			sort(sorted.begin(), sorted.end());
+			float mid = get<0>(sorted[m]);
 			//splitPos = node.aabbMin[axis] + extent[axis] * 0.5f;
-			splitPos = (node.aabbMin[axis] + node.aabbMax[axis]) * 0.5f;
+			splitPos = mid;
 			break;
 		}
 		case SplitMethod::SAH: {
