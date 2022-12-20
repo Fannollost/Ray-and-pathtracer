@@ -697,7 +697,7 @@ namespace Tmpl8 {
 				tl->build();
 			}
 			else {
-				instantiateScene2();
+				instantiateScene3();
 
 				b = new bvh(this);
 				b->Build();
@@ -795,10 +795,10 @@ namespace Tmpl8 {
 
 			//Loading sky texture
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
-			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.8f, 0.2f, 1, raytracer);
-			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.8f, 0.2f, 1, raytracer);
+			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.2f, 0.8f,  1, raytracer);
+			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.2f, 0.8f, 1, raytracer);
 			diffuse* whiteDiff = new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer);
-			diffuse* greenDiff = new diffuse(float3(0.8f), green, 0.6f, 0.4f, 2, raytracer);
+			diffuse* greenDiff = new diffuse(float3(0.8f), green, 0.2f, 0.8f, 2, raytracer);
 			glass* standardGlass = new glass(1.5f, white, float3(0.00f), 0.0f, 0, raytracer);
 			glass* blueGlass = new glass(1.5f, babyblue, float3(0.0f), 0.0f, 0, raytracer);
 			metal* blueMetal = new metal(0.7f, blue, raytracer);
@@ -936,7 +936,7 @@ namespace Tmpl8 {
 		void instantiateScene6() {
 			metal* goldMetal = new metal(0.7f, white, raytracer);
 			diffuse* goldDiff = new diffuse(float3(0.8f), gold, 0.8f, 0.2f, 1, raytracer);
-			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.8f, 0.2f, 1, raytracer);
+			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.0f, 1, 1, raytracer);
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 			//lights.push_back(new Light(11, float3(0, 6.0f, 0), 4, white, float3(0, -1, 0), raytracer));
 			lights.push_back(new AreaLight(11, float3(0, 6.0f, 0), 16.0f, white, 2.0f, float3(0, -1, 0), 2, raytracer));
@@ -964,6 +964,7 @@ namespace Tmpl8 {
 
 			planes.push_back(Plane(0, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 0));			// 2: floor
 		}
+
 
 		void SetTime(float t)
 		{
@@ -1076,8 +1077,8 @@ namespace Tmpl8 {
 			int x = (((sOrient * acos(cOrient))+PI)/ TWOPI )* (skydomeX-1);
 			if (x >= skydomeX) x  = skydomeX ;
 			if (y >= skydomeY) y  = skydomeY ;
-			if (y <0) y  = 0 ;
-			if (x<0) x=0 ;
+			if (y < 0) y  = 0 ;
+			if (x < 0) x=0 ;
 			uint8_t* pixelOffset = skydome + (x + skydomeX * y) * skydomeN;
 			return float3(uint3(pixelOffset[0], pixelOffset[1], pixelOffset[2]))/255;
 		}
@@ -1137,9 +1138,9 @@ namespace Tmpl8 {
 		float totalFrames;
 		bool raytracer = true;
 		float mediumIr = 1.0f;
-		bool defaultAnim = false;
+		bool defaultAnim = true;
 		bool animOn = raytracer && defaultAnim; // set to false while debugging to prevent some cast error from primitive object type
-		bool useTLAS = true;
+		bool useTLAS = false;
 		const float3 white = float3(1.0, 1.0, 1.0);
 		const float3 red = float3(255, 0, 0) / 255;
 		const float3 blue = float3(0, 0, 255) / 255;
