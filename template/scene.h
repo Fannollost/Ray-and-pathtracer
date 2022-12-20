@@ -796,7 +796,7 @@ namespace Tmpl8 {
 			//Loading sky texture
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.8f, 0.2f, 1, raytracer);
-			diffuse* redDiff = new diffuse(float3(0.8f), red, 0, 1, 0, raytracer);
+			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.8f, 0.2f, 1, raytracer);
 			diffuse* whiteDiff = new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer);
 			diffuse* greenDiff = new diffuse(float3(0.8f), green, 0.6f, 0.4f, 2, raytracer);
 			glass* standardGlass = new glass(1.5f, white, float3(0.00f), 0.0f, 0, raytracer);
