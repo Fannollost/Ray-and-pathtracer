@@ -909,7 +909,6 @@ namespace Tmpl8 {
 
 			//Loading sky texture
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
-
 			diffuse* goldDiff = new diffuse(float3(0.8f), gold, 0.6f, 0.4f, 30, raytracer);
 
 			lights.push_back(new AreaLight(11, float3(1, 2.0f, 1), 10.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
@@ -924,10 +923,11 @@ namespace Tmpl8 {
 
 		void instantiateScene6() {
 			metal* goldMetal = new metal(0.7f, gold, raytracer);
-			diffuse* goldDiff = new diffuse(float3(0.8f), gold, 0.05, 0.95, 30, raytracer);
+			diffuse* goldDiff = new diffuse(float3(0.8f), gold, 0.6f, 0.4f, 1000, raytracer);
+			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.8f, 0.2f, 1, raytracer);
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
-			lights.push_back(new AreaLight(11, float3(1, 6.0f, 4), 2.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
-			lights.push_back(new AreaLight(12, float3(-1, 6.0f, 2), 2.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
+			lights.push_back(new AreaLight(11, float3(0, 6.0f, 0), 2.0f, white, 1.0f, float3(0, -1, 0), 2, raytracer));
+			//lights.push_back(new AreaLight(12, float3(-1, 6.0f, 2), 2.0f, white, 1.0f, float3(0, -1, 0), 2, raytracer));
 
 			meshes.push_back(Mesh(1, "Resources/BigB.obj", goldDiff, float3(0, 0.5f, 0), 1));
 			//meshes.push_back(Mesh(1, "Resources/lowBigB.obj", goldDiff, float3(0, 0, 3), 4));
@@ -1013,6 +1013,7 @@ namespace Tmpl8 {
 
 		bool IsOccluded(Ray& ray, float t_min) const
 		{
+			// - we potentially search beyond rayLength
 			float rayLength = ray.t;
 			for (int i = 0; i < size(planes); ++i)
 				if(planes[i].IsOccluding(ray, t_min)) return true;
@@ -1024,7 +1025,13 @@ namespace Tmpl8 {
 				if (meshes[i].IsOccluding(ray, t_min)) return true;
 
 			return false;
-			// - we potentially search beyond rayLength
+
+		}
+
+		bool IsOccluded(Ray& ray) const
+		{
+			if (useTLAS) return tl->IsOccluded(ray);
+			else return b->IsOccluded(ray);
 		}
 		float3 GetAlbedo(int objIdx, float3 I) const
 		{
@@ -1122,7 +1129,7 @@ namespace Tmpl8 {
 		const float3 blue = float3(0, 0, 255) / 255;
 		const float3 babyblue = float3(0.6f, 0.6f, 1.0f);
 		const float3 green = float3(0, 255, 0) / 255;
-		const float3 gold = float3(255, 215, 11) / 255;
+		const float3 gold = float3(218, 165, 32) / 255;
 		const float3 pink = float3(255, 20, 147) / 255;
 	};
 }

@@ -9,6 +9,7 @@ public:
     bvhInstance(bvh* blas) : bvh(blas) { SetTransform(mat4()); bounds = bvh->bounds; }
     void SetTransform(mat4& transform);
     void Intersect(Ray& ray);
+    bool IsOccluded(Ray& ray);
 private:
     bvh* bvh = 0;
     mat4 invTransform; // inverse transform

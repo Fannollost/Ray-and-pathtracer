@@ -90,3 +90,33 @@ void tlas::Intersect(Ray& ray)
         }
     }
 }
+
+bool tlas::IsOccluded(Ray& ray)
+{
+    TLASNode* node = &tlasNode[0], * stack[64];
+    uint stackPtr = 0;
+    while (1)
+    {
+        if (node->isLeaf())
+        {
+            if(blas[node->BLAS].IsOccluded(ray)) return true;
+            if (stackPtr == 0) break; else node = stack[--stackPtr];
+            continue;
+        }
+        TLASNode* child1 = &tlasNode[node->leftRight & 0x0000FFFF];
+        TLASNode* child2 = &tlasNode[node->leftRight >> 16];
+        float dist1 = bvh::IntersectAABB(ray, child1->aabbMin, child1->aabbMax);
+        float dist2 = bvh::IntersectAABB(ray, child2->aabbMin, child2->aabbMax);
+        if (dist1 > dist2) { swap(dist1, dist2); swap(child1, child2); }
+        if (dist1 == 1e30f)
+        {
+            if (stackPtr == 0) break; else node = stack[--stackPtr];
+        }
+        else
+        {
+            node = child1;
+            if (dist2 != 1e30f) stack[stackPtr++] = child2;
+        }
+    }
+    return false;
+}

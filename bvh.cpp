@@ -46,8 +46,6 @@ void bvh::Build() {
 	printf("BVH Build time : %5.2f ms \n", t.elapsed() * 1000);
 	dataCollector->UpdateNodeCount(nodesUsed);
 	dataCollector->UpdateBuildTime(t.elapsed() * 1000);
-	printf("BVH Build time : %5.2f ms \n", t.elapsed() * 1000);
-
 }
 
 Triangle bvh::getTriangle(uint idx) {
