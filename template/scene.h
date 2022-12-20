@@ -80,8 +80,9 @@ namespace Tmpl8 {
 		float3 GetNormal() { return normal; }
 		virtual float3 GetLightPosition() { return pos; }
 		float3 GetLightColor() { return col; }
-		virtual float3 GetLightIntensityAt(float3 p, float3 n) { return 1; }
+		virtual float3 GetLightIntensityAt(float3 p, float3 n, float3 from) { return 1; }
 		virtual void Intersect (Ray& ray, float t_min) { return; }
+		virtual void updateTracing(bool rt) {raytracer = rt;}
 		float3 pos;
 		bool raytracer;
 		float3 col;
@@ -117,20 +118,22 @@ namespace Tmpl8 {
 
 
 		}
-		float3 GetLightIntensityAt(float3 p, float3 n) override {
-			float dis = length(pos - p);
-			float3 dir = pos - p;
+		float3 GetLightIntensityAt(float3 p, float3 n, float3 from) override {
+			float dis = length(from - p);
+			float3 dir = from - p;
 			float cos_ang = dot(normalize(n), normalize(dir));
 
 			float relStr = 1 / (dis * PI) * strength;
-			float str = dot(n, normalize(dir));
-			if (dis <= radius && isZero(cos_ang)) return float3(strength);
-			return relStr * str * GetLightColor();
+			float str = clamp(dot(n, normalize(dir)),0.0f,1.0f);
+			if (dis <= radius && isZero(cos_ang)) return float3(strength*GetLightColor());
+			return str * relStr * GetLightColor();
 		}
+
+
 		float3 GetLightPosition() override {
 			if (raytracer) return pos;
 			float newRad = radius * sqrt(RandomFloat());
-			float theta = random(-1.0f, 1.0f) * 2 * PI;
+			float theta = RandomFloat() * 2 * PI;
 			return float3(pos.x + newRad * cos(theta), pos.y + newRad * sin(theta), pos.z);
 		}
 		int samples;
@@ -150,7 +153,7 @@ namespace Tmpl8 {
 		float3 GetLightPosition() override {
 			return pos;
 		}
-		float3 GetLightIntensityAt(float3 p, float3 n) override {
+		float3 GetLightIntensityAt(float3 p, float3 n, float3 from) override {
 			float3 dir = p - pos;
 			float sTheta = length(cross(dir, normal)) / length(dir) * length(normal);
 			if (dot(dir, normal) < 0) {
@@ -798,7 +801,7 @@ namespace Tmpl8 {
 			diffuse* whiteDiff = new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer);
 			diffuse* greenDiff = new diffuse(float3(0.8f), green, 0.6f, 0.4f, 2, raytracer);
 			glass* standardGlass = new glass(1.5f, white, float3(0.00f), 0.0f, 0, raytracer);
-			glass* blueGlass = new glass(1.5f, babyblue, float3(0.1f), 0.0f, 0, raytracer);
+			glass* blueGlass = new glass(1.5f, babyblue, float3(0.0f), 0.0f, 0, raytracer);
 			metal* blueMetal = new metal(0.7f, blue, raytracer);
 			metal* standardMetal = new metal(0.7f, white, raytracer);
 			metal* greenMetal = new metal(0.7f, green, raytracer);
@@ -806,19 +809,21 @@ namespace Tmpl8 {
 			metal* yellowMetal = new metal(0.7f, gold, raytracer);
 			metal* pinkMetal = new metal(0.7f, pink, raytracer);
 			// we store all primitives in one continuous buffer
-			lights.push_back(new AreaLight(11, float3(1, 2.0f, 1), 10.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
-			lights.push_back(new AreaLight(12, float3(-1, 2.0f, -1), 5.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
+			lights.push_back(new AreaLight(11, float3(-1, 2.0f, -1), 4.0f, white, 3.0f, float3(0, -1, 0), 4, raytracer));
+			//lights.push_back(new AreaLight(12, float3(1, 2.0f, 1), 10.0f, white, 2.0f, float3(0, -1, 0), 4, raytracer));
+			//lights.push_back(new Light(11, float3(1, 2.0f, 1), 4, white, float3(0, -1, 0), raytracer));
+			//lights.push_back(new Light(11, float3(-1, 2.0f, -1), 4, white, float3(0, -1, 0), raytracer));
 
 			planes.push_back(Plane(0, whiteDiff, float3(0, 1, 0), 1));			// 0: floor
 			planes.push_back(Plane(4, blueDiff, float3(0, 0, -1), 10));			// 4: front wall
 			planes.push_back(Plane(1, greenDiff, float3(-1, 0, 0), 2.99f));		// 1: right wall
 
-			spheres.push_back(Sphere(7, standardGlass, float3(-0.7f, -0.5f, 2.0f), 0.5f));
+			spheres.push_back(Sphere(7, redDiff, float3(-0.7f, -0.5f, 2.0f), 0.5f));
 			spheres.push_back(Sphere(8, blueGlass, float3(-1.9f, -0.5f, 2.0f), 0.5f));
 			spheres.push_back(Sphere(9, yellowMetal, float3(-3.1f, -0.5f, 2.0f), 0.5f));
 			spheres.push_back(Sphere(6, pinkMetal, float3(-4.3f, -0.5f, 2.0f), 0.5f));
 			//triangles.push_back(Mesh(10, standardMetal, "Resources/icos.obj", float3(0.5f, -0.51f, 2), 0.5f));
-			meshes.push_back(Mesh(1,"Resources/unity.tri", redDiff));
+			meshes.push_back(Mesh(1,"Resources/unity.tri", redMetal));
 		}
 
 
@@ -930,14 +935,14 @@ namespace Tmpl8 {
 		}
 
 		void instantiateScene6() {
-			metal* goldMetal = new metal(0.7f, gold, raytracer);
-			diffuse* goldDiff = new diffuse(float3(0.8f), gold, 0.6f, 0.4f, 1000, raytracer);
+			metal* goldMetal = new metal(0.7f, white, raytracer);
+			diffuse* goldDiff = new diffuse(float3(0.8f), gold, 0.8f, 0.2f, 1, raytracer);
 			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.8f, 0.2f, 1, raytracer);
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
-			lights.push_back(new AreaLight(11, float3(0, 6.0f, 0), 2.0f, white, 1.0f, float3(0, -1, 0), 2, raytracer));
-			//lights.push_back(new AreaLight(12, float3(-1, 6.0f, 2), 2.0f, white, 1.0f, float3(0, -1, 0), 2, raytracer));
+			//lights.push_back(new Light(11, float3(0, 6.0f, 0), 4, white, float3(0, -1, 0), raytracer));
+			lights.push_back(new AreaLight(11, float3(0, 6.0f, 0), 8.0f, white, 2.0f, float3(0, -1, 0), 2, raytracer));
 
-			meshes.push_back(Mesh(1, "Resources/BigB.obj", goldDiff, float3(0, 0.5f, 0), 1));
+			meshes.push_back(Mesh(1, "Resources/lowBigB.obj", goldMetal, float3(0, 0.0f, 0), 1));
 			//meshes.push_back(Mesh(1, "Resources/lowBigB.obj", goldDiff, float3(0, 0, 3), 4));
 			bvhList = new bvhInstance[bvhCount];
 			Transforms = new mat4[bvhCount];
@@ -1070,8 +1075,10 @@ namespace Tmpl8 {
 			sOrient = sOrient > 0 ? 1 : -1;
 			int y = ((cHeight + 1) / 2) * (skydomeY-1);
 			int x = (((sOrient * acos(cOrient))+PI)/ TWOPI )* (skydomeX-1);
-			if (x >= skydomeX) x  = skydomeX - 1;
-			if (y >= skydomeY) y  = skydomeY - 1;
+			if (x >= skydomeX) x  = skydomeX ;
+			if (y >= skydomeY) y  = skydomeY ;
+			if (y <0) y  = 0 ;
+			if (x<0) x=0 ;
 			uint8_t* pixelOffset = skydome + (x + skydomeX * y) * skydomeN;
 			return float3(uint3(pixelOffset[0], pixelOffset[1], pixelOffset[2]))/255;
 		}
@@ -1103,6 +1110,7 @@ namespace Tmpl8 {
 			raytracer = !raytracer;
 			SetIterationNumber(1);
 			animOn = raytracer && defaultAnim;
+			for (int i = 0; i < size(lights); ++i) lights[i]->updateTracing(raytracer);
 		}
 
 		__declspec(align(64)) // start a new cacheline here

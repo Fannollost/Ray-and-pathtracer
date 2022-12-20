@@ -238,14 +238,12 @@ void bvh::SubdividePrim(uint nodeIdx) {
 }
 
 void bvh::Subdivide(uint nodeIdx) {
-
 	BVHNode& node = bvhNode[nodeIdx];
 	// determine split axis using SAH
 	int axis; float splitPos;
 	switch (splitMethod) {
 		case SplitMethod::BINNEDSAH: {
 			float splitCost = FindBestSplitPlane(node, axis, splitPos);
-			
 			float nosplitCost = CalculateNodeCost(node);
 			if (splitCost >= nosplitCost) return;
 			break;
@@ -399,16 +397,10 @@ void bvh::Intersect(Ray& ray) {
 	BVHNode* node = &bvhNode[rootNodeIdx], *stack[64];
 	uint stackPtr = 0;
 	int traversalSteps = 0;
-	// backup ray and transform original
-	Ray backupRay = ray;
-	ray.O = TransformPosition(ray.O, invTransform);
-	ray.D = TransformVector(ray.D, invTransform);
-	ray.rD = float3(1 / ray.D.x, 1 / ray.D.y, 1 / ray.D.z);
 
 	// trace transformed ray
 	while(1){
 		traversalSteps++;
-		if (!IntersectAABB(ray, node->aabbMin, node->aabbMax)) return;
 		if (node->primCount > 0) {
 			for (uint i = 0; i < node->primCount; i++) {
 				uint primIdx = primitiveIdx[node->leftFirst + i];
