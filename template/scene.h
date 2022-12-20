@@ -1140,7 +1140,7 @@ namespace Tmpl8 {
 		float mediumIr = 1.0f;
 		bool defaultAnim = false;
 		bool animOn = raytracer && defaultAnim; // set to false while debugging to prevent some cast error from primitive object type
-		bool useTLAS = false;
+		bool useTLAS = true;
 		const float3 white = float3(1.0, 1.0, 1.0);
 		const float3 red = float3(255, 0, 0) / 255;
 		const float3 blue = float3(0, 0, 255) / 255;
