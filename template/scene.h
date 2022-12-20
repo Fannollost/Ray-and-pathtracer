@@ -1033,6 +1033,7 @@ namespace Tmpl8 {
 			if (useTLAS) return tl->IsOccluded(ray);
 			else return b->IsOccluded(ray);
 		}
+
 		float3 GetAlbedo(int objIdx, float3 I) const
 		{
 			if (objIdx == -1) return float3(0); // or perhaps we should just crash
