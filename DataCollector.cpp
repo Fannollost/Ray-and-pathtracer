@@ -12,11 +12,20 @@ void DataCollector::ResetDataCollector() {
 	maxTreeDepth = 0;
 	currDepth = 0;
 	averagePrimitivePerScreen = 0;
+	bvhBuildTime = 0;
+	averageFPS = 0;
 	averageTraversalStepsPerScreen = 0;	
 }
 
+void DataCollector::UpdateBuildTime(float bt) {
+	bvhBuildTime = bt;
+}
 void DataCollector::UpdateNodeCount(int nc) {
 	nodeCount += nc;
+}
+
+void DataCollector::UpdateFPS(float fps) {
+	averageFPS += fps;
 }
 
 void DataCollector::UpdateSummedArea(float3 aabbMin, float3 aabbMax) {
@@ -37,6 +46,10 @@ void DataCollector::UpdateIntersectedPrimitives() {
 
 float DataCollector::GetIntersectedPrimitives(int frameNumber) {
 	return intersectedPrimitiveCountPerIteration / frameNumber;
+}
+
+float DataCollector::GetAverageFPS(int frameNumber) {
+	return averageFPS / frameNumber;
 }
 
 float DataCollector::GetAverageTraversalSteps(int frameNumber) {

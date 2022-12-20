@@ -34,6 +34,13 @@ struct aabb
 	}
 };
 
+enum SplitMethod {
+	BINNEDSAH = 0,
+	MIDDLE = 1,
+	LONGESTAXIS = 2,
+	SAH = 3
+};
+
 class bvh
 {
 	public:
@@ -49,6 +56,7 @@ class bvh
 		float EvaluateSAH(BVHNode &node, int axis, float pos);
 		float CalculateNodeCost(BVHNode& node);
 		float FindBestSplitPlane(BVHNode& node, int& axis, float& splitPos);
+		
 		void Split(uint nodeIdx);
 		void SubdividePrim(uint rootNodeIdx);
 		bool IsOccluded(Ray& ray);
@@ -63,6 +71,8 @@ class bvh
 		mat4 invTransform;
 		aabb bounds;
 		class DataCollector* dataCollector;
+		int splitMethod;
+		
 };
 
 struct Bin { aabb bounds; int primCount = 0; };

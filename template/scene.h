@@ -711,21 +711,37 @@ namespace Tmpl8 {
 		
 		void ExportData() {
 			std::ofstream myFile(exportFile);
+
 			for (int i = 0; i < size(names); ++i) {
-				myFile << names[i];
-				if (i != size(names) - 1) myFile << ",";
+				myFile << names[i] << ",";
+				switch (i) {
+				case 0: 
+					myFile << b->dataCollector->GetNodeCount() << "\n";
+					break;
+				case 1:
+					myFile << b->dataCollector->GetSummedNodeArea() << "\n";
+					break;
+				case 2:
+					myFile << b->dataCollector->GetIntersectedPrimitives(totIterationNumber) / (1280 * 720) << "\n";
+					break;
+				case 3:
+					myFile << b->dataCollector->GetAverageTraversalSteps(totIterationNumber) / (1280 * 720) << "\n";
+					break;
+				case 4:
+					myFile << b->dataCollector->GetTreeDepth() << "\n";
+					break;
+				case 5:
+					myFile << totalFrames / totIterationNumber << "\n";
+					break;
+				case 6: 
+					myFile << b->dataCollector->GetBuildTime();
+					break;
+				}
 			}
-			myFile << "\n";
 			//cout << b->dataCollector->GetTreeDepth() << endl;
 			//Insert for loop over all BVH's?
 			// {
-			myFile << b->dataCollector->GetNodeCount() << ",";
-			myFile << b->dataCollector->GetSummedNodeArea() << ",";
 			//We should check if we want this per ray or per screen. Per screen gives some big ass numbers haha
-			myFile << b->dataCollector->GetIntersectedPrimitives(totIterationNumber) / (1280 * 720) << ",";	
-			myFile << b->dataCollector->GetAverageTraversalSteps(totIterationNumber) / (1280 * 720) << ",";
-			myFile << b->dataCollector->GetTreeDepth();
-			myFile << "\n";
 			b->dataCollector->ResetDataCollector();
 			// }
 			myFile.close();
@@ -789,8 +805,8 @@ namespace Tmpl8 {
 			planes.push_back(Plane(4, blueDiff, float3(0, 0, -1), 10));			// 4: front wall
 			planes.push_back(Plane(1, greenDiff, float3(-1, 0, 0), 2.99f));		// 1: right wall
 
-			spheres.push_back(Sphere(7, blueMetal, float3(-0.7f, -0.5f, 2.0f), 0.5f));
-			spheres.push_back(Sphere(8, greenMetal, float3(-1.9f, -0.5f, 2.0f), 0.5f));
+			spheres.push_back(Sphere(7, standardGlass, float3(-0.7f, -0.5f, 2.0f), 0.5f));
+			spheres.push_back(Sphere(8, blueGlass, float3(-1.9f, -0.5f, 2.0f), 0.5f));
 			spheres.push_back(Sphere(9, yellowMetal, float3(-3.1f, -0.5f, 2.0f), 0.5f));
 			spheres.push_back(Sphere(6, pinkMetal, float3(-4.3f, -0.5f, 2.0f), 0.5f));
 			//triangles.push_back(Mesh(10, standardMetal, "Resources/icos.obj", float3(0.5f, -0.51f, 2), 0.5f));
@@ -1065,6 +1081,8 @@ namespace Tmpl8 {
 
 		int GetIterationNumber() { return iterationNumber; }
 
+		void SetFPS(float fps) { totalFrames += fps; }
+
 		void toogleRaytracer() {
 			raytracer = !raytracer;
 			SetIterationNumber(1);
@@ -1078,7 +1096,7 @@ namespace Tmpl8 {
 		string exportFile = "bvhData.csv";
 		vector<string> names = { "Total Node Count", "Summed Node Area"
 			, "Average Primitive Intersections per screen", "Average Traversal Steps per screen",
-			"Max Tree Depth" };
+			"Max Tree Depth", "Average FPS", "BVH Build time"};
 
 		unsigned char* skydome;
 		bvh* b; tlas* tl; bvhInstance* bvhList; 
