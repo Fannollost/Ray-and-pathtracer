@@ -1111,6 +1111,7 @@ namespace Tmpl8 {
 		int invAaSamples = 1 / aaSamples;
 		int iterationNumber = 1;
 		int totIterationNumber = 0;
+		float totalFrames;
 		bool raytracer = true;
 		float mediumIr = 1.0f;
 		bool defaultAnim = false;
