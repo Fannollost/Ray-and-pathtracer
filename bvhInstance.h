@@ -10,10 +10,10 @@ public:
     void SetTransform(mat4& transform);
     void Intersect(Ray& ray);
 private:
-    bvh* bvh = 0;
     mat4 invTransform; // inverse transform
     mat4 matTransform;
 public:
+    bvh* bvh = 0;
     Tmpl8::aabb bounds; // in world space
 };
 

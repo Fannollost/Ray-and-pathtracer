@@ -714,35 +714,43 @@ namespace Tmpl8 {
 
 			for (int i = 0; i < size(names); ++i) {
 				myFile << names[i] << ",";
-				switch (i) {
-				case 0: 
-					myFile << b->dataCollector->GetNodeCount() << "\n";
-					break;
-				case 1:
-					myFile << b->dataCollector->GetSummedNodeArea() << "\n";
-					break;
-				case 2:
-					myFile << b->dataCollector->GetIntersectedPrimitives(totIterationNumber) / (1280 * 720) << "\n";
-					break;
-				case 3:
-					myFile << b->dataCollector->GetAverageTraversalSteps(totIterationNumber) / (1280 * 720) << "\n";
-					break;
-				case 4:
-					myFile << b->dataCollector->GetTreeDepth() << "\n";
-					break;
-				case 5:
-					myFile << totalFrames / totIterationNumber << "\n";
-					break;
-				case 6: 
-					myFile << b->dataCollector->GetBuildTime();
-					break;
+				for (int bi = 0; bi < bvhCount; bi++) {
+					switch (i) {
+					case 0: 
+						myFile << bvhList[bi].bvh->dataCollector->GetNodeCount();
+						break;
+					case 1:
+						myFile << bvhList[bi].bvh->dataCollector->GetSummedNodeArea();
+						break;
+					case 2:
+						myFile << bvhList[bi].bvh->dataCollector->GetIntersectedPrimitives(totIterationNumber) / (1280 * 720);
+						break;
+					case 3:
+						myFile << bvhList[bi].bvh->dataCollector->GetAverageTraversalSteps(totIterationNumber) / (1280 * 720);
+						break;
+					case 4:
+						myFile << bvhList[bi].bvh->dataCollector->GetTreeDepth();
+						break;
+					case 5:
+						myFile << totalFrames / totIterationNumber;
+						break;
+					case 6: 
+						myFile << bvhList[bi].bvh->dataCollector->GetBuildTime();
+						break;
+					}
+					if (bi != bvhCount - 1)
+						myFile << ",";
 				}
+				myFile << "\n";
 			}
+
+			for(int bi = 0; bi < bvhCount; bi++)
+				bvhList[bi].bvh->dataCollector->ResetDataCollector();
+
 			//cout << b->dataCollector->GetTreeDepth() << endl;
 			//Insert for loop over all BVH's?
 			// {
 			//We should check if we want this per ray or per screen. Per screen gives some big ass numbers haha
-			b->dataCollector->ResetDataCollector();
 			// }
 			myFile.close();
 
