@@ -10,6 +10,7 @@ bvh::bvh(Scene* s) {
 }
 bvh::bvh(Mesh* m) {
 	mesh = m;
+	splitMethod = BINNEDSAH;
 	scene = nullptr;
 	dataCollector = new DataCollector();
 }
@@ -298,6 +299,7 @@ void bvh::Subdivide(uint nodeIdx) {
 	{
 		uint primIdx = primitiveIdx[i];
 		if (primIdx < NTri) {
+			//if (axis > 2)cout << axis << endl;
 			if (getTriangle(primIdx).centroid[axis] < splitPos)
 				i++;
 			else

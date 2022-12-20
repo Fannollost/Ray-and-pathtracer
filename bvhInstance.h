@@ -12,6 +12,7 @@ public:
     bool IsOccluded(Ray& ray);
 private:
     mat4 invTransform; // inverse transform
+    mat4 matTransform;
 public:
     bvh* bvh = 0;
     Tmpl8::aabb bounds; // in world space

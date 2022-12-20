@@ -126,7 +126,7 @@ namespace Tmpl8 {
 			float relStr = 1 / (dis * PI) * strength;
 			float str = clamp(dot(n, normalize(dir)),0.0f,1.0f);
 			if (dis <= radius && isZero(cos_ang)) return float3(strength*GetLightColor());
-			return str * relStr * GetLightColor();
+			return relStr * GetLightColor();
 		}
 
 
@@ -809,7 +809,7 @@ namespace Tmpl8 {
 			metal* yellowMetal = new metal(0.7f, gold, raytracer);
 			metal* pinkMetal = new metal(0.7f, pink, raytracer);
 			// we store all primitives in one continuous buffer
-			lights.push_back(new AreaLight(11, float3(-1, 2.0f, -1), 4.0f, white, 3.0f, float3(0, -1, 0), 4, raytracer));
+			lights.push_back(new AreaLight(11, float3(-1, 4.0f, -1), 16.0f, white, 3.0f, float3(0, -1, 0), 4, raytracer));
 			//lights.push_back(new AreaLight(12, float3(1, 2.0f, 1), 10.0f, white, 2.0f, float3(0, -1, 0), 4, raytracer));
 			//lights.push_back(new Light(11, float3(1, 2.0f, 1), 4, white, float3(0, -1, 0), raytracer));
 			//lights.push_back(new Light(11, float3(-1, 2.0f, -1), 4, white, float3(0, -1, 0), raytracer));
@@ -940,9 +940,9 @@ namespace Tmpl8 {
 			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.8f, 0.2f, 1, raytracer);
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 			//lights.push_back(new Light(11, float3(0, 6.0f, 0), 4, white, float3(0, -1, 0), raytracer));
-			lights.push_back(new AreaLight(11, float3(0, 6.0f, 0), 8.0f, white, 2.0f, float3(0, -1, 0), 2, raytracer));
+			lights.push_back(new AreaLight(11, float3(0, 6.0f, 0), 16.0f, white, 2.0f, float3(0, -1, 0), 2, raytracer));
 
-			meshes.push_back(Mesh(1, "Resources/lowBigB.obj", goldMetal, float3(0, 0.0f, 0), 1));
+			meshes.push_back(Mesh(1, "Resources/BigB.obj", redDiff, float3(0, 0.5f, 0), 1));
 			//meshes.push_back(Mesh(1, "Resources/lowBigB.obj", goldDiff, float3(0, 0, 3), 4));
 			bvhList = new bvhInstance[bvhCount];
 			Transforms = new mat4[bvhCount];

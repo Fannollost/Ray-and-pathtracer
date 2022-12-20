@@ -13,7 +13,7 @@ void bvhInstance::Intersect(Ray& ray)
         backupRay.m = ray.m;
         backupRay.t = ray.t;
         backupRay.objIdx = ray.objIdx;
-        backupRay.hitNormal = normalize(TransformVector(ray.hitNormal, invTransform));
+        backupRay.hitNormal = normalize(TransformVector(ray.hitNormal, matTransform));
     }
     
     //restore ray origin and direction
@@ -36,6 +36,7 @@ bool bvhInstance::IsOccluded(Ray& ray)
 
 void bvhInstance::SetTransform(mat4& transform) {
     invTransform = transform.Inverted();
+    matTransform = transform;
     // calculate world-space bounds using the new matrix
     float3 bmin = bvh->bounds.bmin, bmax = bvh->bounds.bmax;
     for (int i = 0; i < 8; i++)
