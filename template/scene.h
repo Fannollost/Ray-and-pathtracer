@@ -692,12 +692,12 @@ namespace Tmpl8 {
 			
 			
 			if (useTLAS) {
-				instantiateScene6();
+				TLASSceneTest();
 				tl = new tlas(bvhList, bvhCount);
 				tl->build();
 			}
 			else {
-				instantiateScene2();
+				instantiateChristScene();
 
 				b = new bvh(this);
 				b->Build();
@@ -757,6 +757,77 @@ namespace Tmpl8 {
 			myFile.close();
 
 		}
+
+		void instantiateEifelScene() {
+			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
+			diffuse* lightDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 1200, raytracer, 1.2f);
+			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.6f, 0.4f, 2, raytracer);
+			planes.push_back(Plane(2, lightDiff, float3(0, 1, 0), 1));			// 2: floor
+			lights.push_back(new AreaLight(11, float3(0.1f, 7.0f, 5.0f), 8.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
+			metal* standardMetal = new metal(0.7f, white, raytracer);
+			meshes.push_back(Mesh(2, "Resources/eifel.obj", standardMetal, float3(0, -1.0f, 5.0f), 0.08f));
+		}
+
+		void instantiateBigBScene() {
+			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
+			diffuse* lightDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 1200, raytracer, 1.2f);
+			planes.push_back(Plane(2, lightDiff, float3(0, 1, 0), 1));			// 2: floor
+			lights.push_back(new AreaLight(11, float3(0.1f, 7.0f, 5.0f), 8.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
+			metal* standardMetal = new metal(0.7f, white, raytracer);
+			metal* yellowMetal = new metal(0.7f, gold, raytracer);
+			meshes.push_back(Mesh(2, "Resources/BigB.obj", yellowMetal, float3(0, 2.3f, 5.0f), 6.0f));
+		}
+
+		void instantiateChristScene() {
+			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
+			diffuse* lightDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 1200, raytracer, 1.2f);
+			planes.push_back(Plane(2, lightDiff, float3(0, 1, 0), 1));			// 2: floor
+			lights.push_back(new AreaLight(11, float3(0.1f, 7.0f, 5.0f), 8.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
+			metal* standardMetal = new metal(0.7f, white, raytracer);
+			metal* yellowMetal = new metal(0.7f, gold, raytracer);
+			meshes.push_back(Mesh(2, "Resources/christ.obj", yellowMetal, float3(0, 0.0f, 5.5f), 0.2f));
+		}
+
+		void TLASSceneTest() {
+			metal* standardMetal = new metal(0.7f, white, raytracer);
+			metal* goldMetal = new metal(0.7f, gold, raytracer);
+			glass* standardGlass = new glass(1.5f, white, float3(0.00f), 0.0f, 0, raytracer);
+
+			diffuse* goldDiff = new diffuse(float3(0.8f), gold, 0.8f, 0.2f, 1, raytracer);
+			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.0f, 1, 1, raytracer);
+			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
+			//lights.push_back(new Light(11, float3(0, 6.0f, 0), 4, white, float3(0, -1, 0), raytracer));
+			lights.push_back(new AreaLight(11, float3(0, 6.0f, 0), 16.0f, white, 2.0f, float3(0, -1, 0), 2, raytracer));
+
+			meshes.push_back(Mesh(1, "Resources/BigB.obj", redDiff, float3(0, 0.5f, 0), 1));
+			meshes.push_back(Mesh(2, "Resources/christ.obj", goldMetal, float3(0,0.5f, 0), 1));
+			meshes.push_back(Mesh(3, "Resources/eifel.obj", standardMetal, float3(0,0.5f,0),1));
+
+			//meshes.push_back(Mesh(1, "Resources/lowBigB.obj", goldDiff, float3(0, 0, 3), 4));
+			bvhList = new bvhInstance[bvhCount];
+			Transforms = new mat4[bvhCount];
+
+			bvh* b = new bvh(&meshes[0]);
+			bvh* b1 = new bvh(&meshes[1]);
+			bvh* b2 = new bvh(&meshes[2]);
+			b->Build();
+			b1->Build();
+			b2->Build();
+
+			Transforms[0] = mat4::Translate(float3(0, 0, 3)) * mat4::Scale(4) * mat4::RotateX(0) * mat4::RotateY((float)PI * 0.5f) * mat4::RotateZ(0);
+			bvhList[0] = bvhInstance(b);
+			bvhList[0].SetTransform(Transforms[0]);
+			Transforms[1] = mat4::Translate(float3(2, 0, 3)) * mat4::Scale(0.2f) * mat4::RotateX(0) * mat4::RotateY((float)PI) * mat4::RotateZ(0);
+			bvhList[1] = bvhInstance(b1);
+			bvhList[1].SetTransform(Transforms[1]);
+			Transforms[2] = mat4::Translate(float3(-2.3, 0, 3)) * mat4::Scale(0.07f) * mat4::RotateX(0) * mat4::RotateY((float)PI * 0.5f) * mat4::RotateZ(0);
+			bvhList[2] = bvhInstance(b2);
+			bvhList[2].SetTransform(Transforms[2]);
+
+			planes.push_back(Plane(0, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 0));			// 2: floor
+			spheres.push_back(Sphere(7, goldDiff, float3(1.8f, -0.5f, 2.0f), 0.5f));
+		}
+
 
 
 		void instantiateScene1() {
@@ -822,7 +893,7 @@ namespace Tmpl8 {
 			spheres.push_back(Sphere(9, yellowMetal, float3(-3.1f, -0.5f, 2.0f), 0.5f));
 			spheres.push_back(Sphere(6, pinkMetal, float3(-4.3f, -0.5f, 2.0f), 0.5f));
 			//triangles.push_back(Mesh(10, standardMetal, "Resources/icos.obj", float3(0.5f, -0.51f, 2), 0.5f));
-			meshes.push_back(Mesh(1,"Resources/unity.tri", redMetal));
+			meshes.push_back(Mesh(2,"Resources/eifel.obj", standardMetal, float3(0,-1.0f,0), 0.08f));
 		}
 
 
@@ -935,6 +1006,8 @@ namespace Tmpl8 {
 
 		void instantiateScene6() {
 			metal* goldMetal = new metal(0.7f, white, raytracer);
+			glass* standardGlass = new glass(1.5f, white, float3(0.00f), 0.0f, 0, raytracer);
+
 			diffuse* goldDiff = new diffuse(float3(0.8f), gold, 0.8f, 0.2f, 1, raytracer);
 			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.0f, 1, 1, raytracer);
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
@@ -942,12 +1015,16 @@ namespace Tmpl8 {
 			lights.push_back(new AreaLight(11, float3(0, 6.0f, 0), 16.0f, white, 2.0f, float3(0, -1, 0), 2, raytracer));
 
 			meshes.push_back(Mesh(1, "Resources/BigB.obj", redDiff, float3(0, 0.5f, 0), 1));
+			meshes.push_back(Mesh(2, "Resources/car.obj", redDiff));
+
 			//meshes.push_back(Mesh(1, "Resources/lowBigB.obj", goldDiff, float3(0, 0, 3), 4));
 			bvhList = new bvhInstance[bvhCount];
 			Transforms = new mat4[bvhCount];
 
 			bvh *b = new bvh(&meshes[0]);
+			bvh *b1 = new bvh(&meshes[1]);
 			b->Build();
+			b1->Build();
 			
 			Transforms[0] =  mat4::Translate(float3(0, 0, 3)) * mat4::Scale(4) * mat4::RotateX(0) * mat4::RotateY((float)PI * 0.5f) * mat4::RotateZ(0);
 			bvhList[0] = bvhInstance(b);
@@ -958,11 +1035,12 @@ namespace Tmpl8 {
 			Transforms[2] = mat4::Translate(float3(2, 0, -3)) * mat4::Scale(4) * mat4::RotateX(0) * mat4::RotateY((float)PI * 0.5f) * mat4::RotateZ(0);
 			bvhList[2] = bvhInstance(b);
 			bvhList[2].SetTransform(Transforms[2]);
-			Transforms[3] = mat4::Translate(float3(2, 0, 1)) * mat4::Scale(4) * mat4::RotateX(0) * mat4::RotateY((float)PI * 0.5f) * mat4::RotateZ(0);
-			bvhList[3] = bvhInstance(b);
+			Transforms[3] = mat4::Translate(float3(2, 1, 1)) * mat4::Scale(1) * mat4::RotateX(0) * mat4::RotateY((float)PI * 0.5f) * mat4::RotateZ(0);
+			bvhList[3] = bvhInstance(b1);
 			bvhList[3].SetTransform(Transforms[3]);
 
 			planes.push_back(Plane(0, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 0));			// 2: floor
+			spheres.push_back(Sphere(7, goldDiff, float3(1.8f, -0.5f, 2.0f), 0.5f));
 		}
 
 
@@ -1124,7 +1202,7 @@ namespace Tmpl8 {
 
 		unsigned char* skydome;
 		bvh* b; tlas* tl; bvhInstance* bvhList; 
-		uint bvhCount = 4;
+		uint bvhCount = 3;
 		mat4* Transforms;
 		vector<Light*> lights;
 		vector<Cube> cubes;
