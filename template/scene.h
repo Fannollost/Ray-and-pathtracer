@@ -692,7 +692,7 @@ namespace Tmpl8 {
 			
 			
 			if (useTLAS) {
-				TLASSceneTest();
+				TLASSceneTest2();
 				tl = new tlas(bvhList, bvhCount);
 				tl->build();
 			}
@@ -716,46 +716,72 @@ namespace Tmpl8 {
 
 			for (int i = 0; i < size(names); ++i) {
 				myFile << names[i] << ",";
-				for (int bi = 0; bi < bvhCount; bi++) {
+				if(useTLAS){
+					for (int bi = 0; bi < bvhCount; bi++) {
+						switch (i) {
+						case 0: 
+							myFile << bvhList[bi].bvh->dataCollector->GetNodeCount();
+							break;
+						case 1:
+							myFile << bvhList[bi].bvh->dataCollector->GetSummedNodeArea();
+							break;
+						case 2:
+							myFile << bvhList[bi].bvh->dataCollector->GetIntersectedPrimitives(totIterationNumber) / (1280 * 720);
+							break;
+						case 3:
+							myFile << bvhList[bi].bvh->dataCollector->GetAverageTraversalSteps(totIterationNumber) / (1280 * 720);
+							break;
+						case 4:
+							myFile << bvhList[bi].bvh->dataCollector->GetTreeDepth();
+							break;
+						case 5:
+							myFile << totalFrames / totIterationNumber;
+							break;
+						case 6: 
+							myFile << bvhList[bi].bvh->dataCollector->GetBuildTime();
+							break;
+						}
+						if (bi != bvhCount - 1)
+							myFile << ",";
+					}
+				}
+				else {
 					switch (i) {
-					case 0: 
-						myFile << bvhList[bi].bvh->dataCollector->GetNodeCount();
-						break;
-					case 1:
-						myFile << bvhList[bi].bvh->dataCollector->GetSummedNodeArea();
-						break;
-					case 2:
-						myFile << bvhList[bi].bvh->dataCollector->GetIntersectedPrimitives(totIterationNumber) / (1280 * 720);
-						break;
-					case 3:
-						myFile << bvhList[bi].bvh->dataCollector->GetAverageTraversalSteps(totIterationNumber) / (1280 * 720);
-						break;
-					case 4:
-						myFile << bvhList[bi].bvh->dataCollector->GetTreeDepth();
-						break;
-					case 5:
+					case 0:
+						myFile << b->dataCollector->GetNodeCount();
+						break;	  
+					case 1:		  
+						myFile << b->dataCollector->GetSummedNodeArea();
+						break;	  
+					case 2:		
+						myFile << b->dataCollector->GetIntersectedPrimitives(totIterationNumber) / (1280 * 720);
+						break;	  
+					case 3:		  
+						myFile << b->dataCollector->GetAverageTraversalSteps(totIterationNumber) / (1280 * 720);
+						break;	  
+					case 4:		  
+						myFile << b->dataCollector->GetTreeDepth();
+						break;	  
+					case 5:		  
 						myFile << totalFrames / totIterationNumber;
-						break;
-					case 6: 
-						myFile << bvhList[bi].bvh->dataCollector->GetBuildTime();
+						break;	  
+					case 6:		  
+						myFile << b->dataCollector->GetBuildTime();
 						break;
 					}
-					if (bi != bvhCount - 1)
-						myFile << ",";
 				}
 				myFile << "\n";
 			}
 
-			for(int bi = 0; bi < bvhCount; bi++)
-				bvhList[bi].bvh->dataCollector->ResetDataCollector();
 
 			//cout << b->dataCollector->GetTreeDepth() << endl;
 			//Insert for loop over all BVH's?
 			// {
 			//We should check if we want this per ray or per screen. Per screen gives some big ass numbers haha
 			// }
+			exported = true;
+			cout << "Exported Data!" << endl;
 			myFile.close();
-
 		}
 
 		void instantiateEifelScene() {
@@ -785,7 +811,7 @@ namespace Tmpl8 {
 			lights.push_back(new AreaLight(11, float3(0.1f, 7.0f, 5.0f), 8.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
 			metal* standardMetal = new metal(0.7f, white, raytracer);
 			metal* yellowMetal = new metal(0.7f, gold, raytracer);
-			meshes.push_back(Mesh(2, "Resources/christ.obj", yellowMetal, float3(0, 0.0f, 5.5f), 0.2f));
+			meshes.push_back(Mesh(2, "Resources/christ.obj", yellowMetal, float3(0, -0.5f, 6.2f), 0.3f));
 		}
 
 		void TLASSceneTest() {
@@ -802,7 +828,6 @@ namespace Tmpl8 {
 			meshes.push_back(Mesh(1, "Resources/BigB.obj", redDiff, float3(0, 0.5f, 0), 1));
 			meshes.push_back(Mesh(2, "Resources/christ.obj", goldMetal, float3(0,0.5f, 0), 1));
 			meshes.push_back(Mesh(3, "Resources/eifel.obj", standardMetal, float3(0,0.5f,0),1));
-
 			//meshes.push_back(Mesh(1, "Resources/lowBigB.obj", goldDiff, float3(0, 0, 3), 4));
 			bvhList = new bvhInstance[bvhCount];
 			Transforms = new mat4[bvhCount];
@@ -828,7 +853,38 @@ namespace Tmpl8 {
 			spheres.push_back(Sphere(7, goldDiff, float3(1.8f, -0.5f, 2.0f), 0.5f));
 		}
 
+		void TLASSceneTest2() {
+			metal* standardMetal = new metal(0.7f, white, raytracer);
+			metal* goldMetal = new metal(0.7f, gold, raytracer);
+			glass* standardGlass = new glass(1.5f, white, float3(0.00f), 0.0f, 0, raytracer);
 
+			diffuse* goldDiff = new diffuse(float3(0.8f), gold, 0.8f, 0.2f, 1, raytracer);
+			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.0f, 1, 1, raytracer);
+			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
+			//lights.push_back(new Light(11, float3(0, 6.0f, 0), 4, white, float3(0, -1, 0), raytracer));
+			lights.push_back(new AreaLight(11, float3(0, 6.0f, 0), 16.0f, white, 2.0f, float3(0, -1, 0), 2, raytracer));
+
+			meshes.push_back(Mesh(1, "Resources/BigB.obj", redDiff, float3(0, 0.5f, 0), 1));
+			//meshes.push_back(Mesh(1, "Resources/lowBigB.obj", goldDiff, float3(0, 0, 3), 4));
+			bvhList = new bvhInstance[bvhCount];
+			Transforms = new mat4[bvhCount];
+
+			bvh* b = new bvh(&meshes[0]);
+			b->Build();
+
+			Transforms[0] = mat4::Translate(float3(0, 0, 3)) * mat4::Scale(4) * mat4::RotateX(0) * mat4::RotateY((float)PI * 0.5f) * mat4::RotateZ(0);
+			bvhList[0] = bvhInstance(b);
+			bvhList[0].SetTransform(Transforms[0]);
+			Transforms[1] = mat4::Translate(float3(2, 0, 3)) * mat4::Scale(4) * mat4::RotateX(0) * mat4::RotateY((float)PI) * mat4::RotateZ(0);
+			bvhList[1] = bvhInstance(b);
+			bvhList[1].SetTransform(Transforms[1]);
+			Transforms[2] = mat4::Translate(float3(-2.3, 0, 3)) * mat4::Scale(4) * mat4::RotateX(0) * mat4::RotateY((float)PI * 0.5f) * mat4::RotateZ(0);
+			bvhList[2] = bvhInstance(b);
+			bvhList[2].SetTransform(Transforms[2]);
+
+			planes.push_back(Plane(0, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 0));			// 2: floor
+			spheres.push_back(Sphere(7, goldDiff, float3(1.8f, -0.5f, 2.0f), 0.5f));
+		}
 
 		void instantiateScene1() {
 			defaultAnim = true;
@@ -1014,17 +1070,17 @@ namespace Tmpl8 {
 			//lights.push_back(new Light(11, float3(0, 6.0f, 0), 4, white, float3(0, -1, 0), raytracer));
 			lights.push_back(new AreaLight(11, float3(0, 6.0f, 0), 16.0f, white, 2.0f, float3(0, -1, 0), 2, raytracer));
 
-			meshes.push_back(Mesh(1, "Resources/BigB.obj", redDiff, float3(0, 0.5f, 0), 1));
-			meshes.push_back(Mesh(2, "Resources/car.obj", redDiff));
+			meshes.push_back(Mesh(1, "Resources/lowBigB.obj", redDiff, float3(0, 0.5f, 0), 1));
+			//meshes.push_back(Mesh(2, "Resources/car.obj", redDiff));
 
 			//meshes.push_back(Mesh(1, "Resources/lowBigB.obj", goldDiff, float3(0, 0, 3), 4));
 			bvhList = new bvhInstance[bvhCount];
 			Transforms = new mat4[bvhCount];
 
 			bvh *b = new bvh(&meshes[0]);
-			bvh *b1 = new bvh(&meshes[1]);
+			//bvh *b1 = new bvh(&meshes[1]);
 			b->Build();
-			b1->Build();
+			//b1->Build();
 			
 			Transforms[0] =  mat4::Translate(float3(0, 0, 3)) * mat4::Scale(4) * mat4::RotateX(0) * mat4::RotateY((float)PI * 0.5f) * mat4::RotateZ(0);
 			bvhList[0] = bvhInstance(b);
@@ -1036,7 +1092,7 @@ namespace Tmpl8 {
 			bvhList[2] = bvhInstance(b);
 			bvhList[2].SetTransform(Transforms[2]);
 			Transforms[3] = mat4::Translate(float3(2, 1, 1)) * mat4::Scale(1) * mat4::RotateX(0) * mat4::RotateY((float)PI * 0.5f) * mat4::RotateZ(0);
-			bvhList[3] = bvhInstance(b1);
+			bvhList[3] = bvhInstance(b);
 			bvhList[3].SetTransform(Transforms[3]);
 
 			planes.push_back(Plane(0, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 0));			// 2: floor
@@ -1201,6 +1257,8 @@ namespace Tmpl8 {
 			"Max Tree Depth", "Average FPS", "BVH Build time"};
 
 		unsigned char* skydome;
+		float runTime = 0;
+		bool exported = false;
 		bvh* b; tlas* tl; bvhInstance* bvhList; 
 		uint bvhCount = 3;
 		mat4* Transforms;

@@ -299,6 +299,8 @@ void Renderer::Tick(float deltaTime)
 	if (alpha > 0.05f) alpha *= 0.5f;
 	float fps = 1000 / avg, rps = (SCRWIDTH * SCRHEIGHT) * fps;
 	scene.SetFPS(fps);
+	scene.runTime += t.elapsed();
+	if (scene.runTime > 20 && !scene.exported) scene.ExportData();
 	printf( "%5.2fms (%.1ffps) - %.1fMrays/s %.1fCameraSpeed\n", avg, fps, rps / 1000000, camera.speed );
 }
 

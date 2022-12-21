@@ -4,13 +4,13 @@
 
 bvh::bvh(Scene* s) {
 	scene = s; 
-	splitMethod = BINNEDSAH;
+	splitMethod = SAH;
 	dataCollector = new DataCollector();
 	mesh = nullptr;
 }
 bvh::bvh(Mesh* m) {
 	mesh = m;
-	splitMethod = BINNEDSAH;
+	splitMethod = SAH;
 	scene = nullptr;
 	dataCollector = new DataCollector();
 }
@@ -269,7 +269,7 @@ void bvh::Subdivide(uint nodeIdx) {
 			{
 				uint primIdx = primitiveIdx[node.leftFirst + i];
 				if (primIdx < NTri) {
-					Triangle& triangle = scene->getTriangle(primIdx);
+					Triangle& triangle = getTriangle(primIdx);
 					sorted.push_back(make_tuple(triangle.centroid[axis],primIdx));
 				}
 				else if (primIdx >= NTri && primIdx < NTri + NSph) {
@@ -291,7 +291,7 @@ void bvh::Subdivide(uint nodeIdx) {
 			for(int a = 0; a < 3; a++) for(uint i = 0; i < node.primCount; i++){
 				uint primIdx = primitiveIdx[node.leftFirst + i];
 				if (primIdx < NTri) {
-					Triangle& triangle = scene->getTriangle(primIdx);
+					Triangle& triangle = getTriangle(primIdx);
 					candidatePos = triangle.centroid[a];
 				}
 				else if (primIdx >= NTri && primIdx < NTri + NSph) {
@@ -299,7 +299,7 @@ void bvh::Subdivide(uint nodeIdx) {
 					Sphere& sphere = scene->spheres[primIdx];
 					candidatePos = sphere.pos[a];
 				}
-				float splitCost = EvaluateSAH(node, axis, candidatePos);
+				float splitCost = EvaluateSAH(node, a, candidatePos);
 				if (splitCost < bestCost)
 					bestPos = candidatePos, bestAxis = a, bestCost = splitCost;
 			}
@@ -317,7 +317,6 @@ void bvh::Subdivide(uint nodeIdx) {
 	{
 		uint primIdx = primitiveIdx[i];
 		if (primIdx < NTri) {
-			//if (axis > 2)cout << axis << endl;
 			if (getTriangle(primIdx).centroid[axis] < splitPos)
 				i++;
 			else

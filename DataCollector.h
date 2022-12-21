@@ -31,8 +31,8 @@ class DataCollector
 	private:
 		int nodeCount;
 		float summedNodeArea;
-		int traversalStepsPerIteration;
-		int intersectedPrimitiveCountPerIteration;
+		long traversalStepsPerIteration;
+		long intersectedPrimitiveCountPerIteration;
 		float bvhBuildTime;
 		float averageFPS;
 		float averagePrimitivePerScreen = 0;
