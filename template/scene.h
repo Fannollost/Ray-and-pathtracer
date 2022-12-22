@@ -700,7 +700,7 @@ namespace Tmpl8 {
 				instantiateSceneEiffel();
 
 				b = new bvh(&meshes[0]);
-				b->Build();
+				b->Build(false);
 			}
 
 			
@@ -1030,8 +1030,8 @@ namespace Tmpl8 {
 
 		bool IsOccluded(Ray& ray) const
 		{
-			//if (useTLAS) return tl->IsOccluded(ray);
-			//else return b->IsOccluded(ray);
+			if (useTLAS) return tl->IsOccluded(ray);
+			else return b->IsOccluded(ray);
 			return false;
 		}
 

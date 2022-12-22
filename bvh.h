@@ -62,12 +62,14 @@ class bvh
 		float CalculateNodeCost(BVHNode& node);
 		float FindBestSplitPlane(BVHNode& node, int& axis, float& splitPos);
 		
-		void separatePlanes(uint nodeIdx);
 		bool IsOccluded(Ray& ray);
+		void separatePlanes(uint nodeIdx);
 		void Refit();
 		Triangle getTriangle(uint idx);
 	private:
+		bool BIsOccluded(Ray& ray);
 		void BIntersect(Ray& ray);
+		bool QIsOccluded(Ray& ray);
 		void QIntersect(Ray& ray);
 	public:
 		uint rootNodeIdx = 0, nodesUsed = 2, NTri = 0, NSph = 0, NPla = 0, N = 0;

@@ -579,6 +579,11 @@ void bvh::Intersect(Ray& ray) {
 	else BIntersect(ray);
 }
 
+bool bvh::IsOccluded(Ray& ray) {
+	if (isQBVH) return QIsOccluded(ray);
+	else return BIsOccluded(ray);
+}
+
 void bvh::BIntersect(Ray& ray) {
 	float t_min = 0.0001f;
 	BVHNode* node = &bvhNode[rootNodeIdx], *stack[64];
@@ -660,21 +665,83 @@ void bvh::QIntersect(Ray& ray) {
 		float dist1 = IntersectAABB_SSE(ray, c1->aabbMin4, c1->aabbMax4);
 		float dist2 = IntersectAABB_SSE(ray, c2->aabbMin4, c2->aabbMax4);
 #else
+
 		float dist1 = IntersectAABB(ray, c1->aabbMin, c1->aabbMax);
 		float dist2 = IntersectAABB(ray, c2->aabbMin, c2->aabbMax);
 		float dist3 = IntersectAABB(ray, c3->aabbMin, c3->aabbMax);
 		float dist4 = IntersectAABB(ray, c4->aabbMin, c4->aabbMax);
+
+		if (dist1 > dist2) { swap(dist1, dist2); swap(c1, c2); }
+		if (dist2 > dist3) { swap(dist2, dist3); swap(c2, c3); }
+		if (dist3 > dist4) { swap(dist3, dist4); swap(c3, c4); }
+		if (dist1 > dist2) { swap(dist1, dist2); swap(c1, c2); }
+		if (dist2 > dist3) { swap(dist2, dist3); swap(c2, c3); }
+		if (dist1 > dist2) { swap(dist1, dist2); swap(c1, c2); }
 #endif
 
-		if(dist1 != 1e30f && !c1->isEmpty()) stack[stackPtr++] = c1;
-		if (dist2 != 1e30f && !c2->isEmpty()) stack[stackPtr++] = c2;
-		if (dist3 != 1e30f && !c3->isEmpty()) stack[stackPtr++] = c3;
 		if (dist4 != 1e30f && !c4->isEmpty()) stack[stackPtr++] = c4;
+		if (dist3 != 1e30f && !c3->isEmpty()) stack[stackPtr++] = c3;
+		if (dist2 != 1e30f && !c2->isEmpty()) stack[stackPtr++] = c2;
+		if(dist1 != 1e30f && !c1->isEmpty()) stack[stackPtr++] = c1;
 		if (stackPtr == 0) break; else node = stack[--stackPtr];
 	}
 }
 
-bool bvh::IsOccluded(Ray& ray) {
+bool bvh::QIsOccluded(Ray& ray) {
+	float t_min = 0.0001f;
+	BVHNode* node = &bvhNode[rootNodeIdx], * stack[64];
+	uint stackPtr = 0;
+	int traversalSteps = 0;
+
+	// trace transformed ray
+	while (1) {
+		traversalSteps++;
+		if (node->isLeaf()) {
+			for (uint i = 0; i < node->primCount; i++) {
+				uint primIdx = primitiveIdx[node->leftFirst + i];
+				if (getTriangle(primIdx).IsOccluding(ray, t_min))
+					return true;
+			}
+			if (stackPtr == 0) {
+				break;
+			}
+			else node = stack[--stackPtr];
+			continue;
+		}
+
+		BVHNode* c1 = &bvhNode[node->leftFirst];
+		BVHNode* c2 = &bvhNode[node->leftFirst + 1];
+		BVHNode* c3 = &bvhNode[node->leftFirst + 2];
+		BVHNode* c4 = &bvhNode[node->leftFirst + 3];
+#ifdef USE_SSE
+		float dist1 = IntersectAABB_SSE(ray, c1->aabbMin4, c1->aabbMax4);
+		float dist2 = IntersectAABB_SSE(ray, c2->aabbMin4, c2->aabbMax4);
+#else
+
+		float dist1 = IntersectAABB(ray, c1->aabbMin, c1->aabbMax);
+		float dist2 = IntersectAABB(ray, c2->aabbMin, c2->aabbMax);
+		float dist3 = IntersectAABB(ray, c3->aabbMin, c3->aabbMax);
+		float dist4 = IntersectAABB(ray, c4->aabbMin, c4->aabbMax);
+
+		if (dist1 > dist2) { swap(dist1, dist2); swap(c1, c2); }
+		if (dist2 > dist3) { swap(dist2, dist3); swap(c2, c3); }
+		if (dist3 > dist4) { swap(dist3, dist4); swap(c3, c4); }
+		if (dist1 > dist2) { swap(dist1, dist2); swap(c1, c2); }
+		if (dist2 > dist3) { swap(dist2, dist3); swap(c2, c3); }
+		if (dist1 > dist2) { swap(dist1, dist2); swap(c1, c2); }
+#endif
+
+		if (dist4 != 1e30f && !c4->isEmpty()) stack[stackPtr++] = c4;
+		if (dist3 != 1e30f && !c3->isEmpty()) stack[stackPtr++] = c3;
+		if (dist2 != 1e30f && !c2->isEmpty()) stack[stackPtr++] = c2;
+		if (dist1 != 1e30f && !c1->isEmpty()) stack[stackPtr++] = c1;
+		if (stackPtr == 0) break; else node = stack[--stackPtr];
+	}
+
+	return false;
+}
+
+bool bvh::BIsOccluded(Ray& ray) {
 	float t_min = 0.0001f;
 	BVHNode* node = &bvhNode[rootNodeIdx], * stack[64];
 	uint stackPtr = 0;
