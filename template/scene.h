@@ -692,12 +692,12 @@ namespace Tmpl8 {
 			
 			
 			if (useTLAS) {
-				TLASSceneTest();
+				TLASSceneTest2();
 				tl = new tlas(bvhList, bvhCount);
 				tl->build();
 			}
 			else {
-				instantiateScene4();
+				instantiateScene7();
 
 				b = new bvh(this);
 				b->Build();
@@ -854,10 +854,11 @@ namespace Tmpl8 {
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 			diffuse* lightDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 1200, raytracer, 1.2f);
 			planes.push_back(Plane(2, lightDiff, float3(0, 1, 0), 1));			// 2: floor
-			lights.push_back(new AreaLight(11, float3(0.1f, 7.0f, 5.0f), 8.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
+			lights.push_back(new AreaLight(11, float3(0.1f, 7.0f, 3.0f), 8.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
 			metal* standardMetal = new metal(0.7f, white, raytracer);
 			metal* yellowMetal = new metal(0.7f, gold, raytracer);
-			meshes.push_back(Mesh(2, "Resources/BigB.obj", yellowMetal, float3(0, 2.3f, 5.0f), 6.0f));
+			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.2f, 0.8f, 1, raytracer);
+			meshes.push_back(Mesh(2, "Resources/BigB.obj", blueDiff, float3(0, 2.3f, 5.0f), 6.0f));
 		}
 
 		void instantiateChristScene() {
@@ -1160,7 +1161,33 @@ namespace Tmpl8 {
 			spheres.push_back(Sphere(7, goldDiff, float3(1.8f, -0.5f, 2.0f), 0.5f));
 		}
 
+		void instantiateScene7() {
+			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
+			diffuse* whiteDiff = new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer);
+			planes.push_back(Plane(0, whiteDiff, float3(0, 1, 0), 1));			// 0: floor
+			lights.push_back(new AreaLight(11, float3(-1, 8.0f, -1), 25.0f, white, 3.0f, float3(0, -1, 0), 4, raytracer));
 
+			int amountSpheresX = 255;
+			int amountSpheresY = 255;
+			for (int x = 0; x < amountSpheresX; x++) {
+				for (int y = 0; y < amountSpheresY; y++) {
+					float die = RandomFloat();
+					if(die < 0.33){
+						metal* met = new metal(0.7f, float3(RandomFloat(), RandomFloat(), RandomFloat()), raytracer);
+						spheres.push_back(Sphere(13 + x + y, met, float3(x, -0.5f, y), 0.5f));
+					}
+					else if (die < 0.66)
+					{
+						glass* g = new glass(1.5f, float3(RandomFloat(), RandomFloat(), RandomFloat()), float3(0.00f), 0.0f, 0, raytracer);
+						spheres.push_back(Sphere(13 + x + y, g, float3(x, -0.5f, y), 0.5f));
+					}
+					else {
+						diffuse* diff = new diffuse(float3(0.8f), float3(RandomFloat(), RandomFloat(), RandomFloat()), 0.2f, 0.8f, 2, raytracer);
+						spheres.push_back(Sphere(13 + x + y, diff, float3(x, -0.5f, y), 0.5f));
+					}
+				}
+			}
+		}
 		void SetTime(float t)
 		{
 			// default time for the scene is simply 0. Updating/ the time per frame 
