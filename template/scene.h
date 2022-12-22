@@ -692,12 +692,12 @@ namespace Tmpl8 {
 			
 			
 			if (useTLAS) {
-				TLASSceneTest2();
+				TLASSceneTest();
 				tl = new tlas(bvhList, bvhCount);
 				tl->build();
 			}
 			else {
-				instantiateChristScene();
+				instantiateScene4();
 
 				b = new bvh(this);
 				b->Build();
@@ -784,6 +784,62 @@ namespace Tmpl8 {
 			myFile.close();
 		}
 
+		void instantiatePrettyScene1() {
+			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
+			lights.push_back(new AreaLight(11, float3(0.1f, 4.0f, 5.0f), 8.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
+			lights.push_back(new AreaLight(12, float3(0.1f, 4.0f, 3.0f), 10.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
+			diffuse* lightDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 1200, raytracer, 1.2f);
+			glass* standardGlass = new glass(1.5f, white, float3(0.00f), 0.0f, 0, raytracer);
+			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.6f, 0.4f, 10, raytracer);
+			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.2f, 0.8f, 1, raytracer);
+			diffuse* whiteDiff = new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer);
+			diffuse* greenDiff = new diffuse(float3(0.8f), green, 0.2f, 0.8f, 2, raytracer);
+			glass* blueGlass = new glass(1.5f, babyblue, float3(0.0f), 0.0f, 0, raytracer);
+			metal* blueMetal = new metal(0.7f, blue, raytracer);
+			metal* standardMetal = new metal(0.7f, white, raytracer);
+			metal* greenMetal = new metal(0.7f, green, raytracer);
+			metal* redMetal = new metal(0.7f, red, raytracer);
+			metal* yellowMetal = new metal(0.7f, gold, raytracer);
+			metal* pinkMetal = new metal(0.7f, pink, raytracer);
+
+			spheres.push_back(Sphere(7, blueDiff, float3(-0.7f, -0.5f, 2.0f), 0.5f));
+			spheres.push_back(Sphere(8, blueGlass, float3(-1.9f, -0.5f, 2.0f), 0.5f));
+			spheres.push_back(Sphere(9, yellowMetal, float3(-3.1f, -0.5f, 2.0f), 0.5f));
+			spheres.push_back(Sphere(6, pinkMetal, float3(-4.3f, -0.5f, 2.0f), 0.5f));
+
+			planes.push_back(Plane(1, lightDiff, float3(0, 1, 0), 1));			// 2: floor
+
+			meshes.push_back(Mesh(2, "Resources/unity.tri", standardGlass));
+		}
+
+		void instantiatePrettyAnimationScene() {
+			//Loading sky texture
+			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
+			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.2f, 0.8f, 1, raytracer);
+			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.2f, 0.8f, 1, raytracer);
+			diffuse* whiteDiff = new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer);
+			diffuse* greenDiff = new diffuse(float3(0.8f), green, 0.2f, 0.8f, 2, raytracer);
+			glass* standardGlass = new glass(1.5f, white, float3(0.00f), 0.0f, 0, raytracer);
+			glass* blueGlass = new glass(1.5f, babyblue, float3(0.0f), 0.0f, 0, raytracer);
+			metal* blueMetal = new metal(0.7f, blue, raytracer);
+			metal* standardMetal = new metal(0.7f, white, raytracer);
+			metal* greenMetal = new metal(0.7f, green, raytracer);
+			metal* redMetal = new metal(0.7f, red, raytracer);
+			metal* yellowMetal = new metal(0.7f, gold, raytracer);
+			metal* pinkMetal = new metal(0.7f, pink, raytracer);
+			// we store all primitives in one continuous buffer
+			lights.push_back(new AreaLight(11, float3(-1, 8.0f, -1), 12.0f, white, 2.0f, float3(0, -1, 0), 4, raytracer));
+			//lights.push_back(new AreaLight(12, float3(1, 2.0f, 1), 10.0f, white, 2.0f, float3(0, -1, 0), 4, raytracer));
+			//lights.push_back(new Light(11, float3(1, 2.0f, 1), 4, white, float3(0, -1, 0), raytracer));
+			//lights.push_back(new Light(11, float3(-1, 2.0f, -1), 4, white, float3(0, -1, 0), raytracer));
+
+			planes.push_back(Plane(0, whiteDiff, float3(0, 1, 0), 1));			// 0: floor
+			planes.push_back(Plane(4, blueDiff, float3(0, 0, -1), 10));			// 4: front wall
+			planes.push_back(Plane(3, blueDiff, float3(0, 0, 1), 10));			// 4: front wall
+			planes.push_back(Plane(1, greenDiff, float3(-1, 0, 0), 2.99f));		// 1: right wall
+			//triangles.push_back(Mesh(10, standardMetal, "Resources/icos.obj", float3(0.5f, -0.51f, 2), 0.5f));
+			meshes.push_back(Mesh(2, "Resources/BigB.obj", redDiff, float3(-2, 1.0f, 0), 4.0f));
+		}
 		void instantiateEifelScene() {
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 			diffuse* lightDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 1200, raytracer, 1.2f);
@@ -821,9 +877,10 @@ namespace Tmpl8 {
 
 			diffuse* goldDiff = new diffuse(float3(0.8f), gold, 0.8f, 0.2f, 1, raytracer);
 			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.0f, 1, 1, raytracer);
+			diffuse* specReflDiff = new diffuse(float3(0.7f), white, 0.6f, 0.4f, 50, raytracer, 0.0f);
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 			//lights.push_back(new Light(11, float3(0, 6.0f, 0), 4, white, float3(0, -1, 0), raytracer));
-			lights.push_back(new AreaLight(11, float3(0, 6.0f, 0), 16.0f, white, 2.0f, float3(0, -1, 0), 2, raytracer));
+			lights.push_back(new AreaLight(11, float3(0, 8.0f, 0), 10.0f, white, 1.0f, float3(0, -1, 0), 2, raytracer));
 
 			meshes.push_back(Mesh(1, "Resources/BigB.obj", redDiff, float3(0, 0.5f, 0), 1));
 			meshes.push_back(Mesh(2, "Resources/christ.obj", goldMetal, float3(0,0.5f, 0), 1));
@@ -849,7 +906,7 @@ namespace Tmpl8 {
 			bvhList[2] = bvhInstance(b2);
 			bvhList[2].SetTransform(Transforms[2]);
 
-			planes.push_back(Plane(0, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 0));			// 2: floor
+			planes.push_back(Plane(0, specReflDiff, float3(0, 1, 0), 0));			// 2: floor
 			spheres.push_back(Sphere(7, goldDiff, float3(1.8f, -0.5f, 2.0f), 0.5f));
 		}
 
@@ -887,7 +944,7 @@ namespace Tmpl8 {
 		}
 
 		void instantiateScene1() {
-			defaultAnim = true;
+			defaultAnim = false;
 			animOn = raytracer && defaultAnim;
 			//Loading sky texture
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
@@ -935,23 +992,27 @@ namespace Tmpl8 {
 			metal* yellowMetal = new metal(0.7f, gold, raytracer);
 			metal* pinkMetal = new metal(0.7f, pink, raytracer);
 			// we store all primitives in one continuous buffer
-			lights.push_back(new AreaLight(11, float3(-1, 4.0f, -1), 16.0f, white, 3.0f, float3(0, -1, 0), 4, raytracer));
+			lights.push_back(new AreaLight(11, float3(-1, 8.0f, -1), 25.0f, white, 3.0f, float3(0, -1, 0), 4, raytracer));
 			//lights.push_back(new AreaLight(12, float3(1, 2.0f, 1), 10.0f, white, 2.0f, float3(0, -1, 0), 4, raytracer));
 			//lights.push_back(new Light(11, float3(1, 2.0f, 1), 4, white, float3(0, -1, 0), raytracer));
 			//lights.push_back(new Light(11, float3(-1, 2.0f, -1), 4, white, float3(0, -1, 0), raytracer));
 
 			planes.push_back(Plane(0, whiteDiff, float3(0, 1, 0), 1));			// 0: floor
 			planes.push_back(Plane(4, blueDiff, float3(0, 0, -1), 10));			// 4: front wall
+			planes.push_back(Plane(3, blueDiff, float3(0, 0, 1), 10));			// 4: front wall
 			planes.push_back(Plane(1, greenDiff, float3(-1, 0, 0), 2.99f));		// 1: right wall
 
 			spheres.push_back(Sphere(7, redDiff, float3(-0.7f, -0.5f, 2.0f), 0.5f));
 			spheres.push_back(Sphere(8, blueGlass, float3(-1.9f, -0.5f, 2.0f), 0.5f));
 			spheres.push_back(Sphere(9, yellowMetal, float3(-3.1f, -0.5f, 2.0f), 0.5f));
 			spheres.push_back(Sphere(6, pinkMetal, float3(-4.3f, -0.5f, 2.0f), 0.5f));
+			spheres.push_back(Sphere(10, greenMetal, float3(-0.7f, -0.5f, 3.2f), 0.5f));
+			spheres.push_back(Sphere(13, standardGlass, float3(-1.9f, -0.5f, 3.2f), 0.5f));
+			spheres.push_back(Sphere(14, redDiff, float3(-3.1f, -0.5f, 3.2f), 0.5f));
+			spheres.push_back(Sphere(15, redMetal, float3(-4.3f, -0.5f, 3.2f), 0.5f));
 			//triangles.push_back(Mesh(10, standardMetal, "Resources/icos.obj", float3(0.5f, -0.51f, 2), 0.5f));
-			meshes.push_back(Mesh(2,"Resources/eifel.obj", standardMetal, float3(0,-1.0f,0), 0.08f));
+			meshes.push_back(Mesh(2,"Resources/eifel.obj", standardMetal, float3(-2,-1.0f,0), 0.08f));
 		}
-
 
 		void instantiateScene3() {
 
@@ -1276,7 +1337,7 @@ namespace Tmpl8 {
 		float mediumIr = 1.0f;
 		bool defaultAnim = false;
 		bool animOn = raytracer && defaultAnim; // set to false while debugging to prevent some cast error from primitive object type
-		bool useTLAS = true;
+		bool useTLAS = false;
 		const float3 white = float3(1.0, 1.0, 1.0);
 		const float3 red = float3(255, 0, 0) / 255;
 		const float3 blue = float3(0, 0, 255) / 255;

@@ -172,7 +172,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
 				if (((diffuse*)m)->shinieness != 0)
 					directLightning += ((diffuse*)m)->shinieness * m->col * Sample(Ray(ray.IntersectionPoint(), reflect(ray.D, ray.hitNormal), ray.color), depth - 1, energy);
 
-				directLightning += (1 - ((diffuse*)m)->shinieness) * m->col * attenuation;
+				directLightning += (1 - ((diffuse*)m)->shinieness) * m->col * attenuation * energy;
 			}
 			float3 indirectLightning = 0;
 

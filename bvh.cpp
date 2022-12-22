@@ -4,13 +4,13 @@
 
 bvh::bvh(Scene* s) {
 	scene = s; 
-	splitMethod = SAH;
+	splitMethod = BINNEDSAH;
 	dataCollector = new DataCollector();
 	mesh = nullptr;
 }
 bvh::bvh(Mesh* m) {
 	mesh = m;
-	splitMethod = SAH;
+	splitMethod = BINNEDSAH;
 	scene = nullptr;
 	dataCollector = new DataCollector();
 }
