@@ -1,6 +1,6 @@
 #include "precomp.h"
 
-void bvhInstance::Intersect(Ray& ray)
+void bvhInstance::BIntersect(Ray& ray)
 {
     // backup ray and transform original
     Ray backupRay = ray;

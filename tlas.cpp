@@ -70,7 +70,7 @@ void tlas::Intersect(Ray& ray)
     {
         if (node->isLeaf())
         {
-            blas[node->BLAS].Intersect(ray);
+            blas[node->BLAS].BIntersect(ray);
             if (stackPtr == 0) break; else node = stack[--stackPtr];
             continue;
         }
