@@ -47,10 +47,12 @@ void bvh::Build(bool isQ) {
 	else separatePlanes(rootNodeIdx);
 	bounds.grow(root.aabbMin);
 	bounds.grow(root.aabbMax);
-	Refit();
 	printf("BVH Build time : %5.2f ms \n", t.elapsed() * 1000);
-	dataCollector->UpdateNodeCount(nodesUsed);
 	dataCollector->UpdateBuildTime(t.elapsed() * 1000);
+	t.reset();
+	Refit();
+	printf("BVH Refit time : %5.2f ms \n", t.elapsed() * 1000);
+	dataCollector->UpdateNodeCount(nodesUsed);
 }
 
 Triangle bvh::getTriangle(uint idx) {
@@ -347,7 +349,7 @@ void bvh::Cut(uint nodeIdx, int& axis, float& splitPos) {
 			splitPos = node.aabbMin[axis] + extent[axis] * 0.5f;
 			break;
 		}
-		case SplitMethod::MIDDLE: {
+		case SplitMethod::SAMESIZE: {
 			float3 extent = node.aabbMax - node.aabbMin;
 			axis = 0;
 			if (extent.y > extent.x) axis = 1;

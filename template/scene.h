@@ -692,15 +692,18 @@ namespace Tmpl8 {
 			
 			
 			if (useTLAS) {
-				TLASSceneTest2();
+				TLASSceneTest();
 				tl = new tlas(bvhList, bvhCount);
 				tl->build();
 			}
 			else {
-				instantiateScene7();
-
-				b = new bvh(&meshes[0]);
-				b->Build(false);
+				instantiateScene2();
+				b = new bvh(this);
+				b->Build(false);  
+								  
+				//instantiateScene8(); //to use QBVH, uncomment (this is a scene with 1 mesh)
+				//b = new bvh(&meshes[0]);	//to use  QBVH, uncomment
+				//b->Build(true);  // to use	QBVH, put true;
 			}
 
 			
@@ -1169,6 +1172,17 @@ namespace Tmpl8 {
 				}
 			}
 		}
+
+		void instantiateScene8() {
+			//Loading sky texture
+			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
+			metal* redMetal = new metal(0.7f, red, raytracer);
+			metal* yellowMetal = new metal(0.7f, gold, raytracer);
+			lights.push_back(new AreaLight(11, float3(0, 8.0f, 0), 10.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
+			//meshes.push_back(Mesh(1, "Resources/eifel.obj", redMetal, float3(0, -1.0f, 3.5f), 0.08f));
+			meshes.push_back(Mesh(2, "Resources/christ.obj", yellowMetal, float3(0, -0.5f, 6.2f), 0.3f));
+
+		}
 		void SetTime(float t)
 		{
 			// default time for the scene is simply 0. Updating/ the time per frame 
@@ -1346,7 +1360,7 @@ namespace Tmpl8 {
 		bool raytracer = true;
 		float mediumIr = 1.0f;
 		bool defaultAnim = false;
-		bool animOn = raytracer && defaultAnim; // set to false while debugging to prevent some cast error from primitive object type
+		//bool animOn = raytracer && defaultAnim; // set to false while debugging to prevent some cast error from primitive object type
 		bool useTLAS = false;
 		bool animOn = raytracer && defaultAnim && !useTLAS; // set to false while debugging to prevent some cast error from primitive object type
 		const float3 white = float3(1.0, 1.0, 1.0);
