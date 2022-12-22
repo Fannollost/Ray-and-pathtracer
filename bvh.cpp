@@ -15,7 +15,7 @@ bvh::bvh(Mesh* m) {
 	dataCollector = new DataCollector();
 }
 
-void bvh::Build() {
+void bvh::Build(bool isQ) {
 	if (scene != nullptr) {
 		NTri = scene->getTriangleNb();
 		NSph = size(scene->spheres);
@@ -31,6 +31,7 @@ void bvh::Build() {
 	N = NTri + NSph + NPla;
 	primitiveIdx = new uint[N];
 	bvhNode = new BVHNode[2 * (N + 1) - 1];
+	isQBVH = isQ;
 	Timer t;
 	for (uint i = 0; i < N; ++i) {
 		primitiveIdx[i] = i;
@@ -41,9 +42,11 @@ void bvh::Build() {
 	root.leftFirst = 0;
 
 	UpdateNodeBounds(rootNodeIdx);
-	Split(rootNodeIdx);
+	if (isQBVH) QSubdivide(rootNodeIdx);
+	else separatePlanes(rootNodeIdx);
 	bounds.grow(root.aabbMin);
 	bounds.grow(root.aabbMax);
+	Refit();
 	printf("BVH Build time : %5.2f ms \n", t.elapsed() * 1000);
 	dataCollector->UpdateNodeCount(nodesUsed);
 	dataCollector->UpdateBuildTime(t.elapsed() * 1000);
@@ -64,6 +67,7 @@ void bvh::UpdateNodeBounds(uint nodeIdx) {
 	node.aabbMax = float3(-1e30f);
 	for (uint first = node.leftFirst, i = 0; i < node.primCount; i++) {
 		uint leafIdx = primitiveIdx[first + i];
+
 		if (leafIdx < NTri ) {
 			Triangle& leafTri = getTriangle(leafIdx);
 			node.aabbMin = fminf(node.aabbMin, leafTri.v0);
@@ -192,7 +196,7 @@ float bvh::CalculateNodeCost(BVHNode& node) {
 	return node.primCount * surfaceArea;
 }
 
-void bvh::Split(uint nodeIdx) {
+void bvh::separatePlanes(uint nodeIdx) {
 	BVHNode& node = bvhNode[nodeIdx];
 	if (NPla > 0 && (NSph + NTri > 0)) {
 		// create child nodes
@@ -207,33 +211,8 @@ void bvh::Split(uint nodeIdx) {
 		UpdateNodeBounds(leftChildIdx);
 		UpdateNodeBounds(rightChildIdx);
 		// recurse
-		SubdividePrim(leftChildIdx);
-	} else {
-		Subdivide(nodeIdx);
-	}
-}
-
-
-void bvh::SubdividePrim(uint nodeIdx) {
-	BVHNode& node = bvhNode[nodeIdx];
-
-	// create child nodes
-	if (NTri > 0 && NSph > 0) {
-		int leftChildIdx = nodesUsed++;
-		int rightChildIdx = nodesUsed++;
-		bvhNode[leftChildIdx].leftFirst = node.leftFirst;
-		bvhNode[leftChildIdx].primCount = NTri;
-		bvhNode[rightChildIdx].leftFirst = node.leftFirst + NTri;
-		bvhNode[rightChildIdx].primCount = NSph;
-		node.leftFirst = leftChildIdx;
-		node.primCount = 0;
-		UpdateNodeBounds(leftChildIdx);
-		UpdateNodeBounds(rightChildIdx);
-		// recurse
 		Subdivide(leftChildIdx);
-		Subdivide(rightChildIdx);
-	}
-	else {
+	} else {
 		Subdivide(nodeIdx);
 	}
 }
@@ -333,6 +312,185 @@ void bvh::Subdivide(uint nodeIdx) {
 	dataCollector->UpdateTreeDepth(true);
 }
 
+void bvh::Cut(uint nodeIdx, int& axis, float& splitPos) {
+	BVHNode& node = bvhNode[nodeIdx];
+	switch (splitMethod) {
+		case SplitMethod::BINNEDSAH: {
+			float splitCost = FindBestSplitPlane(node, axis, splitPos);
+			float nosplitCost = CalculateNodeCost(node);
+			if (splitCost >= nosplitCost) return;
+			break;
+		}
+		case SplitMethod::LONGESTAXIS: {
+			float3 extent = node.aabbMax - node.aabbMin;
+			axis = 0;
+			if (extent.y > extent.x) axis = 1;
+			if (extent.z > extent[axis]) axis = 2;
+			splitPos = node.aabbMin[axis] + extent[axis] * 0.5f;
+			break;
+		}
+		case SplitMethod::MIDDLE: {
+			float3 extent = node.aabbMax - node.aabbMin;
+			axis = 0;
+			if (extent.y > extent.x) axis = 1;
+			if (extent.z > extent[axis]) axis = 2;
+			//splitPos = node.aabbMin[axis] + extent[axis] * 0.5f;
+			splitPos = (node.aabbMin[axis] + node.aabbMax[axis]) * 0.5f;
+			break;
+		}
+		case SplitMethod::SAH: {
+			int bestAxis = -1;
+			float bestPos = 0, bestCost = 1e30f;
+			float candidatePos = 0;
+			for (int a = 0; a < 3; a++) for (uint i = 0; i < node.primCount; i++) {
+				uint primIdx = primitiveIdx[node.leftFirst + i];
+				if (primIdx < NTri) {
+					Triangle& triangle = scene->getTriangle(primIdx);
+					candidatePos = triangle.centroid[a];
+				}
+				else if (primIdx >= NTri && primIdx < NTri + NSph) {
+					primIdx -= NTri;
+					Sphere& sphere = scene->spheres[primIdx];
+					candidatePos = sphere.pos[a];
+				}
+				float splitCost = EvaluateSAH(node, axis, candidatePos);
+				if (splitCost < bestCost)
+					bestPos = candidatePos, bestAxis = a, bestCost = splitCost;
+			}
+			axis = bestAxis;
+			splitPos = bestPos;
+			break;
+		}
+	}
+}
+
+int bvh::Partition(uint nodeIdx, int axis, float splitPos) {
+	BVHNode& node = bvhNode[nodeIdx];
+	// in-place partition
+	int i = node.leftFirst;
+	int j = i + node.primCount - 1;
+	while (i <= j)
+	{
+		uint primIdx = primitiveIdx[i];
+		if (primIdx < NTri) {
+			if (getTriangle(primIdx).centroid[axis] < splitPos)
+				i++;
+			else
+				swap(primitiveIdx[i], primitiveIdx[j--]);
+		}
+		else if (primIdx >= NTri && primIdx < N) {
+			primIdx -= NTri;
+			if (scene->spheres[primIdx].pos[axis] < splitPos)
+				i++;
+			else
+				swap(primitiveIdx[i], primitiveIdx[j--]);
+		}
+	}
+	// abort split if one of the sides is empty
+	int leftCount = i - node.leftFirst;
+	if (leftCount == 0 || leftCount == node.primCount) return -1;
+	cout << " Split[" << node.leftFirst << "," << node.leftFirst + leftCount << "," << node.leftFirst + node.primCount << "]" << "Idx :" << nodeIdx << endl;
+	return leftCount;
+}
+
+void bvh::QSubdivide(uint nodeIdx) {
+	BVHNode& node = bvhNode[nodeIdx];
+	int axis = -1; float splitPos = 0;
+
+	cout << "First Cut : IDX :" << nodeIdx << endl;
+	Cut(nodeIdx, axis, splitPos);
+	int leftCount = Partition(nodeIdx, axis, splitPos);
+	if(leftCount == -1) return;
+
+	// create child nodes
+	int leftLeftChildIdx = nodesUsed++;
+	int leftChildIdx = nodesUsed++;
+	int rightChildIdx = nodesUsed++;
+	int rightRightChildIdx = nodesUsed++;
+	bvhNode[leftLeftChildIdx].leftFirst = node.leftFirst;
+	bvhNode[leftLeftChildIdx].primCount = leftCount;
+	bvhNode[rightChildIdx].leftFirst = leftCount + node.leftFirst;
+	bvhNode[rightChildIdx].primCount = node.primCount - leftCount;
+	node.leftFirst = leftLeftChildIdx;
+	node.primCount = 0;
+
+	cout << "Second cut" << endl;
+	axis = -1; splitPos = 0;
+	Cut(leftLeftChildIdx, axis, splitPos);
+	int leftLeftCount = Partition(leftLeftChildIdx, axis, splitPos);
+	axis = -1; splitPos = 0;
+	Cut(rightChildIdx, axis, splitPos);
+	int rightCount = Partition(rightChildIdx, axis, splitPos);
+	
+	if (leftLeftCount != -1) {
+		bvhNode[leftChildIdx].leftFirst = leftLeftCount + bvhNode[leftLeftChildIdx].leftFirst;
+		bvhNode[leftChildIdx].primCount = bvhNode[leftLeftChildIdx].primCount - leftLeftCount;
+		bvhNode[leftLeftChildIdx].primCount = leftLeftCount;
+		if (rightCount == -1) {
+			//three nodes case
+			//reorder => Not needed
+			//set end
+			bvhNode[rightRightChildIdx].leftFirst = 1;
+			bvhNode[rightRightChildIdx].primCount = 0;
+			return;
+		}
+		else {
+			//four nodes : OK
+			bvhNode[rightRightChildIdx].leftFirst = rightCount + bvhNode[rightChildIdx].leftFirst;
+			bvhNode[rightRightChildIdx].primCount = bvhNode[rightChildIdx].primCount - rightCount;
+			bvhNode[rightChildIdx].primCount = rightCount;
+		}
+	} else {
+		if (rightCount == -1) {
+			// two nodes case : OK
+			// reorder
+			bvhNode[leftChildIdx].leftFirst = bvhNode[rightChildIdx].leftFirst;
+			bvhNode[leftChildIdx].primCount = bvhNode[rightChildIdx].primCount;
+			// set end
+			bvhNode[rightChildIdx].leftFirst = 1;
+			bvhNode[rightChildIdx].primCount = 0;
+			bvhNode[rightRightChildIdx].leftFirst = 1;
+			bvhNode[rightRightChildIdx].primCount = 0;
+			return;
+		}
+		else {
+			//three nodes : OK
+			bvhNode[rightRightChildIdx].leftFirst = rightCount + bvhNode[rightChildIdx].leftFirst;
+			bvhNode[rightRightChildIdx].primCount = bvhNode[rightChildIdx].primCount - rightCount;
+			bvhNode[rightChildIdx].primCount = rightCount;
+			//reorder 
+			bvhNode[leftChildIdx].leftFirst = bvhNode[rightChildIdx].leftFirst;
+			bvhNode[leftChildIdx].primCount = bvhNode[rightChildIdx].primCount;
+			bvhNode[rightChildIdx].leftFirst = bvhNode[rightRightChildIdx].leftFirst;
+			bvhNode[rightChildIdx].primCount = bvhNode[rightRightChildIdx].primCount;
+			//set end
+			bvhNode[rightRightChildIdx].leftFirst = 1;
+			bvhNode[rightRightChildIdx].primCount = 0;
+			return;
+		}
+	}
+
+	dataCollector->UpdateTreeDepth(false);
+	// recurse
+	if (!bvhNode[leftLeftChildIdx].isEmpty()) {
+		UpdateNodeBounds(leftLeftChildIdx);
+		QSubdivide(leftLeftChildIdx);
+	}
+	if (!bvhNode[leftChildIdx].isEmpty()) {
+		UpdateNodeBounds(leftChildIdx);
+		QSubdivide(leftChildIdx);
+	}
+	if (!bvhNode[rightChildIdx].isEmpty()) {
+		UpdateNodeBounds(rightChildIdx);
+		QSubdivide(rightChildIdx);
+	}
+	if (!bvhNode[rightRightChildIdx].isEmpty()) {
+		UpdateNodeBounds(rightRightChildIdx);
+		QSubdivide(rightRightChildIdx);
+	}
+	dataCollector->UpdateTreeDepth(true);
+}
+
 float bvh::EvaluateSAH(BVHNode& node, int axis, float pos)
 {
 	// determine triangle counts and bounds for this split candidate
@@ -380,6 +538,7 @@ void bvh::Refit()
 	for (int i = nodesUsed - 1; i >= 0; i--) if (i != 1)
 	{
 		BVHNode& node = bvhNode[i];
+		if (isQBVH && node.isEmpty()) continue;
 		if (node.isLeaf())
 		{
 			// leaf node: adjust bounds to contained triangles
@@ -391,10 +550,21 @@ void bvh::Refit()
 		BVHNode& rightChild = bvhNode[node.leftFirst + 1];
 		node.aabbMin = fminf(leftChild.aabbMin, rightChild.aabbMin);
 		node.aabbMax = fmaxf(leftChild.aabbMax, rightChild.aabbMax);
+		if (isQBVH) {
+			BVHNode& child3 = bvhNode[node.leftFirst + 2];
+			BVHNode& child4 = bvhNode[node.leftFirst + 3];
+			node.aabbMin = fminf(child3.aabbMin, child4.aabbMin);
+			node.aabbMax = fmaxf(child3.aabbMax, child4.aabbMax);
+		}
 	}
 }
 
 void bvh::Intersect(Ray& ray) {
+	if(isQBVH) BIntersect(ray);
+	else BIntersect(ray);
+}
+
+void bvh::BIntersect(Ray& ray) {
 	float t_min = 0.0001f;
 	BVHNode* node = &bvhNode[rootNodeIdx], *stack[64];
 	uint stackPtr = 0;
@@ -443,6 +613,74 @@ void bvh::Intersect(Ray& ray) {
 			node = c1;
 			if (dist2 != 1e30f) stack[stackPtr++] = c2;
 		}
+	}
+}
+
+void bvh::QIntersect(Ray& ray) {
+	float t_min = 0.0001f;
+	BVHNode* node = &bvhNode[rootNodeIdx], * stack[64];
+	uint stackPtr = 0;
+	int traversalSteps = 0;
+
+	// trace transformed ray
+	while (1) {
+		traversalSteps++;
+		if (node->isLeaf()) {
+			for (uint i = 0; i < node->primCount; i++) {
+				uint primIdx = primitiveIdx[node->leftFirst + i];
+				if (primIdx < NTri) {
+					getTriangle(primIdx).Intersect(ray, t_min);
+					//cout << primIdx << " Intersected" << endl;
+				}
+				else if (primIdx >= NTri && primIdx < NTri + NSph) {
+					primIdx -= NTri;
+					scene->spheres[primIdx].Intersect(ray, t_min);
+				}
+				else {
+					primIdx -= NTri + NSph;
+					scene->planes[primIdx].Intersect(ray, t_min);
+				}
+				dataCollector->UpdateIntersectedPrimitives();
+			}
+			if (stackPtr == 0) {
+				dataCollector->UpdateAverageTraversalSteps(traversalSteps);
+				break;
+			}
+			else node = stack[--stackPtr];
+			continue;
+		}
+
+		BVHNode* c1 = &bvhNode[node->leftFirst];
+		BVHNode* c2 = &bvhNode[node->leftFirst + 1];
+		BVHNode* c3 = &bvhNode[node->leftFirst + 2];
+		BVHNode* c4 = &bvhNode[node->leftFirst + 3];
+#ifdef USE_SSE
+		float dist1 = IntersectAABB_SSE(ray, c1->aabbMin4, c1->aabbMax4);
+		float dist2 = IntersectAABB_SSE(ray, c2->aabbMin4, c2->aabbMax4);
+#else
+		float dist1 = IntersectAABB(ray, c1->aabbMin, c1->aabbMax);
+		float dist2 = IntersectAABB(ray, c2->aabbMin, c2->aabbMax);
+		float dist3 = IntersectAABB(ray, c3->aabbMin, c3->aabbMax);
+		float dist4 = IntersectAABB(ray, c4->aabbMin, c4->aabbMax);
+#endif
+		if (dist1 > dist2) { swap(dist1, dist2); swap(c1, c2); }
+		if (dist2 > dist3) { swap(dist2, dist3); swap(c2, c3); }
+		if (dist3 > dist4) { swap(dist3, dist4); swap(c3, c4); }
+		if (dist1 > dist2) { swap(dist1, dist2); swap(c1, c2); }
+		if (dist2 > dist3) { swap(dist2, dist3); swap(c2, c3); }
+		if (dist1 > dist2) { swap(dist1, dist2); swap(c1, c2); }
+		if (!(dist1 <= dist2 && dist2 <= dist3 && dist3 <= dist4)) cout << "NOT SORTED" << endl;
+
+		if (dist1 == 1e30f || c1->isEmpty()) {
+			if (stackPtr == 0) break; else node = stack[--stackPtr];
+		}
+		else {
+			node = c1;
+			if (dist2 != 1e30f && !c2->isEmpty()) stack[stackPtr++] = c2;
+			if (dist3 != 1e30f && !c3->isEmpty()) stack[stackPtr++] = c3;
+			if (dist4 != 1e30f && !c4->isEmpty()) stack[stackPtr++] = c4;
+		}
+
 	}
 }
 

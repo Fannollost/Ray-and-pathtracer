@@ -699,8 +699,8 @@ namespace Tmpl8 {
 			else {
 				instantiateScene3();
 
-				b = new bvh(this);
-				b->Build();
+				//b = new bvh(this);
+				//b->Build(true);
 			}
 
 			
@@ -749,11 +749,6 @@ namespace Tmpl8 {
 			for(int bi = 0; bi < bvhCount; bi++)
 				bvhList[bi].bvh->dataCollector->ResetDataCollector();
 
-			//cout << b->dataCollector->GetTreeDepth() << endl;
-			//Insert for loop over all BVH's?
-			// {
-			//We should check if we want this per ray or per screen. Per screen gives some big ass numbers haha
-			// }
 			myFile.close();
 
 		}
@@ -823,6 +818,8 @@ namespace Tmpl8 {
 			spheres.push_back(Sphere(6, pinkMetal, float3(-4.3f, -0.5f, 2.0f), 0.5f));
 			//triangles.push_back(Mesh(10, standardMetal, "Resources/icos.obj", float3(0.5f, -0.51f, 2), 0.5f));
 			meshes.push_back(Mesh(1,"Resources/unity.tri", redMetal));
+			//b = new bvh(&meshes[0]);
+			//b->Build(false);
 		}
 
 
@@ -873,25 +870,8 @@ namespace Tmpl8 {
 			cubes.push_back(Cube(9, greenDiff, float3(1.55, -0.925, 1.25), float3(0.15)));
 			meshes.push_back(Mesh(2,"Resources/stellatedDode.obj", goldMetal, float3(0.000000, 0.561019, 0.000000) * threeScale + threePos + float3(0, 0.25f, 0), 0.4f));
 
-			meshes.push_back(Mesh(3,"Resources/three.obj", greenDiff,  threePos, threeScale));
-			spheres.push_back(Sphere(1, standardGlass, float3(0.410241, -0.085121, -0.122131) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
-			spheres.push_back(Sphere(2, standardGlass, float3(0.122131, -0.085121, 0.410241) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
-			spheres.push_back(Sphere(3, standardGlass, float3(-0.410241, -0.085121, 0.122131) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
-			spheres.push_back(Sphere(4, standardGlass, float3(-0.122131, -0.085121, -0.410241) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
-			spheres.push_back(Sphere(5, standardGlass, float3(0.500000, -0.367977, -0.001909) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
-			spheres.push_back(Sphere(6, standardGlass, float3(0.001909, -0.367977, 0.500000) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
-			spheres.push_back(Sphere(7, standardGlass, float3(-0.500000, -0.367977, 0.001909) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
-			spheres.push_back(Sphere(8, standardGlass, float3(-0.001909, -0.367977, -0.500000) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
-			spheres.push_back(Sphere(8, standardGlass, float3(0.236091, 0.198982, -0.236091) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
-			spheres.push_back(Sphere(8, standardGlass, float3(0.236091, 0.198982, 0.236091) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
-			spheres.push_back(Sphere(8, standardGlass, float3(-0.236091, 0.198982, 0.236091) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
-			spheres.push_back(Sphere(8, standardGlass, float3(-0.236091, 0.198982, -0.236091) * threeScale + threePos- float3(0, 0.05f,0) , 0.05f));
-			cubes.push_back(Cube(9, goldDiff, float3(2, -0.5, 2.5), float3(1)));
-			cubes.push_back(Cube(9, pinkDiff, float3(2.2, -0.75, 1), float3(0.5)));
-			cubes.push_back(Cube(9, blueDiff, float3(1.5, -0.875, 1.5), float3(0.25)));
-			cubes.push_back(Cube(9, redDiff, float3(2.2, -0.875, 1.8), float3(0.25)));
-			cubes.push_back(Cube(9, greenDiff, float3(1.55, -0.925, 1.25), float3(0.15)));
-			meshes.push_back(Mesh(4,"Resources/stellatedDode.obj", goldMetal,  float3(0.000000, 0.561019, 0.000000) * threeScale + threePos +float3(0, 0.25f, 0), 0.4f));
+			b = new bvh(&meshes[0]);
+			b->Build(true);
 		}
 
 		void instantiateScene4() {
@@ -1016,6 +996,7 @@ namespace Tmpl8 {
 			for (int i = 0; i < size(lights); ++i) lights[i]->Intersect(ray, t_min);
 
 			if (useTLAS) {
+				for (int i = 0; i < size(spheres); ++i) spheres[i].Intersect(ray, t_min);
 				for (int i = 0; i < size(planes); ++i) planes[i].Intersect(ray, t_min);
 				tl->Intersect(ray);
 			}
@@ -1043,8 +1024,9 @@ namespace Tmpl8 {
 
 		bool IsOccluded(Ray& ray) const
 		{
-			if (useTLAS) return tl->IsOccluded(ray);
-			else return b->IsOccluded(ray);
+			//if (useTLAS) return tl->IsOccluded(ray);
+			//else return b->IsOccluded(ray);
+			return false;
 		}
 
 		float3 GetAlbedo(int objIdx, float3 I) const
@@ -1138,9 +1120,9 @@ namespace Tmpl8 {
 		float totalFrames;
 		bool raytracer = true;
 		float mediumIr = 1.0f;
-		bool defaultAnim = true;
-		bool animOn = raytracer && defaultAnim; // set to false while debugging to prevent some cast error from primitive object type
+		bool defaultAnim = false;
 		bool useTLAS = false;
+		bool animOn = raytracer && defaultAnim && !useTLAS; // set to false while debugging to prevent some cast error from primitive object type
 		const float3 white = float3(1.0, 1.0, 1.0);
 		const float3 red = float3(255, 0, 0) / 255;
 		const float3 blue = float3(0, 0, 255) / 255;

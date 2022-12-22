@@ -20,6 +20,7 @@ struct BVHNode
 		__m128 aabbMax4;
 	};
 	bool isLeaf() { return primCount > 0; }
+	bool isEmpty() { return primCount == 0 && leftFirst == 1; }
 };
 
 struct aabb
@@ -47,21 +48,27 @@ class bvh
 		bvh(Scene* s);
 		bvh(Mesh* m);
 
-		void Build();
+		void Build(bool isQ = false);
 		void UpdateNodeBounds(uint nodeIdx);
 		void Subdivide(uint rootNodeIdx);
+		void Cut(uint nodeIdx, int& axis, float& splitPos);
+		int Partition(uint nodeIdx, int axis, float splitPos);
+		void QSubdivide(uint nodeIdx);
 		void Intersect(Ray& ray);
+
 		static float IntersectAABB(const Ray& ray, const float3 bmin, const float3 bmax);
 		float IntersectAABB_SSE(const Ray& ray, const __m128 bmin4, const __m128 bmax4);
 		float EvaluateSAH(BVHNode &node, int axis, float pos);
 		float CalculateNodeCost(BVHNode& node);
 		float FindBestSplitPlane(BVHNode& node, int& axis, float& splitPos);
 		
-		void Split(uint nodeIdx);
-		void SubdividePrim(uint rootNodeIdx);
+		void separatePlanes(uint nodeIdx);
 		bool IsOccluded(Ray& ray);
 		void Refit();
 		Triangle getTriangle(uint idx);
+	private:
+		void BIntersect(Ray& ray);
+		void QIntersect(Ray& ray);
 	public:
 		uint rootNodeIdx = 0, nodesUsed = 2, NTri = 0, NSph = 0, NPla = 0, N = 0;
 		uint* primitiveIdx;
@@ -72,6 +79,7 @@ class bvh
 		aabb bounds;
 		class DataCollector* dataCollector;
 		int splitMethod;
+		bool isQBVH = false;
 		
 };
 
