@@ -42,6 +42,7 @@ void bvh::Build(bool isQ) {
 	root.leftFirst = 0;
 
 	UpdateNodeBounds(rootNodeIdx);
+	cout << "Subdivison star" << endl;
 	if (isQBVH) QSubdivide(rootNodeIdx);
 	else separatePlanes(rootNodeIdx);
 	bounds.grow(root.aabbMin);
@@ -345,7 +346,7 @@ void bvh::Cut(uint nodeIdx, int& axis, float& splitPos) {
 			for (int a = 0; a < 3; a++) for (uint i = 0; i < node.primCount; i++) {
 				uint primIdx = primitiveIdx[node.leftFirst + i];
 				if (primIdx < NTri) {
-					Triangle& triangle = scene->getTriangle(primIdx);
+					Triangle& triangle = getTriangle(primIdx);
 					candidatePos = triangle.centroid[a];
 				}
 				else if (primIdx >= NTri && primIdx < NTri + NSph) {
@@ -389,7 +390,7 @@ int bvh::Partition(uint nodeIdx, int axis, float splitPos) {
 	// abort split if one of the sides is empty
 	int leftCount = i - node.leftFirst;
 	if (leftCount == 0 || leftCount == node.primCount) return -1;
-	cout << " Split[" << node.leftFirst << "," << node.leftFirst + leftCount << "," << node.leftFirst + node.primCount << "]" << "Idx :" << nodeIdx << endl;
+	//cout << " Split[" << node.leftFirst << "," << node.leftFirst + leftCount << "," << node.leftFirst + node.primCount << "]" << "Idx :" << nodeIdx << endl;
 	return leftCount;
 }
 
@@ -397,7 +398,7 @@ void bvh::QSubdivide(uint nodeIdx) {
 	BVHNode& node = bvhNode[nodeIdx];
 	int axis = -1; float splitPos = 0;
 
-	cout << "First Cut : IDX :" << nodeIdx << endl;
+	//cout << "First Cut : IDX :" << nodeIdx << endl;
 	Cut(nodeIdx, axis, splitPos);
 	int leftCount = Partition(nodeIdx, axis, splitPos);
 	if(leftCount == -1) return;
@@ -414,7 +415,7 @@ void bvh::QSubdivide(uint nodeIdx) {
 	node.leftFirst = leftLeftChildIdx;
 	node.primCount = 0;
 
-	cout << "Second cut" << endl;
+	//cout << "Second cut" << endl;
 	axis = -1; splitPos = 0;
 	Cut(leftLeftChildIdx, axis, splitPos);
 	int leftLeftCount = Partition(leftLeftChildIdx, axis, splitPos);
@@ -553,14 +554,28 @@ void bvh::Refit()
 		if (isQBVH) {
 			BVHNode& child3 = bvhNode[node.leftFirst + 2];
 			BVHNode& child4 = bvhNode[node.leftFirst + 3];
-			node.aabbMin = fminf(child3.aabbMin, child4.aabbMin);
-			node.aabbMax = fmaxf(child3.aabbMax, child4.aabbMax);
+			if (!child3.isEmpty() && !child4.isEmpty()) {
+				float3 min34 = fminf(child3.aabbMin, child4.aabbMin);
+				node.aabbMin = fminf(node.aabbMin, min34);
+				float3 max34 = fmaxf(child3.aabbMax, child4.aabbMax);
+				node.aabbMax = fmaxf(node.aabbMax, max34);
+			}
+			else {
+				if (child3.isEmpty() && !child4.isEmpty()) {
+					node.aabbMin = fminf(node.aabbMin, child4.aabbMin);
+					node.aabbMax = fmaxf(node.aabbMax, child4.aabbMax);
+				}
+				if (child4.isEmpty() && !child3.isEmpty()) {
+					node.aabbMin = fminf(node.aabbMin, child3.aabbMin);
+					node.aabbMax = fmaxf(node.aabbMax, child3.aabbMax);
+				}
+			}
 		}
 	}
 }
 
 void bvh::Intersect(Ray& ray) {
-	if(isQBVH) BIntersect(ray);
+	if(isQBVH) QIntersect(ray);
 	else BIntersect(ray);
 }
 
@@ -628,22 +643,9 @@ void bvh::QIntersect(Ray& ray) {
 		if (node->isLeaf()) {
 			for (uint i = 0; i < node->primCount; i++) {
 				uint primIdx = primitiveIdx[node->leftFirst + i];
-				if (primIdx < NTri) {
-					getTriangle(primIdx).Intersect(ray, t_min);
-					//cout << primIdx << " Intersected" << endl;
-				}
-				else if (primIdx >= NTri && primIdx < NTri + NSph) {
-					primIdx -= NTri;
-					scene->spheres[primIdx].Intersect(ray, t_min);
-				}
-				else {
-					primIdx -= NTri + NSph;
-					scene->planes[primIdx].Intersect(ray, t_min);
-				}
-				dataCollector->UpdateIntersectedPrimitives();
+				getTriangle(primIdx).Intersect(ray, t_min);
 			}
 			if (stackPtr == 0) {
-				dataCollector->UpdateAverageTraversalSteps(traversalSteps);
 				break;
 			}
 			else node = stack[--stackPtr];
@@ -663,24 +665,12 @@ void bvh::QIntersect(Ray& ray) {
 		float dist3 = IntersectAABB(ray, c3->aabbMin, c3->aabbMax);
 		float dist4 = IntersectAABB(ray, c4->aabbMin, c4->aabbMax);
 #endif
-		if (dist1 > dist2) { swap(dist1, dist2); swap(c1, c2); }
-		if (dist2 > dist3) { swap(dist2, dist3); swap(c2, c3); }
-		if (dist3 > dist4) { swap(dist3, dist4); swap(c3, c4); }
-		if (dist1 > dist2) { swap(dist1, dist2); swap(c1, c2); }
-		if (dist2 > dist3) { swap(dist2, dist3); swap(c2, c3); }
-		if (dist1 > dist2) { swap(dist1, dist2); swap(c1, c2); }
-		if (!(dist1 <= dist2 && dist2 <= dist3 && dist3 <= dist4)) cout << "NOT SORTED" << endl;
 
-		if (dist1 == 1e30f || c1->isEmpty()) {
-			if (stackPtr == 0) break; else node = stack[--stackPtr];
-		}
-		else {
-			node = c1;
-			if (dist2 != 1e30f && !c2->isEmpty()) stack[stackPtr++] = c2;
-			if (dist3 != 1e30f && !c3->isEmpty()) stack[stackPtr++] = c3;
-			if (dist4 != 1e30f && !c4->isEmpty()) stack[stackPtr++] = c4;
-		}
-
+		if(dist1 != 1e30f && !c1->isEmpty()) stack[stackPtr++] = c1;
+		if (dist2 != 1e30f && !c2->isEmpty()) stack[stackPtr++] = c2;
+		if (dist3 != 1e30f && !c3->isEmpty()) stack[stackPtr++] = c3;
+		if (dist4 != 1e30f && !c4->isEmpty()) stack[stackPtr++] = c4;
+		if (stackPtr == 0) break; else node = stack[--stackPtr];
 	}
 }
 

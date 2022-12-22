@@ -697,10 +697,10 @@ namespace Tmpl8 {
 				tl->build();
 			}
 			else {
-				instantiateScene3();
+				instantiateSceneEiffel();
 
-				//b = new bvh(this);
-				//b->Build(true);
+				b = new bvh(&meshes[0]);
+				b->Build();
 			}
 
 			
@@ -870,8 +870,6 @@ namespace Tmpl8 {
 			cubes.push_back(Cube(9, greenDiff, float3(1.55, -0.925, 1.25), float3(0.15)));
 			meshes.push_back(Mesh(2,"Resources/stellatedDode.obj", goldMetal, float3(0.000000, 0.561019, 0.000000) * threeScale + threePos + float3(0, 0.25f, 0), 0.4f));
 
-			b = new bvh(&meshes[0]);
-			b->Build(true);
 		}
 
 		void instantiateScene4() {
@@ -945,6 +943,14 @@ namespace Tmpl8 {
 			planes.push_back(Plane(0, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 0));			// 2: floor
 		}
 
+		void instantiateSceneEiffel() {
+			//Loading sky texture
+			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
+			metal* redMetal = new metal(0.7f, red, raytracer);
+
+			lights.push_back(new AreaLight(11, float3(0, 8.0f, 0), 10.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
+			meshes.push_back(Mesh(1, "Resources/eifel.obj", redMetal, float3(0, 0.5f, 0), 0.08));
+		}
 
 		void SetTime(float t)
 		{
