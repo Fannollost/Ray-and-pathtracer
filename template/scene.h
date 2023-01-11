@@ -697,10 +697,11 @@ namespace Tmpl8 {
 				tl->build();
 			}
 			else {
-				instantiateScene2();
+				instantiateBackgroundScene();
 				b = new bvh(this);
 				b->Build(false);  
-								  
+				
+				//Uncomment everything below for QBVH!
 				//instantiateScene8(); //to use QBVH, uncomment (this is a scene with 1 mesh)
 				//b = new bvh(&meshes[0]);	//to use  QBVH, uncomment
 				//b->Build(true);  // to use	QBVH, put true;
@@ -787,6 +788,29 @@ namespace Tmpl8 {
 			myFile.close();
 		}
 
+		void instantiateBackgroundScene() {
+			skydome = stbi_load("Resources/hdr.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
+			lights.push_back(new AreaLight(11, float3(4.5f, 5.0f,7.0f), 19.0f, white, 2.0f, float3(0, -1, 0), 4, raytracer));
+			glass* orange = new glass(1.5f, float3(212, 34, 93) /255, float3(0.0f), 0.0f, 0, raytracer);
+			glass* redGlass = new glass(1.5f, red, float3(0.0f), 0.0f, 0, raytracer);
+			glass* pinkGlass = new glass(1.5f, float3(105, 5, 255) /255, float3(0.0f), 0.0f, 0, raytracer);
+			glass* greenGlass = new glass(1.5f, float3(12, 207, 135) /255, float3(0.0f), 0.0f, 0, raytracer);
+			glass* blueGlass = new glass(1.5f, float3(30, 30, 232) / 255, float3(0.0f), 0.0f, 0, raytracer);
+			metal* redMetal = new metal(0.7f, red, raytracer);
+			metal* orangeMetal = new metal(0.7f, float3(242, 154, 2)/255, raytracer);
+			metal* whiteMetal = new metal(0.7f, white, raytracer);
+			metal* blueMetal = new metal(0.7f, float3(30, 30, 232) / 255, raytracer);
+			metal* purpleMetal = new metal(0.7f, float3(180, 45, 214) /255, raytracer);
+			diffuse* blueDiff = new diffuse(float3(0.8f), float3(30, 30, 232) /255, 0.6f, 0.4f, 10, raytracer);
+
+			meshes.push_back(Mesh(10, "Resources/ico.obj", orange, float3(4.5f, 0.5f, 0.0), 0.5f));
+			spheres.push_back(Sphere(1, redGlass, float3(3.0f, 0.5f, 0), 0.5f));
+			meshes.push_back(Mesh(4, "Resources/ico.obj", blueGlass, float3(1.5f, 0.5f, 0.0f), 0.5f));
+			//spheres.push_back(Sphere(2, blueMetal, float3(0.0, 0.5f, 2.0f), 0.5f));
+			spheres.push_back(Sphere(3, greenGlass, float3(0.0f, 0.50f, 0), 0.5f));
+			planes.push_back(Plane(0, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 0));			// 2: floor
+
+		}
 		void instantiatePrettyScene1() {
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 			lights.push_back(new AreaLight(11, float3(0.1f, 4.0f, 5.0f), 8.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
