@@ -1530,6 +1530,7 @@ public:
 #include <cmath>
 #include "bvh.h"
 #include "bvhInstance.h"
+#include "RLearning.h"
 #include "tlas.h"
 #include "DataCollector.h"
 

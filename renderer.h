@@ -98,6 +98,8 @@ namespace Tmpl8
 		float4* accumulator;
 		Scene scene;
 		Camera camera;
+		RLearning* learning = new QLearning(1,1,1);
+		std::map<Key, QValue>* dict;
 		float2 xBox = float2(-1, 1), yBox = float2(-1, 1), zBox = float2(-1, 1);	//makeboudningbox
 		bool majPressed = false;
 		enum UserInput {

@@ -7,6 +7,7 @@ void Renderer::Init()
 	// create fp32 rgb pixel buffer to render to
 	accumulator = (float4*)MALLOC64( SCRWIDTH * SCRHEIGHT * 16 );
 	memset( accumulator, 0, SCRWIDTH * SCRHEIGHT * 16 );
+	dict = learning->LoadWeights("/weights");
 
 }
 
@@ -255,39 +256,70 @@ void Renderer::Tick(float deltaTime)
 	}
 	// pixel loop
 	Timer t;
+
 	// lines are executed as OpenMP parallel tasks (disabled in DEBUG)
 	#pragma omp parallel for schedule(dynamic)
-	for (int y = 0; y < SCRHEIGHT; ++y)
-	{
-		// trace a primary ray for each pixel on the line
-		for (int x = 0; x < SCRWIDTH; ++x) {
-			float3 totCol = float3(0);				//antialiassing
-			for (int s = 0; s < scene.aaSamples; ++s) {
-				if (scene.raytracer) {
-					float newX = x; 
-					float newY = y;
-					totCol += Trace(camera.GetPrimaryRay(newX, newY), 4, float3(1));
-					accumulator[x + y * SCRWIDTH] = (totCol / scene.aaSamples);
-				}
-				else {
-					if (camera.GetChange())	{
-						accumulator[x + y * SCRWIDTH] = float3(0);
+	for(int r = 0; r < learning->ssp_train; ++r){
+		for (int y = 0; y < SCRHEIGHT; ++y)
+		{
+			// trace a primary ray for each pixel on the line
+			for (int x = 0; x < SCRWIDTH; ++x) {
+				float3 totCol = float3(0);				//antialiassing
+				for (int s = 0; s < scene.aaSamples; ++s) {
+					if (scene.raytracer) {
+						float newX = x; 
+						float newY = y;
+						totCol += Trace(camera.GetPrimaryRay(newX, newY), 4, float3(1));
+						accumulator[x + y * SCRWIDTH] = (totCol / scene.aaSamples);
 					}
-					float newX = x + (RandomFloat() * 2 - 1);
-					float newY = y + (RandomFloat() * 2 - 1);
-					totCol += Sample(camera.GetPrimaryRay(newX, newY),4, float3(1));
-					float r = pow(totCol.x * scene.invAaSamples, GAMMA);
-					float g = pow(totCol.y * scene.invAaSamples, GAMMA);
-					float b = pow(totCol.z * scene.invAaSamples, GAMMA);
-					accumulator[x + y * SCRWIDTH] += float3(r,g,b);
+					else {
+						if (camera.GetChange())	{
+							accumulator[x + y * SCRWIDTH] = float3(0);
+						}
+						float newX = x + (RandomFloat() * 2 - 1);
+						float newY = y + (RandomFloat() * 2 - 1);
+						totCol += Sample(camera.GetPrimaryRay(newX, newY),4, float3(1));
+						float r = pow(totCol.x * scene.invAaSamples, GAMMA);
+						float g = pow(totCol.y * scene.invAaSamples, GAMMA);
+						float b = pow(totCol.z * scene.invAaSamples, GAMMA);
+						accumulator[x + y * SCRWIDTH] += float3(r,g,b);
+					}
+
+					if (learning->training == 1) {
+						learning->epsilon = 1;
+						learning->epsilon = -2 * learning->counter / float(SCRWIDTH * SCRHEIGHT) + 1;
+						learning->counter += 1;
+					}
 				}
 			}
+
+			// translate accumulator contents to rgb32 pixels
+			for (int dest = y * SCRWIDTH, x = 0; x < SCRWIDTH; ++x)	{
+				float4 acc = accumulator[x + y * SCRWIDTH] / it; /// iteration;
+				screen->pixels[dest + x] = (RGBF32_to_RGB8(&acc));///iteration ;
+			}
 		}
-		// translate accumulator contents to rgb32 pixels
-		for (int dest = y * SCRWIDTH, x = 0; x < SCRWIDTH; ++x)	{
-			float4 acc = accumulator[x + y * SCRWIDTH] / it; /// iteration;
-			screen->pixels[dest + x] = (RGBF32_to_RGB8(&acc));///iteration ;
+	}
+
+	if (learning->training) {
+		learning->ssp_train = 0;
+		learning->training = 0;
+		std::ofstream weightsFile("weights/" + learning->weights_path + ".txt");
+		if (weightsFile.is_open())
+		{
+			for (auto const& x : *dict) {
+				for (int i = 0; i < 6; i++) {
+					weightsFile << x.first[i] << ",";
+				}
+				for (int i = 0; i < dim_action_space + 1; i++) {
+					weightsFile << x.second[i] << ",";
+				}
+				weightsFile << endl;
+			}
 		}
+
+		cout << "TRAINING DONE!" << endl;
+		dict = learning->LoadWeights(learning->weights_path);
 	}
 	
 	if (!scene.raytracer && !camera.GetChange())

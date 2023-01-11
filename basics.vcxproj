@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
@@ -126,6 +126,7 @@
     <ClCompile Include="bvhInstance.cpp" />
     <ClCompile Include="DataCollector.cpp" />
     <ClCompile Include="renderer.cpp" />
+    <ClCompile Include="RLearning.cpp" />
     <ClCompile Include="template\template.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
@@ -139,6 +140,7 @@
     <ClInclude Include="DataCollector.h" />
     <ClInclude Include="material.h" />
     <ClInclude Include="renderer.h" />
+    <ClInclude Include="RLearning.h" />
     <ClInclude Include="template\common.h" />
     <ClInclude Include="template\precomp.h" />
     <ClInclude Include="template\scene.h" />
