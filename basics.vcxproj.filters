@@ -9,6 +9,8 @@
     <ClCompile Include="DataCollector.cpp" />
     <ClCompile Include="tlas.cpp" />
     <ClCompile Include="bvhInstance.cpp" />
+    <ClCompile Include="QTable.cpp" />
+    <ClCompile Include="KDTree.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="camera.h" />
@@ -29,6 +31,8 @@
     <ClInclude Include="DataCollector.h" />
     <ClInclude Include="tlas.h" />
     <ClInclude Include="bvhInstance.h" />
+    <ClInclude Include="QTable.h" />
+    <ClInclude Include="KDTree.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="template">

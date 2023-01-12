@@ -125,6 +125,8 @@
     <ClCompile Include="bvh.cpp" />
     <ClCompile Include="bvhInstance.cpp" />
     <ClCompile Include="DataCollector.cpp" />
+    <ClCompile Include="KDTree.cpp" />
+    <ClCompile Include="QTable.cpp" />
     <ClCompile Include="renderer.cpp" />
     <ClCompile Include="template\template.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -137,7 +139,9 @@
     <ClInclude Include="bvhInstance.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="DataCollector.h" />
+    <ClInclude Include="KDTree.h" />
     <ClInclude Include="material.h" />
+    <ClInclude Include="QTable.h" />
     <ClInclude Include="renderer.h" />
     <ClInclude Include="template\common.h" />
     <ClInclude Include="template\precomp.h" />

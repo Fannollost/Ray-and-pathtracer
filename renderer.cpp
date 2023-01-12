@@ -7,7 +7,7 @@ void Renderer::Init()
 	// create fp32 rgb pixel buffer to render to
 	accumulator = (float4*)MALLOC64( SCRWIDTH * SCRHEIGHT * 16 );
 	memset( accumulator, 0, SCRWIDTH * SCRHEIGHT * 16 );
-
+	qTable->GeneratePoints(scene);
 }
 
 enum MAT_TYPE {
@@ -131,6 +131,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
 	float t_min = 0.001f;
 	float eps = 0.0001f;
 	scene.FindNearest(ray, t_min);
+
 	if (ray.objIdx == -1) return scene.GetSkyColor(ray);
 	if (ray.objIdx >= 11 && ray.objIdx < 11 + size(scene.lights)) {
 		return scene.lights[ray.objIdx - 11]->GetLightIntensityAt(ray.IntersectionPoint(), ray.hitNormal, ray.IntersectionPoint());
