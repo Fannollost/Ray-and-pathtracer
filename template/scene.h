@@ -697,7 +697,7 @@ namespace Tmpl8 {
 				tl->build();
 			}
 			else {
-				instantiateScene2();
+				instantiateScene1();
 				b = new bvh(this);
 				b->Build(false);  
 								  
