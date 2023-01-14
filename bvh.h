@@ -54,7 +54,7 @@ class bvh
 		void Cut(uint nodeIdx, int& axis, float& splitPos);
 		int Partition(uint nodeIdx, int axis, float splitPos);
 		void QSubdivide(uint nodeIdx);
-		void Intersect(Ray& ray);
+		void Intersect(Ray& ray, bool debug = false);
 
 		static float IntersectAABB(const Ray& ray, const float3 bmin, const float3 bmax);
 		float IntersectAABB_SSE(const Ray& ray, const __m128 bmin4, const __m128 bmax4);
@@ -68,9 +68,9 @@ class bvh
 		Triangle getTriangle(uint idx);
 	private:
 		bool BIsOccluded(Ray& ray);
-		void BIntersect(Ray& ray);
+		void BIntersect(Ray& ray, bool debug = false);
 		bool QIsOccluded(Ray& ray);
-		void QIntersect(Ray& ray);
+		void QIntersect(Ray& ray, bool debug = false);
 	public:
 		uint rootNodeIdx = 0, nodesUsed = 2, NTri = 0, NSph = 0, NPla = 0, N = 0;
 		uint* primitiveIdx;

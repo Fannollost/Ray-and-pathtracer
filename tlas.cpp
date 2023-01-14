@@ -62,7 +62,7 @@ int tlas::FindBestMatch(int* list, int N, int A)
     return bestB;
 }
 
-void tlas::Intersect(Ray& ray)
+void tlas::Intersect(Ray& ray, bool debug)
 {
     TLASNode* node = &tlasNode[0], * stack[64];
     uint stackPtr = 0;

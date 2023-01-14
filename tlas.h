@@ -17,7 +17,7 @@ public:
 
     void tlas::build();
     int tlas::FindBestMatch(int* list, int N, int A);
-    void Intersect(Ray& ray);
+    void Intersect(Ray& ray,  bool debug = false);
     bool IsOccluded(Ray& ray);
 public:
     TLASNode* tlasNode;

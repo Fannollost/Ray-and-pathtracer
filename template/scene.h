@@ -28,12 +28,14 @@ namespace Tmpl8 {
 	class material;
 	class diffuse;
 	class metal;
+	class debug;
 	class Triangle;
 	class DataCollector;
 	enum MAT_TYPE {
 		DIFFUSE = 1,
 		METAL = 2,
 		GLASS = 3,
+		DEBUG = 4
 	};
 	__declspec(align(64)) class Ray
 	{
@@ -166,6 +168,107 @@ namespace Tmpl8 {
 
 		float sinAngle;
 	};
+
+	class material {
+	public:
+		material(float3 c, bool rt) : col(c), raytracer(rt) {}
+
+		void SetColor(float3 c) { col = c; }
+		float3 col, albedo = 0, emission = 0;
+		int type;
+		bool raytracer;
+	};
+
+
+	class diffuse : public material {
+	public:
+		diffuse(float3 a = 0, float3 c = 0, float ks = 0.2, float kd = 0.8, int n = 2, bool rt = true, float e = 0, float s = 0)
+			: specu(ks), diffu(kd), N(n), material(c, rt) {
+			type = DIFFUSE;
+			albedo = a;
+			emission = e;
+			shinieness = s;
+		}
+		void SetSpecularity(float ks) { specu = ks; }
+		void SetDiffuse(float kd) { diffu = kd; }
+		void SetN(int n) { N = n; }
+		virtual bool scatter(const Ray& ray, float3& att, Ray& scattered, float3 lightDir, float3 lightIntensity, float3 normal, float3& energy) {
+			float3 reflectionDirection = reflect(-lightDir, normal);
+			float3 specularColor, lightAttenuation;
+			specularColor = powf(fmax(0.0f, -dot(reflectionDirection, ray.D)), N) * lightIntensity;
+			lightAttenuation = lightIntensity;
+			att = albedo * lightAttenuation * diffu + specularColor * specu;
+			float3 dir;
+			if (!raytracer) {
+				dir = RandomInHemisphere(normal);
+			}
+			scattered = Ray(ray.IntersectionPoint(), dir, ray.color);
+			float3 retention = float3(1) - albedo;
+			float3 newEnergy(energy - retention);
+			energy = newEnergy.x > 0 ? newEnergy : 0;
+			return true;
+		}
+
+	public:
+		float specu, diffu, shinieness;
+		int N;
+	};
+
+	class debug : public material {
+	public:
+		debug(float3(c)) : material(c, false) { type = DEBUG; emission = 0; }
+	};
+
+	class metal : public material {
+	public:
+		metal(float f, float3 c, bool rt) : fuzzy(f < 1 ? f : 1), material(c, rt) { type = METAL; emission = 0; }
+		virtual bool scatter(const Ray& ray, Ray& reflected, float3 normal, float3& energy) {
+			float3 dir = reflect(ray.D, normal);
+			reflected = Ray(ray.IntersectionPoint() + normal * 0.001f, dir, ray.color * col);
+			energy = energy;
+			return dot(reflected.D, normal) > 0;
+		}
+
+	public:
+		float fuzzy;
+	};
+
+	class glass : public material {
+	public:
+		glass(float refIndex, float3 c, float3 a, float r, float n, bool rt)
+			: ir(refIndex), absorption(a), specu(r), N(n), material(c, rt) {
+			type = GLASS; invIr = 1 / ir;
+		}
+		void fresnel(const float3& I, const float3& N, const float& ior, float& kr)
+		{
+			float cosi = clamp(dot(I, N), -1.0f, 1.0f);
+			float etai = 1, etat = ior;
+			if (cosi > 0) { std::swap(etai, etat); }
+			float sint = etai / etat * sqrtf(fmaxf(0.f, 1 - cosi * cosi));
+			// Total internal reflection
+			if (sint >= 1) {
+				kr = 1;
+			}
+			else {
+				float cost = sqrtf(fmaxf(0.f, 1 - sint * sint));
+				cosi = fabsf(cosi);
+				float Rs = ((etat * cosi) - (etai * cost)) / ((etat * cosi) + (etai * cost));
+				float Rp = ((etai * cosi) - (etat * cost)) / ((etai * cosi) + (etat * cost));
+				kr = (Rs * Rs + Rp * Rp) / 2;
+			}
+			// As a consequence of the conservation of energy, transmittance is given by:
+			// kt = 1 - kr;
+		}
+		float3 RefractRay(const float3& oRayDir, const float3& normal, const float& refRatio) {
+			float theta = fmin(dot(-oRayDir, normal), 1.0);
+			float3 perpendicular = refRatio * (oRayDir + theta * normal);
+			float3	parallel = -sqrt(fabs(1.0 - pow(length(perpendicular), 2))) * normal;
+			return perpendicular + parallel;
+		}
+
+		float ir, fresnelVal, specu, N, invIr;
+		float3 absorption;
+	};
 	
 	// -----------------------------------------------------------
 	// Triangle Primitive
@@ -187,7 +290,7 @@ namespace Tmpl8 {
 			N = normalize(cross(e1, e2));
 			centroid = (v0 + v1 + v2) * 0.333f;
 		}
-		void Intersect(Ray& ray, float t_min) const {		 //scratchapixel implementation
+		void Intersect(Ray& ray, float t_min, bool debug) const {		 //scratchapixel implementation
 			float NdotRayDir = dot(N, ray.D);
 			if (fabs(NdotRayDir) < t_min) return;
 			float d = -dot(N, v0);
@@ -208,7 +311,7 @@ namespace Tmpl8 {
 			c = cross(e4, vp2);
 			if (dot(N, c) < 0) return;
 
-			if (t < ray.t && t > t_min) {
+			if (t < ray.t && t > t_min && (mat->type!=DEBUG || debug) ) {
 				ray.t = t, ray.objIdx = objIdx, ray.m = mat,
 					ray.SetNormal(N);
 			}
@@ -319,12 +422,6 @@ namespace Tmpl8 {
 				tri[i].IsOccluding(ray, t_min);
 			}
 
-		}
-		void Intersect(Ray& ray, float t_min) const {
-			float3 v0, v1, v2;
-			for (int i = 0; i < size(faces); i++) {
-				tri[i].Intersect(ray, t_min);
-			}
 		}
 		void update() {
 			for (int i = 0; i < size(faces); i++) {
@@ -490,6 +587,7 @@ namespace Tmpl8 {
 				if (tmax < ray.t) ray.t = tmax, ray.objIdx = objIdx, ray.m = mat,
 					ray.SetNormal(GetNormal(ray.IntersectionPoint()));
 			}
+
 		}
 		bool IsOccluding(Ray& ray, float t_min) const {
 			// 'rotate' the cube by transforming the ray into object space
@@ -579,102 +677,6 @@ namespace Tmpl8 {
 		material* mat;
 	};
 
-	class material {
-	public:
-		material(float3 c, bool rt) : col(c), raytracer(rt) {}
-
-		void SetColor(float3 c) { col = c; }
-		float3 col, albedo = 0, emission = 0;
-		int type;
-		bool raytracer;
-	};
-
-	
-	class diffuse : public material {
-	public:
-		diffuse(float3 a = 0, float3 c = 0, float ks = 0.2, float kd = 0.8, int n = 2, bool rt = true, float e = 0, float s = 0)
-			: specu(ks), diffu(kd), N(n), material(c, rt) {
-			type = DIFFUSE;
-			albedo = a;
-			emission = e;
-			shinieness = s;
-		}
-		void SetSpecularity(float ks) { specu = ks; }
-		void SetDiffuse(float kd) { diffu = kd; }
-		void SetN(int n) { N = n; }
-		virtual bool scatter(const Ray& ray, float3& att, Ray& scattered,  float3 lightDir, float3 lightIntensity, float3 normal, float3& energy) {
-			float3 reflectionDirection = reflect(-lightDir, normal);
-			float3 specularColor, lightAttenuation;
-			specularColor = powf(fmax(0.0f, -dot(reflectionDirection, ray.D)), N) * lightIntensity;
-			lightAttenuation = lightIntensity;
-			att = albedo * lightAttenuation * diffu + specularColor * specu;
-			float3 dir;
-			if (!raytracer) {
-				dir = RandomInHemisphere(normal);
-			}
-			scattered = Ray(ray.IntersectionPoint(), dir, ray.color);
-			float3 retention = float3(1) - albedo;
-			float3 newEnergy(energy - retention);
-			energy = newEnergy.x > 0 ? newEnergy : 0;
-			return true;
-		}
-
-	public:
-		float specu, diffu, shinieness;
-		int N;
-	};
-
-	class metal : public material {
-	public:
-		metal(float f, float3 c, bool rt) : fuzzy(f < 1 ? f : 1), material(c, rt) { type = METAL; emission = 0; }
-		virtual bool scatter(const Ray& ray, Ray& reflected, float3 normal, float3& energy) {
-			float3 dir = reflect(ray.D, normal);
-			reflected = Ray(ray.IntersectionPoint() + normal * 0.001f, dir, ray.color * col);
-			energy = energy;
-			return dot(reflected.D, normal) > 0;
-		}
-
-	public:
-		float fuzzy;
-	};
-
-	class glass : public material{
-	public: 
-		glass(float refIndex, float3 c, float3 a, float r, float n, bool rt)
-			: ir(refIndex), absorption(a), specu(r), N(n), material(c, rt) {
-			type = GLASS; invIr = 1 / ir;
-		}
-		void fresnel(const float3& I, const float3& N, const float& ior, float& kr)
-		{
-			float cosi = clamp(dot(I, N) ,-1.0f, 1.0f);
-			float etai = 1, etat = ior;				 
-			if (cosi > 0) { std::swap(etai, etat); }
-			float sint = etai / etat * sqrtf(fmaxf(0.f, 1 - cosi * cosi));
-			// Total internal reflection
-			if (sint >= 1) {
-				kr = 1;
-			}
-			else {
-				float cost = sqrtf(fmaxf(0.f, 1 - sint * sint));
-				cosi = fabsf(cosi);
-				float Rs = ((etat * cosi) - (etai * cost)) / ((etat * cosi) + (etai * cost));
-				float Rp = ((etai * cosi) - (etat * cost)) / ((etai * cosi) + (etat * cost));
-				kr = (Rs * Rs + Rp * Rp) / 2;
-			}
-			// As a consequence of the conservation of energy, transmittance is given by:
-			// kt = 1 - kr;
-		}
-		float3 RefractRay(const float3& oRayDir, const float3& normal, const float& refRatio) {
-			float theta = fmin(dot(-oRayDir, normal), 1.0);	  
-			float3 perpendicular = refRatio * (oRayDir + theta * normal);
-			float3	parallel = -sqrt(fabs(1.0 - pow(length(perpendicular), 2))) * normal;
-			return perpendicular + parallel;									  
-		}
-
-		float ir, fresnelVal, specu, N, invIr;
-		float3 absorption;
-	};
-
 	// -----------------------------------------------------------
 	// Scene class
 	// We intersect this. The query is internally forwarded to the
@@ -697,7 +699,7 @@ namespace Tmpl8 {
 				tl->build();
 			}
 			else {
-				instantiateScene2();
+				instantiateScene1();
 				b = new bvh(this);
 				b->Build(false);  
 								  
@@ -959,16 +961,17 @@ namespace Tmpl8 {
 			diffuse* greenDiff = new diffuse(float3(0.8f), green, 0.6f, 0.4f, 2, raytracer);
 			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.2f, 0.8f, 4, raytracer);
 			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.6f, 0.4f, 2, raytracer);
+			diffuse* whiteDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 2, raytracer);
 			diffuse* specReflDiff = new diffuse(float3(0.7f), white, 0.6f, 0.4f, 50, raytracer, 0.0f);
 			metal* standardMetal = new metal(0.7f, white, raytracer);
-			lights.push_back(new AreaLight(11, float3(0.1f, 1.95f, 1.5f), 4.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
+			lights.push_back(new AreaLight(11, float3(0.1f, 1.95f, 1.5f), 16.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
 			//lights.push_back(new AreaLight(12, float3(0, -0.95, 0.5f), 2.0f, white, 0.5f, float3(0, 1, 0), 4, raytracer));
 			planes.push_back(Plane(0, redDiff, float3(1, 0, 0), 3));			// 0: left wall
 			planes.push_back(Plane(1, greenDiff, float3(-1, 0, 0), 2.99f));		// 1: right wall
-			planes.push_back(Plane(2, specReflDiff, float3(0, 1, 0), 1));			// 2: floor
-			planes.push_back(Plane(3, lightDiff, float3(0, -1, 0), 2));			// 3: ceiling
-			planes.push_back(Plane(4, lightDiff, float3(0, 0, 1), 3));			// 4: front wall
-			planes.push_back(Plane(5, specularDiff, float3(0, 0, -1), 3.99f));		// 5: back wall
+			planes.push_back(Plane(2, whiteDiff, float3(0, 1, 0), 1));			// 2: floor
+			planes.push_back(Plane(3, whiteDiff, float3(0, -1, 0), 2));			// 3: ceiling
+			planes.push_back(Plane(4, whiteDiff, float3(0, 0, 1), 3));			// 4: front wall
+			planes.push_back(Plane(5, whiteDiff, float3(0, 0, -1), 3.99f));		// 5: back wall
 
 			if (animOn) spheres.push_back(Sphere(7, standardGlass, float3(-0.7f, -0.4f, 2.0f), 0.5f));			// 1: bouncing ball
 			else spheres.push_back(Sphere(7, standardGlass, float3(-1.5f, -0.5, 2), 0.5f));		    // 1: static ball
@@ -976,6 +979,7 @@ namespace Tmpl8 {
 			if (animOn) cubes.push_back(Cube(9, blueDiff, float3(0), float3(1.15f)));		// 3: spinning cube			
 			else cubes.push_back(Cube(9, standardGlass, float3(1.2f, -0.5f, 2.5f), float3(1)));
 			meshes.push_back(Mesh(1,"Resources/ico.obj", greenDiff,  float3(0.1f, -0.6f, 1.5f), 0.5f));
+			instantiateDebugPoint(float3(0));
 
 		}
 
@@ -1221,7 +1225,7 @@ namespace Tmpl8 {
 			//if (animOn) tl->Build();
 		}
 
-		void FindNearest(Ray& ray, float t_min) const
+		void FindNearest(Ray& ray, float t_min, bool debug=false) const
 		{
 			ray.objIdx = -1;
 
@@ -1235,10 +1239,10 @@ namespace Tmpl8 {
 			if (useTLAS) {
 				for (int i = 0; i < size(spheres); ++i) spheres[i].Intersect(ray, t_min);
 				for (int i = 0; i < size(planes); ++i) planes[i].Intersect(ray, t_min);
-				tl->Intersect(ray);
+				tl->Intersect(ray, debug);
 			}
 			else {
-				b->Intersect(ray);
+				b->Intersect(ray, debug);
 			}
 		}
 
@@ -1319,6 +1323,22 @@ namespace Tmpl8 {
 			return meshes[i].tri[idx];
 		}
 
+		void instantiateDebugPoint(float3 pos) {
+			const float3 gradient[40] = {float3(255, 0, 0), float3(255, 28, 0), float3(255, 56, 0), float3(255, 85, 0), float3(255, 113, 0), float3(255, 141, 0), float3(255, 171, 0),  float3(255, 198, 0), float3(255, 226, 0), float3(255, 255, 0),
+						float3(255, 255, 0), float3(226, 255, 0), float3(198, 255, 0), float3(171, 255, 0), float3(141, 255, 0), float3(113, 255, 0), float3(85, 255, 0), float3(56, 255, 0),  float3(28, 255, 0), float3(0, 255, 0),
+						float3(0, 255, 0), float3(0, 255, 28), float3(0, 255, 56), float3(0, 255, 85), float3(0, 255, 113), float3(0, 255, 141), float3(0, 255, 171),  float3(0, 255, 198), float3(0, 255, 226), float3(0, 255, 255),
+						float3(0, 255, 255), float3(0, 226, 255), float3(0, 198, 255), float3(0, 171, 255), float3(0, 141, 255), float3(0, 113, 255), float3(0, 85, 255),  float3(0, 56, 255), float3(0, 28, 255), float3(0, 0, 255) };
+
+			debug* m = new debug(float3(0));
+			Mesh debugP = Mesh(1, "Resources/rldebug.obj", m, pos, 1);
+			
+			for (int i = 0; i < 40; i++) {
+				debugP.tri[i].mat = new debug(gradient[i] / 255);
+			}
+			meshes.push_back(debugP);
+
+		}
+
 		void SetIterationNumber(int i) { iterationNumber = i; }
 
 		int GetIterationNumber() { return iterationNumber; }
@@ -1370,5 +1390,6 @@ namespace Tmpl8 {
 		const float3 green = float3(0, 255, 0) / 255;
 		const float3 gold = float3(218, 165, 32) / 255;
 		const float3 pink = float3(255, 20, 147) / 255;
+
 	};
 }
