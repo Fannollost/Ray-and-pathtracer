@@ -23,12 +23,11 @@ void QTable::Bounce(const Scene& s, Ray& emitted) {
 	if (emitted.GetMaterial()->type == DIFFUSE )
 		//&& distance(nearestPoint, emitted.IntersectionPoint() > rejectRadius)
 	{
-		cout << emitted.IntersectionPoint().x << ", " << emitted.IntersectionPoint().y << ", " << emitted.IntersectionPoint().z << endl;
 		if(kdTree->getNearestDist(kdTree->rootNode,emitted.IntersectionPoint(), 3) >= rejectRadius)
 			kdTree->insert(NULL, emitted.IntersectionPoint());
 	}
 	tempBounces--;
-	float3 emittedDir = RandomVectorInUnitSphere();
+	float3 emittedDir = RandomInHemisphere(emitted.hitNormal);
 	Ray bounce = Ray(emitted.IntersectionPoint(), emittedDir, float3(0));
 	Bounce(s, bounce);
 }

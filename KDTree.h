@@ -73,12 +73,14 @@ public:
 
         return true;
     }
+
     float getNearestDist(Node* root, float3 currPoint, int depth) {
         smallestDist = 1e30f;
         nearestNode = nullptr;
         int idx = findNearest(root, currPoint, depth);
         return smallestDist;
     }
+
     const int findNearest(Node* root,float3 currPoint, int depth) {
         if (nearestNode == nullptr)
             return -1;

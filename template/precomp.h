@@ -1534,6 +1534,7 @@ public:
 #include "DataCollector.h"
 #include "KDTree.h"
 #include "QTable.h"
+#include "HemisphereSampling.h"
 
 // InstructionSet.cpp
 // Compile by using: cl /EHsc /W4 InstructionSet.cpp
