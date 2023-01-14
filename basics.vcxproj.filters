@@ -11,6 +11,7 @@
     <ClCompile Include="bvhInstance.cpp" />
     <ClCompile Include="QTable.cpp" />
     <ClCompile Include="KDTree.cpp" />
+    <ClCompile Include="HemisphereSampling.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="camera.h" />
@@ -33,6 +34,7 @@
     <ClInclude Include="bvhInstance.h" />
     <ClInclude Include="QTable.h" />
     <ClInclude Include="KDTree.h" />
+    <ClInclude Include="HemisphereSampling.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="template">
