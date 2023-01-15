@@ -125,15 +125,26 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 	return totCol;
 }
 
+HemisphereSampling::Sample Renderer::SampleDirection(const Ray& r) {
+	HemisphereSampling::Sample sample;
+	qTable->kdTree->findNearest(qTable->kdTree->rootNode, r.IntersectionPoint(), 3);
+	int idx = qTable->kdTree->nearestNode->idx;
+	qTable->SampleDirection(idx, sample);
+
+	RotateVector(sample.dir, float3(0, 1, 0), r.hitNormal);
+	//sample.dir = normalize(sample.dir[0] * right + sample.dir[1] * up + sample.dir[2] * (-n));
+	return sample;
+}
+
 float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx = -1) {
-	if (depth < 0) return float3(0.05f);
+	if (depth < 0) return float3(0);//float3(0.05f);
 	float3 totCol = 0;
 	float t_min = 0.001f;
 	float eps = 0.0001f;
 	scene.FindNearest(ray, t_min);
 
 	if (ray.objIdx == -1) return scene.GetSkyColor(ray);
-	if (ray.objIdx >= 11 && ray.objIdx < 11 + size(scene.lights)) {
+	if (ray.objIdx >= 11 && ray.objIdx < 11 + size(scene.lights)) { //check if its first bounce! If so, give light a color, if not return 0?
 		return scene.lights[ray.objIdx - 11]->GetLightIntensityAt(ray.IntersectionPoint(), ray.hitNormal, ray.IntersectionPoint());
 	}
 	//return float3(0);
@@ -156,6 +167,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 	{
 		case DIFFUSE: {
 			float3 directLightning = 0;
+			float3 attenuation;
 			for (int i = 0; i < size(scene.lights); i++) {
 
 				float3 pickedPos = scene.lights[i]->GetLightPosition();
@@ -165,29 +177,42 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 				Ray r = Ray(ray.IntersectionPoint() + lightRayDirection * 1e-4f, lightRayDirection, ray.color, sqrt(len2));
 				if (scene.IsOccluded(r)) continue;
 				Ray scattered;
-				float3 attenuation;
 				((diffuse*)m)->scatter(ray, attenuation, scattered, lightRayDirection,
 					scene.lights[i]->GetLightIntensityAt(ray.IntersectionPoint(), normal, pickedPos), normal, energy);
 				
 
-				if (((diffuse*)m)->shinieness != 0)
-					directLightning += ((diffuse*)m)->shinieness * m->col * Sample(Ray(ray.IntersectionPoint(), reflect(ray.D, ray.hitNormal), ray.color), depth - 1, energy);
+				//if (((diffuse*)m)->shinieness != 0)
+				//	directLightning += ((diffuse*)m)->shinieness * m->col * Sample(Ray(ray.IntersectionPoint(), reflect(ray.D, ray.hitNormal), ray.color), depth - 1, energy);
 
 				directLightning += (1 - ((diffuse*)m)->shinieness) * m->col * attenuation * energy;
 			}
 
-			if (learningPhase && sampleIdx >= 0)
-				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, directLightning, *m);
+			if (learningEnabled && learningPhase && sampleIdx >= 0)
+				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, attenuation, ray, directLightning);
 
 			float3 indirectLightning = 0;
-
 			int N = 1;
 			float BRDF = 1 * INV2PI;
 			for (int i = 0; i < N; ++i) {
-				float3 rayToHemi = RandomInHemisphere(normal);
+
+				float3 rayToHemi;
+				int samIdx;
+				float prob;
+				if (learningEnabled) {
+					auto sam = SampleDirection(ray);
+					rayToHemi = sam.dir;
+					samIdx = sam.idx;
+					prob = sam.prob;
+				}
+				else {
+					rayToHemi = RandomInHemisphere(normal);
+					samIdx = -1;
+					prob = 1;
+				}
+
 				float3 cos_i = dot(rayToHemi, normal);
 				indirectLightning += m->col* cos_i * Sample(Ray(intersectionPoint, rayToHemi, float3(0)),
-					depth - 1, energy);
+					depth - 1, energy, samIdx) / prob;
 			}
 
 			indirectLightning /= (float)N;
@@ -305,7 +330,10 @@ void Renderer::Tick(float deltaTime)
 	float fps = 1000 / avg, rps = (SCRWIDTH * SCRHEIGHT) * fps;
 	scene.SetFPS(fps);
 	scene.runTime += t.elapsed();
-	if (scene.runTime > 20 && !scene.exported) scene.ExportData();
+	if (scene.runTime > 20 && !scene.exported) {
+		scene.ExportData();
+		learningPhase = false;
+	}
 	printf( "%5.2fms (%.1ffps) - %.1fMrays/s %.1fCameraSpeed\n", avg, fps, rps / 1000000, camera.speed );
 }
 

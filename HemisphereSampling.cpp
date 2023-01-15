@@ -34,7 +34,6 @@ void HemisphereMapping::SampleDirection(Sample& s, float3 normal) const {
 
 	std::vector<float> cum(grid.size());
 	std::partial_sum(normalizedGrid.begin(), normalizedGrid.end(), cum.begin());
-
 	s.idx = grid.size() - 1;
 	for (int i = 0; i < (int)cum.size(); i++) {
 		if (r < cum[i]) {
@@ -44,7 +43,7 @@ void HemisphereMapping::SampleDirection(Sample& s, float3 normal) const {
 	}
 
 	s.dir = normalize(mapIndexToDirection(s.idx));
-	s.prob - ((float)grid.size() * normalizedGrid[s.idx]) * INV2PI;
+	s.prob = ((float)grid.size() * normalizedGrid[s.idx]) * INV2PI;
 }
 
 float3 HemisphereMapping::mapIndexToDirection(int dirIdx) const {

@@ -10,6 +10,7 @@ namespace Tmpl8
 		void Init();
 		float3 Trace(Ray& ray, int depth, float3 energy);
 		float3 Sample(Ray& ray, int depth, float3 energy, const int sampleIdx);
+		HemisphereSampling::Sample SampleDirection(const Ray& hitPoint);
 		void Tick(float deltaTime);
 		void Shutdown() { /* implement if you want to do something on exit */ }
 		// input handling
@@ -95,12 +96,13 @@ namespace Tmpl8
 		// data members
 		int2 mousePos;
 		bool mousePressed = false;
+		bool learningEnabled = true;
 		bool learningPhase = true;
 		float4* accumulator;
 		Scene scene;
 		Camera camera;
 		float2 xBox = float2(-1, 1), yBox = float2(-1, 1), zBox = float2(-1, 1);	//makeboudningbox
-		QTable* qTable = new QTable(10,20,0.25f, float3(0,0,0), 5, 0.4f);
+		QTable* qTable = new QTable(20,10,0.1f, float3(0,0,0), 10, 0.05f);
 		bool majPressed = false;
 		enum UserInput {
 			KEYBOARD_B = 66,

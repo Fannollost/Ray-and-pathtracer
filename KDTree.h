@@ -37,8 +37,11 @@ public:
     Node* insertRec(Node* root, float3 point, unsigned depth)
     {
         // Tree is empty?
-        if (root == NULL)
-            return newNode(point);
+        if (root == NULL){
+            rootNode = newNode(point);
+            nearestNode = rootNode;
+            return rootNode;
+        }
 
         // Calculate current dimension (cd) of comparison
         unsigned cd = depth % k;
@@ -50,7 +53,6 @@ public:
         else
             root->right = insertRec(root->right, point, depth + 1);
 
-        rootNode = root;
         return root;
     }
 
@@ -77,34 +79,27 @@ public:
     float getNearestDist(Node* root, float3 currPoint, int depth) {
         smallestDist = 1e30f;
         nearestNode = nullptr;
-        int idx = findNearest(root, currPoint, depth);
+        findNearest(root, currPoint, depth);
         return smallestDist;
     }
 
-    const int findNearest(Node* root,float3 currPoint, int depth) {
-        if (nearestNode == nullptr)
-            return -1;
+    void findNearest(Node* root,float3 currPoint, int depth) {
         if (root == nullptr)
-            return nearestNode->idx;
-
-        float d = length(currPoint - rootNode->point);
-        if (nearestNode == nullptr || d < smallestDist)
-        {
-            smallestDist = d;
+            return;
+        float dis = length(root->point- currPoint);
+        if (nearestNode == nullptr || dis < smallestDist) {
+            smallestDist = dis;
             nearestNode = root;
         }
 
-
-        unsigned cd = depth % 3;
-
-        // Compare the new point with root on current dimension 'cd'
-        // and decide the left or right subtree
-        if (currPoint[cd] < (root->point[cd]))
-            root->left = insertRec(root->left, currPoint, depth + 1);
-        else
-            root->right = insertRec(root->right, currPoint, depth + 1);
-
-        return nearestNode->idx;
+        if (smallestDist == 0)
+            return;
+        float dx = root->point[depth] - currPoint[depth];
+        depth = depth + 1 % 3;
+        findNearest(dx > 0 ? root->left : root->right, currPoint, depth);
+        if (dx * dx >= smallestDist)
+            return;
+        findNearest(dx > 0 ? root->right : root->left, currPoint, depth);
     }
     // Searches a Point represented by "point[]" in the K D tree.
     // The parameter depth is used to determine current axis.

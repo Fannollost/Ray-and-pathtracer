@@ -884,6 +884,40 @@ inline float4 smoothstep( float4 a, float4 b, float4 x )
 }
 inline bool isZero(float3 r) { double s = 1e-4;  return fabs(r.x < s) && fabs(r.y < s) && fabs(r.z < s); }
 
+inline float3 RotateVector(float3 vec, float3 n1, float3 n2) {
+	float3 rotationAxis = n1;
+	rotationAxis = cross(rotationAxis, n2);
+	float rotationAxisLength = length(rotationAxis);
+
+	if (rotationAxisLength < 1e-8)
+		return vec;
+
+	rotationAxis = rotationAxis / rotationAxisLength;
+
+	float rotAngle = acos(dot(n1, n2));
+
+	float c = cos(rotAngle);
+	float s = sin(rotAngle);
+	float t = 1 - c;
+
+	float x = rotationAxis[0];
+	float y = rotationAxis[1];
+	float z = rotationAxis[2];
+
+	float rotationMatrix[3][3] = {
+	{ t * x * x + c,   t * x * y - s * z, t * x * z + s * y },
+	{ t * x * y + s * z, t * y * y + c,   t * y * z - s * x },
+	{ t * x * z - s * y, t * y * z + s * x, t * z * z + c   }
+	};
+
+	// Rotate the vector
+	float3 rotatedVec;
+	rotatedVec[0] = vec[0] * rotationMatrix[0][0] + vec[1] * rotationMatrix[0][1] + vec[2] * rotationMatrix[0][2];
+	rotatedVec[1] = vec[0] * rotationMatrix[1][0] + vec[1] * rotationMatrix[1][1] + vec[2] * rotationMatrix[1][2];
+	rotatedVec[2] = vec[0] * rotationMatrix[2][0] + vec[1] * rotationMatrix[2][1] + vec[2] * rotationMatrix[2][2];
+
+	return rotatedVec;
+}
 // axis aligned bounding box class
 class aabb
 {

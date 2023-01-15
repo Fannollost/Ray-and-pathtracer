@@ -12,6 +12,12 @@ void QTable::GeneratePoints(const Scene& s) {
 	cout << "NODES IN TREE: " << kdTree->count << endl;
 }
 
+void QTable::SampleDirection(const int i, HemisphereMapping::Sample& s) {
+	auto r = table.insert({ i,HemisphereMapping(resx,resy) });
+	auto& it = r.first;
+	it->second.SampleDirection(s, float3(0));
+}
+
 void QTable::Bounce(const Scene& s, Ray& emitted) {
 
 	if (tempBounces <= 0) return;
@@ -24,7 +30,7 @@ void QTable::Bounce(const Scene& s, Ray& emitted) {
 		//&& distance(nearestPoint, emitted.IntersectionPoint() > rejectRadius)
 	{
 		if(kdTree->getNearestDist(kdTree->rootNode,emitted.IntersectionPoint(), 3) >= rejectRadius)
-			kdTree->insert(NULL, emitted.IntersectionPoint());
+			kdTree->insert(kdTree->rootNode, emitted.IntersectionPoint());
 	}
 	tempBounces--;
 	float3 emittedDir = RandomInHemisphere(emitted.hitNormal);
@@ -32,29 +38,29 @@ void QTable::Bounce(const Scene& s, Ray& emitted) {
 	Bounce(s, bounce);
 }
 
-void QTable::Update(const float3 origin, const float3 hitPoint, int wIndex, const float3& irradiance, const material& m) {
-	int idx = kdTree->findNearest(kdTree->rootNode, origin, 3);
+void QTable::Update(const float3 origin, const float3 hitPoint, int wIndex, const float3& irradiance, const Ray& r, float3 BRDF) {
+	kdTree->findNearest(kdTree->rootNode, origin, 3);
+	int idx = kdTree->nearestNode->idx;
 	HemisphereMapping& value = table.at(idx);
 	float val = value.getValue(wIndex);
 	float3 dir = value.getDir(wIndex);
 
-	float qUpdate = (1.0f - lr) * val + lr * (length(irradiance) + ApproxIntegral(hitPoint, dir, m));
+	float qUpdate = (1.0f - lr) * val + lr * (length(irradiance) + ApproxIntegral(idx, dir, r, BRDF));
 	value.updateByIndex(wIndex, qUpdate);
 }
 
-float QTable::ApproxIntegral(const float3 hitPoint, const float3& w, const material& m) {
-	auto r = table.insert({1, HemisphereMapping(resx,resy) });  ////????????
+float QTable::ApproxIntegral(const int idx, const float3& w, const Ray& ray, float3 BRDF) {
+	auto r = table.insert({idx, HemisphereMapping(resx,resy) });  ////????????
 	auto& mapping = r.first->second;
 
 	float sum = 0.0f;
-	float3 normal(0, 0, 1.0f); //need to fix;
 
 	for (int i = 0; i < (int)mapping.size(); i++) {
 		auto Qy = mapping.getValue(i);
 		float3 wi = mapping.getDir(i);
-		float cosAngle = max(dot(wi, normal), 0.f);
-		float3 fs = 0.7f; //--> BRDF calculate (pass as arg?)
-		sum += length(fs) * Qy * cosAngle;
+		float cosAngle = max(dot(wi, ray.hitNormal), 0.f);
+		//float3 fs = 0.7f; //--> BRDF calculate (pass as arg?)
+		sum += length(BRDF) * Qy * cosAngle;
 
 	}
 
