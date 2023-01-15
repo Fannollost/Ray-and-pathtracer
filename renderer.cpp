@@ -125,7 +125,7 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 	return totCol;
 }
 
-float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
+float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx = -1) {
 	if (depth < 0) return float3(0.05f);
 	float3 totCol = 0;
 	float t_min = 0.001f;
@@ -175,6 +175,10 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
 
 				directLightning += (1 - ((diffuse*)m)->shinieness) * m->col * attenuation * energy;
 			}
+
+			if (learningPhase && sampleIdx >= 0)
+				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, directLightning, *m);
+
 			float3 indirectLightning = 0;
 
 			int N = 1;
