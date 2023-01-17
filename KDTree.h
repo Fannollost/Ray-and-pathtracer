@@ -13,13 +13,14 @@ public:
     {
         int idx = -1;
         float3 point; // To store k dimensional point
+        float3 normal;
         Node* left, * right;
     };
 
     Node* rootNode = nullptr;
     Node* nearestNode = nullptr;
     // A method to create a node of K D tree
-    struct Node* newNode(float3 arr)
+    struct Node* newNode(float3 arr, float3 normal)
     {
         struct Node* temp = new Node;
 
@@ -28,17 +29,18 @@ public:
 
         temp->left = temp->right = NULL;
         temp->idx = count;
+        temp->normal = normal;
         count++;
         return temp;
     }
 
     // Inserts a new node and returns root of modified tree
     // The parameter depth is used to decide axis of comparison
-    Node* insertRec(Node* root, float3 point, unsigned depth)
+    Node* insertRec(Node* root, float3 point, float3 normal, unsigned depth)
     {
         // Tree is empty?
         if (root == NULL){
-            rootNode = newNode(point);
+            rootNode = newNode(point, normal);
             nearestNode = rootNode;
             return rootNode;
         }
@@ -49,9 +51,9 @@ public:
         // Compare the new point with root on current dimension 'cd'
         // and decide the left or right subtree
         if (point[cd] < (root->point[cd]))
-            root->left = insertRec(root->left, point, depth + 1);
+            root->left = insertRec(root->left, point, normal, depth + 1);
         else
-            root->right = insertRec(root->right, point, depth + 1);
+            root->right = insertRec(root->right, point, normal, depth + 1);
 
         return root;
     }
@@ -59,9 +61,9 @@ public:
     // Function to insert a new point with given point in
     // KD Tree and return new root. It mainly uses above recursive
     // function "insertRec()"
-    Node* insert(Node* root, float3 point)
+    Node* insert(Node* root, float3 point, float3 normal)
     {
-        return insertRec(root, point, 0);
+        return insertRec(root, point, normal, 0);
     }
 
     // A utility method to determine if two Points are same
@@ -79,6 +81,11 @@ public:
     float getNearestDist(Node* root, float3 currPoint, int depth) {
         smallestDist = 1e30f;
         nearestNode = nullptr;
+        if (root == nullptr)
+        {
+            smallestDist = 1e30f;
+            nearestNode = root;
+        }
         findNearest(root, currPoint, depth);
         return smallestDist;
     }
@@ -86,7 +93,7 @@ public:
     void findNearest(Node* root,float3 currPoint, int depth) {
         if (root == nullptr)
             return;
-        float dis = length(root->point- currPoint);
+        float dis = length(root->point - currPoint);
         if (nearestNode == nullptr || dis < smallestDist) {
             smallestDist = dis;
             nearestNode = root;

@@ -188,7 +188,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 			}
 
 			if (learningEnabled && learningPhase && sampleIdx >= 0)
-				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, attenuation, ray, directLightning);
+				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, directLightning, ray, INV2PI);
 
 			float3 indirectLightning = 0;
 			int N = 1;

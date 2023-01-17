@@ -27,7 +27,7 @@ public:
 
 class HemisphereMapping : public HemisphereSampling {
 public:
-	HemisphereMapping(int resX, int resY) : resX(resX), resY(resY), grid(resX*resY,1.0f){}
+	HemisphereMapping(int resX, int resY) : resX(resX), resY(resY), grid(resX*resY){}
 
 	std::size_t size() {
 		return grid.size();

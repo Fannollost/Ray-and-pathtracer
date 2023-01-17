@@ -11,7 +11,7 @@
 // - Can be extended with other primitives and/or a BVH
 // - Optionally animated - for temporal experiments
 // - Not everything is axis aligned - for cache experiments
-// - Can be evaluated at arbitrary time - for motion blur
+// - Can be evaluated at arbitrary time - for motion blur													 f
 // - Has some high-frequency details - for filtering
 // Some speed tricks that severely affect maintainability
 // are enclosed in #ifdef SPEEDTRIX / #endif. Mind these
