@@ -15,7 +15,7 @@ void QTable::GeneratePoints(const Scene& s) {
 void QTable::SampleDirection(const int i, HemisphereMapping::Sample& s) {
 	auto r = table.insert({ i,HemisphereMapping(resx,resy) });
 	auto& it = r.first;
-	it->second.SampleDirection(s, float3(0));
+	it->second.SampleDirection(s, float3(0), trainingPhase);
 }
 
 void QTable::Bounce(const Scene& s, Ray& emitted) {
@@ -30,15 +30,12 @@ void QTable::Bounce(const Scene& s, Ray& emitted) {
 		//&& distance(nearestPoint, emitted.IntersectionPoint() > rejectRadius)
 	{
 		float d = kdTree->getNearestDist(kdTree->rootNode, emitted.IntersectionPoint(), 0);
+		//cout << d << endl;
 		KDTree::Node *nearestNode = kdTree->nearestNode;
 		float weight;
 		if (nearestNode == nullptr) weight = 1; else weight = dot(emitted.hitNormal, nearestNode->normal);
 		if(d >= rejectRadius * weight)
 			kdTree->insert(kdTree->rootNode, emitted.IntersectionPoint(), emitted.hitNormal);
-
-		//cout << "Closest dist: " << d << ", on point: " << kdTree->nearestNode->point.x << ", "
-		//	<< kdTree->nearestNode->point.y << ", "
-		//	<< kdTree->nearestNode->point.z << ", " << endl;
 	}
 	tempBounces--;
 	float3 emittedDir = RandomInHemisphere(emitted.hitNormal);
@@ -47,15 +44,15 @@ void QTable::Bounce(const Scene& s, Ray& emitted) {
 }
 
 void QTable::Update(const float3 origin, const float3 hitPoint, int wIndex, const float3& irradiance, const Ray& r, float3 BRDF) {
-	kdTree->findNearest(kdTree->rootNode, origin, 0);
-	//float dist = kdTree->getNearestDist(kdTree->rootNode, hitPoint, 3);
-	//cout << "Closest dist: " << dist << endl;
+\
+	float dist = kdTree->getNearestDist(kdTree->rootNode, hitPoint, 0);
 	int idx = kdTree->nearestNode->idx;
-	HemisphereMapping& value = table.at(idx);
+
+	HemisphereMapping& value = table[idx]; //table.insert({ idx,HemisphereMapping(resx,resy) });
 	float val = value.getValue(wIndex);
 	float3 dir = value.getDir(wIndex);
-
 	float qUpdate = (1.0f - lr) * val + lr * (length(irradiance) + ApproxIntegral(idx, dir, r, BRDF));
+	cout << qUpdate << endl; 
 	value.updateByIndex(wIndex, qUpdate);
 }
 

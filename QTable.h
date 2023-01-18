@@ -18,6 +18,7 @@ namespace Tmpl8 {
 		void SampleDirection(const int i, HemisphereMapping::Sample& s);
 	
 		KDTree* kdTree = new KDTree();
+		bool trainingPhase = true;
 	private:
 		void Bounce(const Scene& s, Ray& r);
 		float ApproxIntegral(const int idx, const float3& w, const Ray& r, float3 BRDF);

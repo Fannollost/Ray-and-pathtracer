@@ -40,9 +40,9 @@ public:
     {
         // Tree is empty?
         if (root == NULL){
-            rootNode = newNode(point, normal);
-            nearestNode = rootNode;
-            return rootNode;
+            Node* temp = newNode(point, normal);
+            if (rootNode == nullptr) rootNode = temp;
+            return temp;
         }
 
         // Calculate current dimension (cd) of comparison
@@ -63,7 +63,8 @@ public:
     // function "insertRec()"
     Node* insert(Node* root, float3 point, float3 normal)
     {
-        return insertRec(root, point, normal, 0);
+        insertRec(root, point, normal, 0);
+        return rootNode;
     }
 
     // A utility method to determine if two Points are same
@@ -80,13 +81,14 @@ public:
 
     float getNearestDist(Node* root, float3 currPoint, int depth) {
         smallestDist = 1e30f;
-        nearestNode = nullptr;
         if (root == nullptr)
         {
             smallestDist = 1e30f;
             nearestNode = root;
+            return smallestDist;
         }
         findNearest(root, currPoint, depth);
+        //if (nearestNode == nullptr) { nearestNode = root; smallestDist = 0; }
         return smallestDist;
     }
 
@@ -104,7 +106,9 @@ public:
         float dx = root->point[depth] - currPoint[depth];
         depth = (depth + 1) % 3;
         findNearest(dx > 0 ? root->left : root->right, currPoint, depth);
-      //  findNearest(dx > 0 ? root->right : root->left, currPoint, depth);
+        if (dx * dx >= smallestDist)
+            return;
+        findNearest(dx > 0 ? root->right : root->left, currPoint, depth);
     }
     // Searches a Point represented by "point[]" in the K D tree.
     // The parameter depth is used to determine current axis.

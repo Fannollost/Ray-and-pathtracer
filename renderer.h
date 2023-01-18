@@ -97,7 +97,6 @@ namespace Tmpl8
 		int2 mousePos;
 		bool mousePressed = false;
 		bool learningEnabled = true;
-		bool learningPhase = true;
 		float4* accumulator;
 		Scene scene;
 		Camera camera;

@@ -777,7 +777,8 @@ namespace Tmpl8 {
 			}
 
 
-			//cout << b->dataCollector->GetTreeDepth() << endl;
+			//
+			//  b->dataCollector->GetTreeDepth() << endl;
 			//Insert for loop over all BVH's?
 			// {
 			//We should check if we want this per ray or per screen. Per screen gives some big ass numbers haha
@@ -971,7 +972,7 @@ namespace Tmpl8 {
 			planes.push_back(Plane(5, specularDiff, float3(0, 0, -1), 3.99f));		// 5: back wall
 
 			if (animOn) spheres.push_back(Sphere(7, standardGlass, float3(-0.7f, -0.4f, 2.0f), 0.5f));			// 1: bouncing ball
-			else spheres.push_back(Sphere(7, standardGlass, float3(-1.5f, -0.5, 2), 0.5f));		    // 1: static ball
+			else spheres.push_back(Sphere(7, greenDiff, float3(-1.5f, -0.5, 2), 0.5f));		    // 1: static ball
 			spheres.push_back(Sphere(8, new diffuse(0.8f, white, 0, 0.3f, 0.7f, raytracer), float3(0, 2.5f, -3.07f), 8));		// 2: rounded corners
 			if (animOn) cubes.push_back(Cube(9, blueDiff, float3(0), float3(1.15f)));		// 3: spinning cube			
 			else cubes.push_back(Cube(9, standardGlass, float3(1.2f, -0.5f, 2.5f), float3(1)));
