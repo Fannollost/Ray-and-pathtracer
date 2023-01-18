@@ -45,15 +45,17 @@ void QTable::Bounce(const Scene& s, Ray& emitted) {
 
 void QTable::Update(const float3 origin, const float3 hitPoint, int wIndex, const float3& irradiance, const Ray& r, float3 BRDF) {
 \
-	float dist = kdTree->getNearestDist(kdTree->rootNode, hitPoint, 0);
+	float dist = kdTree->getNearestDist(kdTree->rootNode, origin, 0);
 	int idx = kdTree->nearestNode->idx;
 
-	HemisphereMapping& value = table[idx]; //table.insert({ idx,HemisphereMapping(resx,resy) });
-	float val = value.getValue(wIndex);
-	float3 dir = value.getDir(wIndex);
+	auto mapping = table.insert({ idx, HemisphereMapping(resx,resy) }); //table.insert({ idx,HemisphereMapping(resx,resy) });
+	HemisphereMapping& hMapping = mapping.first->second;
+	float val = hMapping.getValue(wIndex);
+	float3 dir = hMapping.getDir(wIndex);
 	float qUpdate = (1.0f - lr) * val + lr * (length(irradiance) + ApproxIntegral(idx, dir, r, BRDF));
+	//if(qUpdate > 0.005f) cout << qUpdate << endl; 
 	cout << qUpdate << endl; 
-	value.updateByIndex(wIndex, qUpdate);
+	hMapping.updateByIndex(wIndex, qUpdate);
 }
 
 float QTable::ApproxIntegral(const int idx, const float3& w, const Ray& ray, float3 BRDF) {

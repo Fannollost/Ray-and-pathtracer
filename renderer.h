@@ -82,6 +82,7 @@ namespace Tmpl8
 				camera.ToogleFisheye();
 				break;
 			case KEYBOARD_P:
+				camera.SetChange(true);
 				scene.toogleRaytracer();
 				break;
 			case KEYBOARD_MAJ:
@@ -101,7 +102,7 @@ namespace Tmpl8
 		Scene scene;
 		Camera camera;
 		float2 xBox = float2(-1, 1), yBox = float2(-1, 1), zBox = float2(-1, 1);	//makeboudningbox
-		QTable* qTable = new QTable(8,5,0.1f, float3(0,0,0), 10, 0.05f);
+		QTable* qTable = new QTable(8,5,0.001f, float3(0,0,0), 10, 0.05f);
 		bool majPressed = false;
 		enum UserInput {
 			KEYBOARD_B = 66,

@@ -198,11 +198,11 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 			float3 indirectLightning = 0;
 			int N = 1;
 			float BRDF = 1 * INV2PI;
+			float prob;
 			for (int i = 0; i < N; ++i) {
 
 				float3 rayToHemi;
 				int samIdx;
-				float prob;
 				if (learningEnabled) {
 					auto sam = SampleDirection(ray);
 					rayToHemi = sam.dir;
@@ -216,12 +216,12 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 				}
 
 				float3 cos_i = dot(rayToHemi, normal);
-				indirectLightning += m->col* cos_i * Sample(Ray(intersectionPoint, rayToHemi, float3(0)),
-					depth - 1, energy, samIdx) / prob;
+				indirectLightning += m->col * cos_i * Sample(Ray(intersectionPoint, rayToHemi, float3(0)),
+					depth - 1, energy, samIdx);
 			}
 
 			indirectLightning /= (float)N;
-			totCol = (directLightning * INVPI + 2 * indirectLightning) * m->albedo;
+			totCol = (directLightning * INVPI + 2 * indirectLightning) * m->albedo / prob;
 			break;
 		}
 		case METAL:{
@@ -310,11 +310,15 @@ void Renderer::Tick(float deltaTime)
 					}
 					float newX = x + (RandomFloat() * 2 - 1);
 					float newY = y + (RandomFloat() * 2 - 1);
-					totCol += Sample(camera.GetPrimaryRay(newX, newY),1, float3(1));
-					float r = pow(totCol.x * scene.invAaSamples, GAMMA);
-					float g = pow(totCol.y * scene.invAaSamples, GAMMA);
-					float b = pow(totCol.z * scene.invAaSamples, GAMMA);
-					accumulator[x + y * SCRWIDTH] += float3(r,g,b);
+					totCol += Sample(camera.GetPrimaryRay(newX, newY),3, float3(1));
+					if(!qTable->trainingPhase) {
+						float r = pow(totCol.x * scene.invAaSamples, GAMMA);
+						float g = pow(totCol.y * scene.invAaSamples, GAMMA);
+						float b = pow(totCol.z * scene.invAaSamples, GAMMA);
+						accumulator[x + y * SCRWIDTH] += float3(r,g,b);
+						cout << "." << endl;
+
+					}
 					//cout << y << ", " << t.elapsed() << endl;
 				}
 			}
@@ -340,10 +344,10 @@ void Renderer::Tick(float deltaTime)
 	scene.SetFPS(fps);
 	scene.runTime += t.elapsed();
 	if (scene.runTime > 20 && !scene.exported) {
-		qTable->trainingPhase = false;
+		//qTable->trainingPhase = false;
 		scene.ExportData();
 	}						  
-	if (scene.runTime > 100) {
+	if (scene.runTime > 80) {
 		qTable->trainingPhase = false;
 	}
 	printf( "%5.2fms (%.1ffps) - %.1fMrays/s %.1fCameraSpeed\n", avg, fps, rps / 1000000, camera.speed );

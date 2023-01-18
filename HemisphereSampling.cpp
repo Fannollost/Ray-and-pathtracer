@@ -25,7 +25,7 @@ void CosineWeightedSampling::SampleDirection(Sample& s, float3 normal, bool trai
 
 void HemisphereMapping::SampleDirection(Sample& s, float3 normal, bool training) const {
 	float r = RandomFloat();
-	if(!training){
+	if(!training || training){
 		std::vector<float> normalizedGrid(grid.size());
 		float sum = 0.0f;
 		for (std::size_t i = 0; i < grid.size(); i++)
@@ -42,14 +42,14 @@ void HemisphereMapping::SampleDirection(Sample& s, float3 normal, bool training)
 				break;
 			}
 		}
+		s.dir = normalize(mapIndexToDirection(s.idx));
 		s.prob = ((float)grid.size() * normalizedGrid[s.idx]) * INV2PI;	
 	}
-	else {
+	/*else {
 		s.idx = ((int)(resX * resY) * RandomFloat());
 		s.prob = 1 / (resX * resY) * RandomFloat();
-	}
+	} */
 
-	s.dir = normalize(mapIndexToDirection(s.idx));
 }
 
 float3 HemisphereMapping::mapIndexToDirection(int dirIdx) const {
@@ -59,11 +59,11 @@ float3 HemisphereMapping::mapIndexToDirection(int dirIdx) const {
 	float sizeX = 1.0f / (float)resX;
 	float sizeY = 1.0f / (float)resY;
 
-	float randomShiftX = RandomFloat();
-	float randomShiftY = RandomFloat();
+	//float randomShiftX = RandomFloat();
+	//float randomShiftY = RandomFloat();
 
-	float x = ((float)idxX + randomShiftX) * sizeX;
-	float y = ((float)idxY + randomShiftY) * sizeY;
+	float x = ((float)idxX * sizeX); //+ randomShiftX) * sizeX;
+		float y = ((float)idxY * sizeY);//+ randomShiftY) * sizeY;
 
 	return simpleMap(x, y);
 }
