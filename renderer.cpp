@@ -128,7 +128,7 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 HemisphereSampling::Sample Renderer::SampleDirection(const Ray& r) {
 	HemisphereSampling::Sample sample;
 	//qTable->kdTree->findNearest(qTable->kdTree->rootNode, r.IntersectionPoint(), 0);
-	float a = qTable->kdTree->getNearestDist(qTable->kdTree->rootNode, r.IntersectionPoint(), 0);
+	float a = qTable->kdTree->getNearestDist(qTable->kdTree->rootNode, r.O, 0);
 	int idx = qTable->kdTree->nearestNode->idx;
 	qTable->SampleDirection(idx, sample);
 
@@ -193,7 +193,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 
 			Timer t;
 			if (learningEnabled && qTable->trainingPhase && sampleIdx >= 0)
-				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, directLightning, ray, directLightning);
+				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, 0.1f, ray, INV2PI);
 
 			float3 indirectLightning = 0;
 			int N = 1;
@@ -207,7 +207,8 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 					auto sam = SampleDirection(ray);
 					rayToHemi = sam.dir;
 					samIdx = sam.idx;
-					prob = sam.prob; 
+					prob = sam.prob; 	//NEED TO UPDATE PROB BETTER!
+					cout << "NICE! " << prob << endl;
 				}
 				else {
 					rayToHemi = RandomInHemisphere(normal);
@@ -217,11 +218,11 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 
 				float3 cos_i = dot(rayToHemi, normal);
 				indirectLightning += m->col * cos_i * Sample(Ray(intersectionPoint, rayToHemi, float3(0)),
-					depth - 1, energy, samIdx);
+					depth - 1, energy, samIdx) * prob;
 			}
 
 			indirectLightning /= (float)N;
-			totCol = (directLightning * INVPI + 2 * indirectLightning) * m->albedo / prob;
+			totCol = (directLightning * INVPI + 2 * indirectLightning) * m->albedo;
 			break;
 		}
 		case METAL:{
@@ -312,11 +313,10 @@ void Renderer::Tick(float deltaTime)
 					float newY = y + (RandomFloat() * 2 - 1);
 					totCol += Sample(camera.GetPrimaryRay(newX, newY),3, float3(1));
 					if(!qTable->trainingPhase) {
-						float r = pow(totCol.x * scene.invAaSamples, GAMMA);
-						float g = pow(totCol.y * scene.invAaSamples, GAMMA);
-						float b = pow(totCol.z * scene.invAaSamples, GAMMA);
-						accumulator[x + y * SCRWIDTH] += float3(r,g,b);
-						cout << "." << endl;
+						//float r = pow(totCol.x * scene.invAaSamples, GAMMA);
+						//float g = pow(totCol.y * scene.invAaSamples, GAMMA);
+						//float b = pow(totCol.z * scene.invAaSamples, GAMMA);
+						accumulator[x + y * SCRWIDTH] += totCol;
 
 					}
 					//cout << y << ", " << t.elapsed() << endl;
@@ -333,7 +333,7 @@ void Renderer::Tick(float deltaTime)
 	}
 
 	
-	if (!scene.raytracer && !camera.GetChange())
+	if (!scene.raytracer && !camera.GetChange() && !qTable->trainingPhase)
 		scene.SetIterationNumber(it + 1);
 	camera.SetChange(false);
 	// performance report - running average - ms, MRays/s
@@ -347,7 +347,7 @@ void Renderer::Tick(float deltaTime)
 		//qTable->trainingPhase = false;
 		scene.ExportData();
 	}						  
-	if (scene.runTime > 80) {
+	if (scene.runTime > 20) {
 		qTable->trainingPhase = false;
 	}
 	printf( "%5.2fms (%.1ffps) - %.1fMrays/s %.1fCameraSpeed\n", avg, fps, rps / 1000000, camera.speed );

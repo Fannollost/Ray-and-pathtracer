@@ -47,14 +47,14 @@ void QTable::Update(const float3 origin, const float3 hitPoint, int wIndex, cons
 \
 	float dist = kdTree->getNearestDist(kdTree->rootNode, origin, 0);
 	int idx = kdTree->nearestNode->idx;
-
+	cout << "wIndex: " << wIndex << endl;
 	auto mapping = table.insert({ idx, HemisphereMapping(resx,resy) }); //table.insert({ idx,HemisphereMapping(resx,resy) });
 	HemisphereMapping& hMapping = mapping.first->second;
 	float val = hMapping.getValue(wIndex);
 	float3 dir = hMapping.getDir(wIndex);
 	float qUpdate = (1.0f - lr) * val + lr * (length(irradiance) + ApproxIntegral(idx, dir, r, BRDF));
 	//if(qUpdate > 0.005f) cout << qUpdate << endl; 
-	cout << qUpdate << endl; 
+	//cout << qUpdate << endl; 
 	hMapping.updateByIndex(wIndex, qUpdate);
 }
 

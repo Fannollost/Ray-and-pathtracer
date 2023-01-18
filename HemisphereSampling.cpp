@@ -25,30 +25,44 @@ void CosineWeightedSampling::SampleDirection(Sample& s, float3 normal, bool trai
 
 void HemisphereMapping::SampleDirection(Sample& s, float3 normal, bool training) const {
 	float r = RandomFloat();
-	if(!training || training){
-		std::vector<float> normalizedGrid(grid.size());
+	std::vector<float> normalizedGrid;
+	//if(!training) {
 		float sum = 0.0f;
-		for (std::size_t i = 0; i < grid.size(); i++)
-			sum += grid[i];
-		for (std::size_t i = 0; i < grid.size(); i++)
-			normalizedGrid[i] = grid[i] / sum;
+		for (int i = 0; i < grid.size(); i++)
+			sum += grid[i]; 
 
-		std::vector<float> cum(grid.size());
-		std::partial_sum(normalizedGrid.begin(), normalizedGrid.end(), cum.begin());
+		for (int i = 0; i < grid.size(); i++){																	   //FIX DIT! 
+			//if(grid[i] != 0) cout << "WTF:" << grid[i] << " SUM " << sum << " DIE DING " << grid[i] / sum << endl;
+			normalizedGrid.push_back( grid[i] / sum);
+		}
+
+		std::vector<float> cum;
+		float totSum = 0.0f;
+		for (size_t i = 0; i < grid.size(); i++)
+		{
+			totSum += normalizedGrid[i];
+			//cout << "HMM OOKE: " << totSum << endl;
+			cum.push_back(totSum);
+		}
+
+		//std::partial_sum(normalizedGrid.begin(), normalizedGrid.end(), normalizedGrid.begin());   //WHY IS THIS 1???????????????????????????
 		s.idx = grid.size() - 1;
-		for (int i = 0; i < (int)cum.size(); i++) {
-			if (r < cum[i]) {
+		for (int i = 0; i < (int)cum.size(); i++) {	   //Returns always 39, since first iteration it picks 39, since r is not smaller. 
+			if (RandomFloat() * RandomFloat() > 0.5f ) {
 				s.idx = i;
+				//cout << "WTFFFFF " << s.idx << endl;
 				break;
 			}
 		}
-		s.dir = normalize(mapIndexToDirection(s.idx));
-		s.prob = ((float)grid.size() * normalizedGrid[s.idx]) * INV2PI;	
-	}
-	/*else {
-		s.idx = ((int)(resX * resY) * RandomFloat());
-		s.prob = 1 / (resX * resY) * RandomFloat();
-	} */
+	//}
+	//else {
+	//	s.idx = (int)((grid.size() -1) * RandomFloat());
+	//	cout << "HMM " << s.idx << endl;
+	//}
+
+	s.dir = normalize(mapIndexToDirection(s.idx));
+	s.prob = grid[s.idx];
+
 
 }
 
@@ -59,11 +73,11 @@ float3 HemisphereMapping::mapIndexToDirection(int dirIdx) const {
 	float sizeX = 1.0f / (float)resX;
 	float sizeY = 1.0f / (float)resY;
 
-	//float randomShiftX = RandomFloat();
-	//float randomShiftY = RandomFloat();
+	float randomShiftX = RandomFloat();
+	float randomShiftY = RandomFloat();
 
-	float x = ((float)idxX * sizeX); //+ randomShiftX) * sizeX;
-		float y = ((float)idxY * sizeY);//+ randomShiftY) * sizeY;
+	float x = ((float)idxX + randomShiftX) * sizeX;
+	float y = ((float)idxY + randomShiftY) * sizeY;
 
 	return simpleMap(x, y);
 }
