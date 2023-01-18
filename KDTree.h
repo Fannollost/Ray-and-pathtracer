@@ -46,7 +46,7 @@ public:
         }
 
         // Calculate current dimension (cd) of comparison
-        unsigned cd = depth % k;
+        unsigned cd = depth % 3;
 
         // Compare the new point with root on current dimension 'cd'
         // and decide the left or right subtree
@@ -102,11 +102,9 @@ public:
         if (smallestDist == 0)
             return;
         float dx = root->point[depth] - currPoint[depth];
-        depth = depth + 1 % 3;
+        depth = (depth + 1) % 3;
         findNearest(dx > 0 ? root->left : root->right, currPoint, depth);
-        if (dx * dx >= smallestDist)
-            return;
-        findNearest(dx > 0 ? root->right : root->left, currPoint, depth);
+      //  findNearest(dx > 0 ? root->right : root->left, currPoint, depth);
     }
     // Searches a Point represented by "point[]" in the K D tree.
     // The parameter depth is used to determine current axis.
