@@ -132,8 +132,18 @@ HemisphereSampling::Sample Renderer::SampleDirection(const Ray& r) {
 	int idx = qTable->kdTree->nearestNode->idx;
 	qTable->SampleDirection(idx, sample);
 
-	float3 newDir = RotateVector(sample.dir, float3(0, 1, 0), r.hitNormal);
-	sample.dir = newDir;
+	//float3 normal = float3(-1, 0, 0);
+	//sample.dir = float3(-1, 0, 0);
+	//float3 newDir = RotateVector(float3(1, 0, 0), float3(0, 1, 0), (-1, 0, 0));
+	//float angleX = acos(dot(float3(0, 1, 0), float3(0, normal.y, normal.z)) / length(float3(0, normal.y, normal.z)));
+	//float angleZ = acos(dot(float3(0, 1, 0), float3(normal.x, normal.y, 0)) / length(float3(normal.x, normal.y, 0)));
+	//float angleY = acos(dot(float3(0, 0, 0), float3(normal.x,0, normal.z)) / length(float3(0, normal.y, normal.z)));
+	
+	//mat4 rot = mat4::RotateX(angleX) * mat4::RotateY(angleY) * mat4::RotateZ(angleZ);
+		
+	sample.dir = RotateVector(sample.dir, float3(0, 1, 0), r.hitNormal);
+	//sample.dir = TransformVector(sample.dir, rot);
+	cout << sample.dir.x << ", " << sample.dir.y << ", " << sample.dir.z << endl;
 	//float3 n = -normalize(r.hitNormal);
 
 	//sample.dir =sample.dir[0] * right + sample.dir[1] *  0.f + sample.dir[2] * (-n);
@@ -193,7 +203,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 
 			Timer t;
 			if (learningEnabled && qTable->trainingPhase && sampleIdx >= 0)
-				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, 0.1f, ray, INV2PI);
+				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, directLightning, ray, m->albedo * INVPI);
 
 			float3 indirectLightning = 0;
 			int N = 1;
@@ -208,7 +218,6 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 					rayToHemi = sam.dir;
 					samIdx = sam.idx;
 					prob = sam.prob; 	//NEED TO UPDATE PROB BETTER!
-					cout << "NICE! " << prob << endl;
 				}
 				else {
 					rayToHemi = RandomInHemisphere(normal);
@@ -292,7 +301,7 @@ void Renderer::Tick(float deltaTime)
 	// pixel loop
 	Timer t;
 	// lines are executed as OpenMP parallel tasks (disabled in DEBUG)
-	#pragma omp parallel for schedule(dynamic)
+	//#pragma omp parallel for schedule(dynamic)
 	for (int y = 0; y < SCRHEIGHT; ++y)
 	{
 		// trace a primary ray for each pixel on the line
@@ -344,7 +353,6 @@ void Renderer::Tick(float deltaTime)
 	scene.SetFPS(fps);
 	scene.runTime += t.elapsed();
 	if (scene.runTime > 20 && !scene.exported) {
-		//qTable->trainingPhase = false;
 		scene.ExportData();
 	}						  
 	if (scene.runTime > 20) {

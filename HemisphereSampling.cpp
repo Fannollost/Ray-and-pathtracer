@@ -41,16 +41,14 @@ void HemisphereMapping::SampleDirection(Sample& s, float3 normal, bool training)
 		for (size_t i = 0; i < grid.size(); i++)
 		{
 			totSum += normalizedGrid[i];
-			//cout << "HMM OOKE: " << totSum << endl;
 			cum.push_back(totSum);
 		}
 
 		//std::partial_sum(normalizedGrid.begin(), normalizedGrid.end(), normalizedGrid.begin());   //WHY IS THIS 1???????????????????????????
 		s.idx = grid.size() - 1;
-		for (int i = 0; i < (int)cum.size(); i++) {	   //Returns always 39, since first iteration it picks 39, since r is not smaller. 
-			if (RandomFloat() * RandomFloat() > 0.5f ) {
+		for (int i = 0; i < (int)cum.size(); i++) {	   
+			if (RandomFloat() * RandomFloat() > 0.5f ) {	//add exploitation parameter!
 				s.idx = i;
-				//cout << "WTFFFFF " << s.idx << endl;
 				break;
 			}
 		}
@@ -61,7 +59,7 @@ void HemisphereMapping::SampleDirection(Sample& s, float3 normal, bool training)
 	//}
 
 	s.dir = normalize(mapIndexToDirection(s.idx));
-	s.prob = grid[s.idx];
+	s.prob = normalizedGrid[s.idx] * grid.size() * INV2PI;
 
 
 }
