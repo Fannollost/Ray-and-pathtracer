@@ -10,8 +10,9 @@ namespace Tmpl8 {
 	class QTable
 	{
 	public:
-		QTable(int x, int y, float lr, float3 emitterPos, int maxBounces, float rejectRadius) 
+		QTable(int x, int y, float lr, float3 emitterPos, int maxBounces, float rejectRadius, float explorationRate = 0.2f) 
 			: resx(x), resy(y), lr(lr), emitterPos(emitterPos), maxBounces(maxBounces), rejectRadius(rejectRadius) {
+			tableSize = resx * resy;
 		}
 		void GeneratePoints(const Scene& s);
 		void Update(const float3 origin, const float3 hitPoint, int wIndex, const float3& irradiance, const Ray& r, float3 BRDF);
@@ -19,13 +20,14 @@ namespace Tmpl8 {
 	
 		KDTree* kdTree = new KDTree();
 		bool trainingPhase = true;
+		int tableSize;
 	private:
 		void Bounce(const Scene& s, Ray& r);
 		float ApproxIntegral(const int idx, const float3& w, const Ray& r, float3 BRDF);
 		std::map<int, HemisphereMapping> table;   //Int is placeholder!
 		float3 emitterPos;
 		int resx, resy, tempBounces, maxBounces, emittedRays = 100;
-		float lr, rejectRadius;
+		float lr, rejectRadius, explorationRate;
 	};
 }
 

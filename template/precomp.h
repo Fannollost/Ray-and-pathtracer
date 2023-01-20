@@ -918,6 +918,12 @@ inline float3 RotateVector(float3 vec, float3 n1, float3 n2) {
 
 	return rotatedVec;
 }
+
+inline float computeAngle(float3 v1, float3 v2) {
+	if (v1.x == 0 && v1.y == 0 && v1.z == 0) return 0;
+	if (v2.x == 0 && v2.y == 0 && v2.z == 0) return 0;
+	return acos(dot(normalize(v1), normalize(v2)));
+}
 // axis aligned bounding box class
 class aabb
 {

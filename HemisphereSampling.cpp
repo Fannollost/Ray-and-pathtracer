@@ -24,8 +24,8 @@ void CosineWeightedSampling::SampleDirection(Sample& s, float3 normal, bool trai
 
 
 void HemisphereMapping::SampleDirection(Sample& s, float3 normal, bool training) const {
-	float r = RandomFloat();
-	std::vector<float> normalizedGrid;
+	float r;
+	std::vector<float> normalizedGrid(grid.size());
 	//if(!training) {
 		float sum = 0.0f;
 		for (int i = 0; i < grid.size(); i++)
@@ -33,7 +33,7 @@ void HemisphereMapping::SampleDirection(Sample& s, float3 normal, bool training)
 
 		for (int i = 0; i < grid.size(); i++){																	   //FIX DIT! 
 			//if(grid[i] != 0) cout << "WTF:" << grid[i] << " SUM " << sum << " DIE DING " << grid[i] / sum << endl;
-			normalizedGrid.push_back( grid[i] / sum);
+			normalizedGrid[i] = grid[i] / sum;
 		}
 
 		std::vector<float> cum;
@@ -47,19 +47,22 @@ void HemisphereMapping::SampleDirection(Sample& s, float3 normal, bool training)
 		//std::partial_sum(normalizedGrid.begin(), normalizedGrid.end(), normalizedGrid.begin());   //WHY IS THIS 1???????????????????????????
 		s.idx = grid.size() - 1;
 		for (int i = 0; i < (int)cum.size(); i++) {	   
-			if (RandomFloat() * RandomFloat() > 0.5f ) {	//add exploitation parameter!
+			r = RandomFloat();
+			/*if (r < explorationRate && training) {	//add exploitation parameter!
 				s.idx = i;
+				s.prob = r;
 				break;
-			}
+			} */
+			//else { 
+				if (r > cum[i]) {
+					s.idx = i;
+					s.prob = normalizedGrid[s.idx]  * grid.size() * INV2PI;
+					break;
+				}
+			//}
 		}
-	//}
-	//else {
-	//	s.idx = (int)((grid.size() -1) * RandomFloat());
-	//	cout << "HMM " << s.idx << endl;
-	//}
 
-	s.dir = normalize(mapIndexToDirection(s.idx));
-	s.prob = normalizedGrid[s.idx] * grid.size() * INV2PI;
+		s.dir = normalize(mapIndexToDirection(s.idx));
 
 
 }

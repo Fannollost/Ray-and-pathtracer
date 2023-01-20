@@ -13,7 +13,7 @@ void QTable::GeneratePoints(const Scene& s) {
 }
 
 void QTable::SampleDirection(const int i, HemisphereMapping::Sample& s) {
-	auto r = table.insert({ i,HemisphereMapping(resx,resy) });
+	auto r = table.insert({ i,HemisphereMapping(explorationRate,resx,resy) });
 	auto& it = r.first;
 	it->second.SampleDirection(s, float3(0), trainingPhase);
 }
@@ -30,7 +30,7 @@ void QTable::Bounce(const Scene& s, Ray& emitted) {
 		//&& distance(nearestPoint, emitted.IntersectionPoint() > rejectRadius)
 	{
 		float d = kdTree->getNearestDist(kdTree->rootNode, emitted.IntersectionPoint(), 0);
-		//cout << d << endl;
+		cout << d << endl;
 		KDTree::Node *nearestNode = kdTree->nearestNode;
 		float weight;
 		if (nearestNode == nullptr) weight = 1; else weight = dot(emitted.hitNormal, nearestNode->normal);
@@ -48,17 +48,20 @@ void QTable::Update(const float3 origin, const float3 hitPoint, int wIndex, cons
 	float dist = kdTree->getNearestDist(kdTree->rootNode, origin, 0);
 	int idx = kdTree->nearestNode->idx;
 	
-	auto mapping = table.insert({ idx, HemisphereMapping(resx,resy) }); //table.insert({ idx,HemisphereMapping(resx,resy) });
+	float distHit = kdTree->getNearestDist(kdTree->rootNode, hitPoint, 0);
+	int hitIdx = kdTree->nearestNode->idx;
+
+	auto mapping = table.insert({ idx, HemisphereMapping(explorationRate,resx,resy) }); //table.insert({ idx,HemisphereMapping(resx,resy) });
 	HemisphereMapping& hMapping = mapping.first->second;
 	float val = hMapping.getValue(wIndex);
 	float3 dir = hMapping.getDir(wIndex);
 	
-	float qUpdate = (1.0f - lr) * val + lr * (length(irradiance) + ApproxIntegral(idx, dir, r, BRDF));
+	float qUpdate = (1.0f - lr) * val + lr * (length(irradiance) + ApproxIntegral(hitIdx, dir, r, BRDF));
 	hMapping.updateByIndex(wIndex, qUpdate);
 }
 
 float QTable::ApproxIntegral(const int idx, const float3& w, const Ray& ray, float3 BRDF) {
-	auto r = table.insert({idx, HemisphereMapping(resx,resy) });
+	auto r = table.insert({idx, HemisphereMapping(explorationRate, resx,resy) });
 	auto& mapping = r.first->second;
 
 	float sum = 0.0f;
@@ -66,10 +69,9 @@ float QTable::ApproxIntegral(const int idx, const float3& w, const Ray& ray, flo
 	for (int i = 0; i < (int)mapping.size(); i++) {
 		auto Qy = mapping.getValue(i);
 		float3 wi = mapping.getDir(i);
-		float cosAngle = max(dot(wi, ray.hitNormal), 0.f);
+		float cosAngle = max(dot(wi, ray.hitNormal), 0.f); ///////////// EVALUATE BRDF IN Wi DIRECTION!
 		//float3 fs = 0.7f; //--> BRDF calculate (pass as arg?)
 		sum += length(BRDF) * Qy * cosAngle;
-
 	}
 
 	return sum / (float)mapping.size();

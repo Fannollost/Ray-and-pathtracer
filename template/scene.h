@@ -973,7 +973,7 @@ namespace Tmpl8 {
 
 			if (animOn) spheres.push_back(Sphere(7, standardGlass, float3(-0.7f, -0.4f, 2.0f), 0.5f));			// 1: bouncing ball
 			else spheres.push_back(Sphere(7, greenDiff, float3(-1.5f, -0.5, 2), 0.5f));		    // 1: static ball
-			spheres.push_back(Sphere(8, new diffuse(0.8f, white, 0, 0.3f, 0.7f, raytracer), float3(0, 2.5f, -3.07f), 8));		// 2: rounded corners
+			//spheres.push_back(Sphere(8, new diffuse(0.8f, white, 0, 0.3f, 0.7f, raytracer), float3(0, 2.5f, -3.07f), 8));		// 2: rounded corners
 			if (animOn) cubes.push_back(Cube(9, blueDiff, float3(0), float3(1.15f)));		// 3: spinning cube			
 			else cubes.push_back(Cube(9, standardGlass, float3(1.2f, -0.5f, 2.5f), float3(1)));
 			meshes.push_back(Mesh(1,"Resources/ico.obj", greenDiff,  float3(0.1f, -0.6f, 1.5f), 0.5f));

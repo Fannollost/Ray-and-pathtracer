@@ -128,10 +128,13 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 HemisphereSampling::Sample Renderer::SampleDirection(const Ray& r) {
 	HemisphereSampling::Sample sample;
 	//qTable->kdTree->findNearest(qTable->kdTree->rootNode, r.IntersectionPoint(), 0);
-	float a = qTable->kdTree->getNearestDist(qTable->kdTree->rootNode, r.O, 0);
+	float a = qTable->kdTree->getNearestDist(qTable->kdTree->rootNode, r.IntersectionPoint(), 0);
 	int idx = qTable->kdTree->nearestNode->idx;
 	qTable->SampleDirection(idx, sample);
-
+	//if(sample.dir.z < 0) cout << sample.dir.x << ", " << sample.dir.y << ", " << sample.dir.z << endl;
+	
+	float3 v1 = float3(0, 0, 1);
+	float3 v2 = r.hitNormal;
 	//float3 normal = float3(-1, 0, 0);
 	//sample.dir = float3(-1, 0, 0);
 	//float3 newDir = RotateVector(float3(1, 0, 0), float3(0, 1, 0), (-1, 0, 0));
@@ -140,10 +143,16 @@ HemisphereSampling::Sample Renderer::SampleDirection(const Ray& r) {
 	//float angleY = acos(dot(float3(0, 0, 0), float3(normal.x,0, normal.z)) / length(float3(0, normal.y, normal.z)));
 	
 	//mat4 rot = mat4::RotateX(angleX) * mat4::RotateY(angleY) * mat4::RotateZ(angleZ);
-		
-	sample.dir = RotateVector(sample.dir, float3(0, 1, 0), r.hitNormal);
+	float angleX = computeAngle(float3(0, v1.y, v1.z), float3(0, v2.y, v2.z));
+	if (v1.y * v2.z - v1.z * v2.y < 0) angleX = -angleX;
+	//float angleZ = computeAngle(float3(v1.x, v1.y, 0), float3(v2.x, v2.y, 0));
+	//if (v1.x * v2.y - v1.y * v2.x < 0) angleZ = -angleZ;
+	float angleY = computeAngle(float3(v1.x, 0,v1.z), float3(v2.x, 0, v2.z));
+	if (v1.x * v2.y - v1.y * v2.x < 0) angleY = -angleY;
+
+	sample.dir = TransformVector(sample.dir, mat4::RotateX(angleX) * mat4::RotateY(angleY));
+	//sample.dir = RotateVector(sample.dir, float3(0, 1, 0), r.hitNormal);
 	//sample.dir = TransformVector(sample.dir, rot);
-	cout << sample.dir.x << ", " << sample.dir.y << ", " << sample.dir.z << endl;
 	//float3 n = -normalize(r.hitNormal);
 
 	//sample.dir =sample.dir[0] * right + sample.dir[1] *  0.f + sample.dir[2] * (-n);
@@ -218,6 +227,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 					rayToHemi = sam.dir;
 					samIdx = sam.idx;
 					prob = sam.prob; 	//NEED TO UPDATE PROB BETTER!
+					//cout << prob << endl;
 				}
 				else {
 					rayToHemi = RandomInHemisphere(normal);
@@ -231,7 +241,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 			}
 
 			indirectLightning /= (float)N;
-			totCol = (directLightning * INVPI + 2 * indirectLightning) * m->albedo;
+			totCol = (directLightning * INVPI +  2 * indirectLightning) * m->albedo;
 			break;
 		}
 		case METAL:{
@@ -302,6 +312,7 @@ void Renderer::Tick(float deltaTime)
 	Timer t;
 	// lines are executed as OpenMP parallel tasks (disabled in DEBUG)
 	//#pragma omp parallel for schedule(dynamic)
+	float energy;
 	for (int y = 0; y < SCRHEIGHT; ++y)
 	{
 		// trace a primary ray for each pixel on the line
@@ -320,13 +331,14 @@ void Renderer::Tick(float deltaTime)
 					}
 					float newX = x + (RandomFloat() * 2 - 1);
 					float newY = y + (RandomFloat() * 2 - 1);
-					totCol += Sample(camera.GetPrimaryRay(newX, newY),3, float3(1));
+					totCol += Sample(camera.GetPrimaryRay(newX, newY),5, float3(1));
 					if(!qTable->trainingPhase) {
+						energy += (totCol.x + totCol.y + totCol.z);
+						//cout << totCol.x << ", " << totCol.y << ", " << totCol.z << endl;
 						//float r = pow(totCol.x * scene.invAaSamples, GAMMA);
 						//float g = pow(totCol.y * scene.invAaSamples, GAMMA);
 						//float b = pow(totCol.z * scene.invAaSamples, GAMMA);
 						accumulator[x + y * SCRWIDTH] += totCol;
-
 					}
 					//cout << y << ", " << t.elapsed() << endl;
 				}
@@ -358,6 +370,8 @@ void Renderer::Tick(float deltaTime)
 	if (scene.runTime > 20) {
 		qTable->trainingPhase = false;
 	}
-	printf( "%5.2fms (%.1ffps) - %.1fMrays/s %.1fCameraSpeed\n", avg, fps, rps / 1000000, camera.speed );
+	//printf( "%5.2fms (%.1ffps) - %.1fMrays/s %.1fCameraSpeed\n", avg, fps, rps / 1000000, camera.speed );
+	cout << "Energy level: " << energy << endl;
+	energy = 0;
 }
 
