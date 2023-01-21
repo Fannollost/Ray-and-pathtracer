@@ -24,7 +24,7 @@ void CosineWeightedSampling::SampleDirection(Sample& s, float3 normal, bool trai
 
 
 void HemisphereMapping::SampleDirection(Sample& s, float3 normal, bool training) const {
-	float r;
+	float r = RandomFloat();
 	std::vector<float> normalizedGrid(grid.size());
 	//if(!training) {
 		float sum = 0.0f;
@@ -47,19 +47,13 @@ void HemisphereMapping::SampleDirection(Sample& s, float3 normal, bool training)
 		//std::partial_sum(normalizedGrid.begin(), normalizedGrid.end(), normalizedGrid.begin());   //WHY IS THIS 1???????????????????????????
 		s.idx = grid.size() - 1;
 		for (int i = 0; i < (int)cum.size(); i++) {	   
-			r = RandomFloat();
-			/*if (r < explorationRate && training) {	//add exploitation parameter!
-				s.idx = i;
-				s.prob = r;
-				break;
-			} */
-			//else { 
+			//r = RandomFloat();  // welicht eruit gooien?
 				if (r > cum[i]) {
 					s.idx = i;
 					s.prob = normalizedGrid[s.idx]  * grid.size() * INV2PI;
+
 					break;
 				}
-			//}
 		}
 
 		s.dir = normalize(mapIndexToDirection(s.idx));

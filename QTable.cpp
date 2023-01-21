@@ -30,12 +30,14 @@ void QTable::Bounce(const Scene& s, Ray& emitted) {
 		//&& distance(nearestPoint, emitted.IntersectionPoint() > rejectRadius)
 	{
 		float d = kdTree->getNearestDist(kdTree->rootNode, emitted.IntersectionPoint(), 0);
-		cout << d << endl;
+		//cout << d << endl;
 		KDTree::Node *nearestNode = kdTree->nearestNode;
 		float weight;
 		if (nearestNode == nullptr) weight = 1; else weight = dot(emitted.hitNormal, nearestNode->normal);
-		if(d >= rejectRadius * weight)
+		if(d >= rejectRadius * weight)													 {
 			kdTree->insert(kdTree->rootNode, emitted.IntersectionPoint(), emitted.hitNormal);
+			if (emitted.objIdx == 7) cout << "sampling point on wahed cirkel " << emitted.hitNormal.x << ", " << emitted.hitNormal.y << ", " << emitted.hitNormal.z << endl;
+		}
 	}
 	tempBounces--;
 	float3 emittedDir = RandomInHemisphere(emitted.hitNormal);
@@ -51,13 +53,12 @@ void QTable::Update(const float3 origin, const float3 hitPoint, int wIndex, cons
 	float distHit = kdTree->getNearestDist(kdTree->rootNode, hitPoint, 0);
 	int hitIdx = kdTree->nearestNode->idx;
 
-	auto mapping = table.insert({ idx, HemisphereMapping(explorationRate,resx,resy) }); //table.insert({ idx,HemisphereMapping(resx,resy) });
-	HemisphereMapping& hMapping = mapping.first->second;
-	float val = hMapping.getValue(wIndex);
-	float3 dir = hMapping.getDir(wIndex);
+	auto mapping = table.at(idx); 
+	float val = mapping.getValue(wIndex);
+	float3 dir = mapping.getDir(wIndex);
 	
 	float qUpdate = (1.0f - lr) * val + lr * (length(irradiance) + ApproxIntegral(hitIdx, dir, r, BRDF));
-	hMapping.updateByIndex(wIndex, qUpdate);
+	mapping.updateByIndex(wIndex, qUpdate);
 }
 
 float QTable::ApproxIntegral(const int idx, const float3& w, const Ray& ray, float3 BRDF) {

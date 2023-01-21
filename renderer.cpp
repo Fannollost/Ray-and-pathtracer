@@ -131,10 +131,10 @@ HemisphereSampling::Sample Renderer::SampleDirection(const Ray& r) {
 	float a = qTable->kdTree->getNearestDist(qTable->kdTree->rootNode, r.IntersectionPoint(), 0);
 	int idx = qTable->kdTree->nearestNode->idx;
 	qTable->SampleDirection(idx, sample);
-	//if(sample.dir.z < 0) cout << sample.dir.x << ", " << sample.dir.y << ", " << sample.dir.z << endl;
-	
-	float3 v1 = float3(0, 0, 1);
-	float3 v2 = r.hitNormal;
+	//cout << sample.dir.x << ", " << sample.dir.y << ", " << sample.dir.z << endl;
+	//float3 temp = sample.dir;
+	float3 v1 = r.hitNormal;
+	float3 v2 = float3(0, 0, 1);
 	//float3 normal = float3(-1, 0, 0);
 	//sample.dir = float3(-1, 0, 0);
 	//float3 newDir = RotateVector(float3(1, 0, 0), float3(0, 1, 0), (-1, 0, 0));
@@ -148,13 +148,15 @@ HemisphereSampling::Sample Renderer::SampleDirection(const Ray& r) {
 	//float angleZ = computeAngle(float3(v1.x, v1.y, 0), float3(v2.x, v2.y, 0));
 	//if (v1.x * v2.y - v1.y * v2.x < 0) angleZ = -angleZ;
 	float angleY = computeAngle(float3(v1.x, 0,v1.z), float3(v2.x, 0, v2.z));
-	if (v1.x * v2.y - v1.y * v2.x < 0) angleY = -angleY;
+	if (v1.x * v2.z - v1.z * v2.x < 0) angleY = -angleY;
 
-	sample.dir = TransformVector(sample.dir, mat4::RotateX(angleX) * mat4::RotateY(angleY));
+	sample.dir = TransformVector(sample.dir, mat4::RotateX(angleX) * mat4::RotateY(angleY)); //* mat4::RotateY(angleY));
+	//cout << sample.dir()
 	//sample.dir = RotateVector(sample.dir, float3(0, 1, 0), r.hitNormal);
 	//sample.dir = TransformVector(sample.dir, rot);
 	//float3 n = -normalize(r.hitNormal);
-
+	//cout << length(sample.dir) << endl;
+	//if(dot(sample.dir, temp) == 1) cout << "HE" << endl;
 	//sample.dir =sample.dir[0] * right + sample.dir[1] *  0.f + sample.dir[2] * (-n);
 	return sample;
 }
@@ -212,7 +214,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 
 			Timer t;
 			if (learningEnabled && qTable->trainingPhase && sampleIdx >= 0)
-				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, directLightning, ray, m->albedo * INVPI);
+				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, directLightning, ray, m->col * m->albedo);
 
 			float3 indirectLightning = 0;
 			int N = 1;
@@ -227,6 +229,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 					rayToHemi = sam.dir;
 					samIdx = sam.idx;
 					prob = sam.prob; 	//NEED TO UPDATE PROB BETTER!
+					//cout << "dot: " << dot(ray.hitNormal, sam.dir) << endl;
 					//cout << prob << endl;
 				}
 				else {
@@ -236,12 +239,12 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 				}
 
 				float3 cos_i = dot(rayToHemi, normal);
-				indirectLightning += m->col * cos_i * Sample(Ray(intersectionPoint, rayToHemi, float3(0)),
+				indirectLightning += Sample(Ray(intersectionPoint, rayToHemi, float3(0)),
 					depth - 1, energy, samIdx) * prob;
 			}
 
 			indirectLightning /= (float)N;
-			totCol = (directLightning * INVPI +  2 * indirectLightning) * m->albedo;
+			totCol = (directLightning + indirectLightning);
 			break;
 		}
 		case METAL:{
@@ -331,7 +334,7 @@ void Renderer::Tick(float deltaTime)
 					}
 					float newX = x + (RandomFloat() * 2 - 1);
 					float newY = y + (RandomFloat() * 2 - 1);
-					totCol += Sample(camera.GetPrimaryRay(newX, newY),5, float3(1));
+					totCol += Sample(camera.GetPrimaryRay(newX, newY),10, float3(1));
 					if(!qTable->trainingPhase) {
 						energy += (totCol.x + totCol.y + totCol.z);
 						//cout << totCol.x << ", " << totCol.y << ", " << totCol.z << endl;
@@ -370,8 +373,8 @@ void Renderer::Tick(float deltaTime)
 	if (scene.runTime > 20) {
 		qTable->trainingPhase = false;
 	}
-	//printf( "%5.2fms (%.1ffps) - %.1fMrays/s %.1fCameraSpeed\n", avg, fps, rps / 1000000, camera.speed );
-	cout << "Energy level: " << energy << endl;
+	printf( "%5.2fms (%.1ffps) - %.1fMrays/s %.1fCameraSpeed\n", avg, fps, rps / 1000000, camera.speed );
+	//cout << "Energy level: " << energy << endl;
 	energy = 0;
 }
 
