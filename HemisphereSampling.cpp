@@ -28,10 +28,11 @@ void HemisphereMapping::SampleDirection(Sample& s, float3 normal, bool training)
 	std::vector<float> normalizedGrid(grid.size());
 	//if(!training) {
 		float sum = 0.0f;
-		for (int i = 0; i < grid.size(); i++)
+		for (int i = 0; i < grid.size(); i++) {
 			sum += grid[i]; 
-
-		for (int i = 0; i < grid.size(); i++){																	   //FIX DIT! 
+		}
+		for (int i = 0; i < grid.size(); i++){	
+			//FIX DIT! 
 			//if(grid[i] != 0) cout << "WTF:" << grid[i] << " SUM " << sum << " DIE DING " << grid[i] / sum << endl;
 			normalizedGrid[i] = grid[i] / sum;
 		}
@@ -41,24 +42,33 @@ void HemisphereMapping::SampleDirection(Sample& s, float3 normal, bool training)
 		for (size_t i = 0; i < grid.size(); i++)
 		{
 			totSum += normalizedGrid[i];
+			//cout << "HMM OOKE: " << totSum << endl;
 			cum.push_back(totSum);
 		}
 
+	//	cout << cum[39] << endl;
 		//std::partial_sum(normalizedGrid.begin(), normalizedGrid.end(), normalizedGrid.begin());   //WHY IS THIS 1???????????????????????????
 		s.idx = grid.size() - 1;
-		for (int i = 0; i < (int)cum.size(); i++) {	   
-			//r = RandomFloat();  // welicht eruit gooien?
-				if (r > cum[i]) {
-					s.idx = i;
-					s.prob = normalizedGrid[s.idx]  * grid.size() * INV2PI;
+		for (int i = 0; i < (int)cum.size(); i++) {	 
+			//r = RandomFloat();
+			if((cum[i] == 0 || r < explorationRate) && training)
+			{
+				s.idx = ((int) (grid.size() - 1) * RandomFloat());
+				//cout << s.idx << endl;
+				s.prob =  1 / (grid.size() * 2 * PI);
+				break;
+			}
 
-					break;
-				}
+			if (r < cum[i]) {
+				//cout << "realshit" << endl;
+				s.idx = i;
+				s.prob = normalizedGrid[s.idx];
+				break;
+			}
+			
 		}
 
 		s.dir = normalize(mapIndexToDirection(s.idx));
-
-
 }
 
 float3 HemisphereMapping::mapIndexToDirection(int dirIdx) const {

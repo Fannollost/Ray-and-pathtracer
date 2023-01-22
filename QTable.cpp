@@ -27,10 +27,8 @@ void QTable::Bounce(const Scene& s, Ray& emitted) {
 
 	if (emitted.objIdx >= 11 && emitted.objIdx < 11 + size(s.lights)) return;
 	if (emitted.GetMaterial()->type == DIFFUSE )
-		//&& distance(nearestPoint, emitted.IntersectionPoint() > rejectRadius)
 	{
 		float d = kdTree->getNearestDist(kdTree->rootNode, emitted.IntersectionPoint(), 0);
-		//cout << d << endl;
 		KDTree::Node *nearestNode = kdTree->nearestNode;
 		float weight;
 		if (nearestNode == nullptr) weight = 1; else weight = dot(emitted.hitNormal, nearestNode->normal);
@@ -53,7 +51,8 @@ void QTable::Update(const float3 origin, const float3 hitPoint, int wIndex, cons
 	float distHit = kdTree->getNearestDist(kdTree->rootNode, hitPoint, 0);
 	int hitIdx = kdTree->nearestNode->idx;
 
-	auto mapping = table.at(idx); 
+	auto& mapping = table.at(idx); 
+
 	float val = mapping.getValue(wIndex);
 	float3 dir = mapping.getDir(wIndex);
 	

@@ -21,13 +21,14 @@ namespace Tmpl8 {
 		KDTree* kdTree = new KDTree();
 		bool trainingPhase = true;
 		int tableSize;
+		float3 nextDir;
 	private:
 		void Bounce(const Scene& s, Ray& r);
 		float ApproxIntegral(const int idx, const float3& w, const Ray& r, float3 BRDF);
 		std::map<int, HemisphereMapping> table;   //Int is placeholder!
 		float3 emitterPos;
 		int resx, resy, tempBounces, maxBounces, emittedRays = 100;
-		float lr, rejectRadius, explorationRate;
+		float lr, rejectRadius, explorationRate = 0.2f;
 	};
 }
 

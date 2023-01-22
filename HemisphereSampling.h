@@ -27,7 +27,7 @@ public:
 
 class HemisphereMapping : public HemisphereSampling {
 public:
-	HemisphereMapping(float er, int resX = 8, int resY = 5) : resX(resX), resY(resY), grid(resX*resY), explorationRate(er){}
+	HemisphereMapping(float er = 0.2f, int resX = 8, int resY = 5) : resX(resX), resY(resY), grid(resX*resY), explorationRate(er){}
 
 	std::size_t size() {
 		return grid.size();
@@ -51,5 +51,5 @@ private:
 	float3 simpleMap(float x, float y) const;
 	int resX, resY;
 	std::vector<float> grid;
-	float explorationRate;
+	float explorationRate = 0.2f;
 };

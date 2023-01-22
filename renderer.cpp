@@ -151,6 +151,7 @@ HemisphereSampling::Sample Renderer::SampleDirection(const Ray& r) {
 	if (v1.x * v2.z - v1.z * v2.x < 0) angleY = -angleY;
 
 	sample.dir = TransformVector(sample.dir, mat4::RotateX(angleX) * mat4::RotateY(angleY)); //* mat4::RotateY(angleY));
+	qTable->nextDir = sample.dir;
 	//cout << sample.dir()
 	//sample.dir = RotateVector(sample.dir, float3(0, 1, 0), r.hitNormal);
 	//sample.dir = TransformVector(sample.dir, rot);
@@ -188,11 +189,11 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 			}
 		}
 	}
+	float3 attenuation;
 	switch (m->type)
 	{
 		case DIFFUSE: {
 			float3 directLightning = 0;
-			float3 attenuation;
 			for (int i = 0; i < size(scene.lights); i++) {
 
 				float3 pickedPos = scene.lights[i]->GetLightPosition();
@@ -209,12 +210,13 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 				//if (((diffuse*)m)->shinieness != 0)
 				//	directLightning += ((diffuse*)m)->shinieness * m->col * Sample(Ray(ray.IntersectionPoint(), reflect(ray.D, ray.hitNormal), ray.color), depth - 1, energy);
 
-				directLightning += (1 - ((diffuse*)m)->shinieness) * m->col * attenuation * energy;
+				directLightning += (1 - ((diffuse*)m)->shinieness) * m->col * attenuation;
 			}
 
 			Timer t;
 			if (learningEnabled && qTable->trainingPhase && sampleIdx >= 0)
-				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, directLightning, ray, m->col * m->albedo);
+				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, attenuation,
+					ray, m->albedo * INV2PI);
 
 			float3 indirectLightning = 0;
 			int N = 1;
@@ -228,9 +230,8 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 					auto sam = SampleDirection(ray);
 					rayToHemi = sam.dir;
 					samIdx = sam.idx;
-					prob = sam.prob; 	//NEED TO UPDATE PROB BETTER!
-					//cout << "dot: " << dot(ray.hitNormal, sam.dir) << endl;
-					//cout << prob << endl;
+					prob = sam.prob;
+					//if(!qTable->trainingPhase)cout << sam.idx << ", " <<  sam.prob << endl;
 				}
 				else {
 					rayToHemi = RandomInHemisphere(normal);
@@ -243,8 +244,9 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 					depth - 1, energy, samIdx) * prob;
 			}
 
+
 			indirectLightning /= (float)N;
-			totCol = (directLightning + indirectLightning);
+			totCol = (directLightning * INVPI + indirectLightning);
 			break;
 		}
 		case METAL:{
@@ -314,8 +316,8 @@ void Renderer::Tick(float deltaTime)
 	// pixel loop
 	Timer t;
 	// lines are executed as OpenMP parallel tasks (disabled in DEBUG)
-	//#pragma omp parallel for schedule(dynamic)
 	float energy;
+	//#pragma omp parallel for schedule(dynamic)
 	for (int y = 0; y < SCRHEIGHT; ++y)
 	{
 		// trace a primary ray for each pixel on the line
@@ -370,11 +372,11 @@ void Renderer::Tick(float deltaTime)
 	if (scene.runTime > 20 && !scene.exported) {
 		scene.ExportData();
 	}						  
-	if (scene.runTime > 20) {
+	if (scene.runTime > 5) {
 		qTable->trainingPhase = false;
 	}
 	printf( "%5.2fms (%.1ffps) - %.1fMrays/s %.1fCameraSpeed\n", avg, fps, rps / 1000000, camera.speed );
-	//cout << "Energy level: " << energy << endl;
+	cout << "Energy level: " << energy << endl;
 	energy = 0;
 }
 
