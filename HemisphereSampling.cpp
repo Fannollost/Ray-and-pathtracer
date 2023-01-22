@@ -63,6 +63,7 @@ void HemisphereMapping::SampleDirection(Sample& s, float3 normal, bool training)
 				//cout << "realshit" << endl;
 				s.idx = i;
 				s.prob = normalizedGrid[s.idx];
+				//cout << "kank " << s.prob << endl;
 				break;
 			}
 			

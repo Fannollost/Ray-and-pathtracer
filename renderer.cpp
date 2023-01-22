@@ -241,12 +241,12 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 
 				float3 cos_i = dot(rayToHemi, normal);
 				indirectLightning += Sample(Ray(intersectionPoint, rayToHemi, float3(0)),
-					depth - 1, energy, samIdx) * prob;
+					depth - 1, energy, samIdx);
 			}
 
 
 			indirectLightning /= (float)N;
-			totCol = (directLightning * INVPI + indirectLightning);
+			totCol = (directLightning + indirectLightning);
 			break;
 		}
 		case METAL:{
@@ -372,7 +372,7 @@ void Renderer::Tick(float deltaTime)
 	if (scene.runTime > 20 && !scene.exported) {
 		scene.ExportData();
 	}						  
-	if (scene.runTime > 5) {
+	if (scene.runTime > 30) {
 		qTable->trainingPhase = false;
 	}
 	printf( "%5.2fms (%.1ffps) - %.1fMrays/s %.1fCameraSpeed\n", avg, fps, rps / 1000000, camera.speed );
