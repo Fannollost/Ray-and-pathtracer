@@ -215,8 +215,8 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 
 			Timer t;
 			if (learningEnabled && qTable->trainingPhase && sampleIdx >= 0)
-				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, attenuation,
-					ray, m->albedo * INV2PI);
+				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, directLightning,
+					ray, m->albedo * INVPI);
 
 			float3 indirectLightning = 0;
 			int N = 1;
@@ -231,7 +231,6 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 					rayToHemi = sam.dir;
 					samIdx = sam.idx;
 					prob = sam.prob;
-					//if(!qTable->trainingPhase)cout << sam.idx << ", " <<  sam.prob << endl;
 				}
 				else {
 					rayToHemi = RandomInHemisphere(normal);
@@ -244,9 +243,8 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 					depth - 1, energy, samIdx);
 			}
 
-
 			indirectLightning /= (float)N;
-			totCol = (directLightning + indirectLightning);
+			totCol = (directLightning + 2 * fminf(indirectLightning * prob,1.0f));
 			break;
 		}
 		case METAL:{
@@ -339,10 +337,6 @@ void Renderer::Tick(float deltaTime)
 					totCol += Sample(camera.GetPrimaryRay(newX, newY),10, float3(1));
 					if(!qTable->trainingPhase) {
 						energy += (totCol.x + totCol.y + totCol.z);
-						//cout << totCol.x << ", " << totCol.y << ", " << totCol.z << endl;
-						//float r = pow(totCol.x * scene.invAaSamples, GAMMA);
-						//float g = pow(totCol.y * scene.invAaSamples, GAMMA);
-						//float b = pow(totCol.z * scene.invAaSamples, GAMMA);
 						accumulator[x + y * SCRWIDTH] += totCol;
 					}
 					//cout << y << ", " << t.elapsed() << endl;
@@ -372,7 +366,7 @@ void Renderer::Tick(float deltaTime)
 	if (scene.runTime > 20 && !scene.exported) {
 		scene.ExportData();
 	}						  
-	if (scene.runTime > 30) {
+	if (scene.runTime > 10) {
 		qTable->trainingPhase = false;
 	}
 	printf( "%5.2fms (%.1ffps) - %.1fMrays/s %.1fCameraSpeed\n", avg, fps, rps / 1000000, camera.speed );

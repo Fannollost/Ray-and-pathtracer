@@ -51,5 +51,5 @@ private:
 	float3 simpleMap(float x, float y) const;
 	int resX, resY;
 	std::vector<float> grid;
-	float explorationRate = 0.2f;
+	float explorationRate = 0.0f;
 };

@@ -13,7 +13,7 @@ void QTable::GeneratePoints(const Scene& s) {
 }
 
 void QTable::SampleDirection(const int i, HemisphereMapping::Sample& s) {
-	auto r = table.insert({ i,HemisphereMapping(explorationRate,resx,resy) });
+	auto& r = table.insert({ i,HemisphereMapping(explorationRate,resx,resy) });
 	auto& it = r.first;
 	it->second.SampleDirection(s, float3(0), trainingPhase);
 }
@@ -25,18 +25,20 @@ void QTable::Bounce(const Scene& s, Ray& emitted) {
 
 	if (emitted.objIdx == -1) return;
 
-	if (emitted.objIdx >= 11 && emitted.objIdx < 11 + size(s.lights)) return;
-	if (emitted.GetMaterial()->type == DIFFUSE )
-	{
-		float d = kdTree->getNearestDist(kdTree->rootNode, emitted.IntersectionPoint(), 0);
-		KDTree::Node *nearestNode = kdTree->nearestNode;
-		float weight;
-		if (nearestNode == nullptr) weight = 1; else weight = dot(emitted.hitNormal, nearestNode->normal);
-		if(d >= rejectRadius * weight)													 {
-			kdTree->insert(kdTree->rootNode, emitted.IntersectionPoint(), emitted.hitNormal);
-			if (emitted.objIdx == 7) cout << "sampling point on wahed cirkel " << emitted.hitNormal.x << ", " << emitted.hitNormal.y << ", " << emitted.hitNormal.z << endl;
+	
+	if (!(emitted.objIdx >= 11 && emitted.objIdx < 11 + size(s.lights))) {
+		if (emitted.GetMaterial()->type == DIFFUSE)
+		{
+			float d = kdTree->getNearestDist(kdTree->rootNode, emitted.IntersectionPoint(), 0);
+			KDTree::Node* nearestNode = kdTree->nearestNode;
+			float weight;
+			if (nearestNode == nullptr) weight = 1; else weight = dot(emitted.hitNormal, nearestNode->normal);
+			if (d >= rejectRadius * weight) {
+				kdTree->insert(kdTree->rootNode, emitted.IntersectionPoint(), emitted.hitNormal);
+			}
 		}
 	}
+
 	tempBounces--;
 	float3 emittedDir = RandomInHemisphere(emitted.hitNormal);
 	Ray bounce = Ray(emitted.IntersectionPoint(), emittedDir, float3(0));
@@ -61,7 +63,7 @@ void QTable::Update(const float3 origin, const float3 hitPoint, int wIndex, cons
 }
 
 float QTable::ApproxIntegral(const int idx, const float3& w, const Ray& ray, float3 BRDF) {
-	auto r = table.insert({idx, HemisphereMapping(explorationRate, resx,resy) });
+	auto& r = table.insert({idx, HemisphereMapping(explorationRate, resx,resy) });
 	auto& mapping = r.first->second;
 
 	float sum = 0.0f;

@@ -50,20 +50,17 @@ void HemisphereMapping::SampleDirection(Sample& s, float3 normal, bool training)
 		//std::partial_sum(normalizedGrid.begin(), normalizedGrid.end(), normalizedGrid.begin());   //WHY IS THIS 1???????????????????????????
 		s.idx = grid.size() - 1;
 		for (int i = 0; i < (int)cum.size(); i++) {	 
-			//r = RandomFloat();
+			r = RandomFloat();
 			if((cum[i] == 0 || r < explorationRate) && training)
 			{
 				s.idx = ((int) (grid.size() - 1) * RandomFloat());
-				//cout << s.idx << endl;
 				s.prob =  1 / (grid.size() * 2 * PI);
 				break;
 			}
 
 			if (r < cum[i]) {
-				//cout << "realshit" << endl;
 				s.idx = i;
 				s.prob = normalizedGrid[s.idx];
-				//cout << "kank " << s.prob << endl;
 				break;
 			}
 			

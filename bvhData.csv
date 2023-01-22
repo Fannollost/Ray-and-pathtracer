@@ -1,7 +1,7 @@
 Total Node Count,44
 Summed Node Area,228
-Average Primitive Intersections per screen,1.00643
-Average Traversal Steps per screen,0.34029
+Average Primitive Intersections per screen,1.09225
+Average Traversal Steps per screen,0.371432
 Max Tree Depth,7
-Average FPS,28.074
-BVH Build time,0.3448
+Average FPS,21.8014
+BVH Build time,0.5468
