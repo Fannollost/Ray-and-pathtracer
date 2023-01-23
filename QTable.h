@@ -13,12 +13,12 @@ namespace Tmpl8 {
 			: resx(x), resy(y), lr(lr), emitterPos(emitterPos), maxBounces(maxBounces), rejectRadius(rejectRadius) {
 		}
 
-		void GeneratePoints(const Scene& s);
+		void GeneratePoints(Scene& s);
 		void Update(const BVHNode* nOrig, const BVHNode* nHit, int wIndex, const float3& irradiance, const Ray& r);
 		
 	
 	private:
-		void Bounce(const Scene& s, Ray& r);
+		void Bounce(Scene& s, Ray& r);
 
 		KDTree* kdTree = new KDTree();
 		std::map<const BVHNode*, int> table;   //Int is placeholder!

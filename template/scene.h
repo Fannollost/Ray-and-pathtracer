@@ -69,9 +69,10 @@ namespace Tmpl8 {
 		int objIdx = -1;
 		bool inside = false; // true when in medium
 		bool exists = false;
+		bool debug = false;
 		float3 color = 0;
 		float3 hitNormal;
-		material* m;
+		material* m =nullptr;
 	};
 
 	class Light {
@@ -216,7 +217,7 @@ namespace Tmpl8 {
 
 	class debug : public material {
 	public:
-		debug(float3(c)) : material(c, false) { type = DEBUG; emission = 0; }
+		debug(float3(c)) : material(c, false) { type = DEBUG;}
 	};
 
 	class metal : public material {
@@ -290,7 +291,8 @@ namespace Tmpl8 {
 			N = normalize(cross(e1, e2));
 			centroid = (v0 + v1 + v2) * 0.333f;
 		}
-		void Intersect(Ray& ray, float t_min, bool debug) const {		 //scratchapixel implementation
+		void Intersect(Ray& ray, float t_min) const {		 //scratchapixel implementation
+			if (mat->type == DEBUG && !ray.debug) return;
 			float NdotRayDir = dot(N, ray.D);
 			if (fabs(NdotRayDir) < t_min) return;
 			float d = -dot(N, v0);
@@ -311,12 +313,13 @@ namespace Tmpl8 {
 			c = cross(e4, vp2);
 			if (dot(N, c) < 0) return;
 
-			if (t < ray.t && t > t_min && (mat->type!=DEBUG || debug) ) {
+			if (t < ray.t && t > t_min && (mat->type!=DEBUG || ray.debug) ) {
 				ray.t = t, ray.objIdx = objIdx, ray.m = mat,
 					ray.SetNormal(N);
 			}
 		}
 		bool IsOccluding(Ray& ray, float t_min) const {		 //scratchapixel implementation
+			if (mat->type == DEBUG ) return false;
 			float NdotRayDir = dot(N, ray.D);
 			if (fabs(NdotRayDir) < t_min) return false;
 			float d = -dot(N, v0);
@@ -385,7 +388,7 @@ namespace Tmpl8 {
 			}
 			fclose(file);
 		}
-		Mesh(int idGroup, string path, material* m, float3 pos, float scale) : groupIdx(idGroup), mat(m) {
+		Mesh(int idGroup, string path, material* m, float3 pos, float scale, mat4 rotationMat = mat4()) : groupIdx(idGroup), mat(m) {
 			ifstream file(path, ios::in);
 			if (!file)
 			{
@@ -399,8 +402,10 @@ namespace Tmpl8 {
 				if (line.substr(0, 2) == "v ") {
 					istringstream v(line.substr(2));
 					v >> x; v >> y; v >> z;
-					vertices.push_back(float3(x * scale + pos.x, y * scale + pos.y, z * scale + pos.z));
-					originalVerts.push_back(float3(x * scale + pos.x, y * scale + pos.y, z * scale + pos.z));
+					float3 currVert = float3(x, y, z);
+					currVert = TransformVector(currVert, rotationMat);
+					vertices.push_back(float3(currVert.x * scale + pos.x, currVert.y * scale + pos.y, currVert.z * scale + pos.z));
+					originalVerts.push_back(float3(currVert.x * scale + pos.x, currVert.y * scale + pos.y, currVert.z * scale + pos.z));
 				}
 				else if (line.substr(0, 2) == "f ") {
 					int v0, v1, v2;
@@ -411,11 +416,17 @@ namespace Tmpl8 {
 				}
 			}
 			for (uint i = 0; i < size(faces); i++) {
-				tri.push_back(Triangle(1000 * idGroup + i, m, (faces[i] - 1), vertices));
+				tri.push_back(Triangle(1000 * idGroup + i, mat, (faces[i] - 1), vertices));
 			}
 		}
 		uint getSize() {
 			return size(tri);
+		}
+		void Intersect(Ray& ray, float t_min) const {
+			for (int i = 0; i < size(faces); i++) {
+				tri[i].Intersect(ray, t_min);
+			}
+
 		}
 		bool IsOccluding(Ray& ray, float t_min) const {
 			for (int i = 0; i < size(faces); i++) {
@@ -715,6 +726,11 @@ namespace Tmpl8 {
 			// Note: once we have triangle support we should get rid of the class
 			// hierarchy: virtuals reduce performance somewhat.
 		}
+
+		void rebuildBVH() {
+			b = new bvh(this);
+			b->Build(false);
+		}
 		
 		void ExportData() {
 			std::ofstream myFile(exportFile);
@@ -979,8 +995,6 @@ namespace Tmpl8 {
 			if (animOn) cubes.push_back(Cube(9, blueDiff, float3(0), float3(1.15f)));		// 3: spinning cube			
 			else cubes.push_back(Cube(9, standardGlass, float3(1.2f, -0.5f, 2.5f), float3(1)));
 			meshes.push_back(Mesh(1,"Resources/ico.obj", greenDiff,  float3(0.1f, -0.6f, 1.5f), 0.5f));
-			instantiateDebugPoint(float3(0));
-
 		}
 
 		void instantiateScene2() {
@@ -1225,7 +1239,7 @@ namespace Tmpl8 {
 			//if (animOn) tl->Build();
 		}
 
-		void FindNearest(Ray& ray, float t_min, bool debug=false) const
+		void FindNearest(Ray& ray, float t_min) const
 		{
 			ray.objIdx = -1;
 
@@ -1239,14 +1253,14 @@ namespace Tmpl8 {
 			if (useTLAS) {
 				for (int i = 0; i < size(spheres); ++i) spheres[i].Intersect(ray, t_min);
 				for (int i = 0; i < size(planes); ++i) planes[i].Intersect(ray, t_min);
-				tl->Intersect(ray, debug);
+				tl->Intersect(ray);
 			}
 			else {
-				b->Intersect(ray, debug);
+				b->Intersect(ray);
 			}
 		}
 
-		bool IsOccluded(Ray& ray, float t_min) const
+		bool IsOccluded(Ray& ray, float t_min, bool debug = false) const
 		{
 			// - we potentially search beyond rayLength
 			float rayLength = ray.t;
@@ -1263,7 +1277,7 @@ namespace Tmpl8 {
 
 		}
 
-		bool IsOccluded(Ray& ray) const
+		bool IsOccluded(Ray& ray, bool debug = false) const
 		{
 			if (useTLAS) return tl->IsOccluded(ray);
 			else return b->IsOccluded(ray);
@@ -1316,27 +1330,39 @@ namespace Tmpl8 {
 
 		Triangle getTriangle(uint idx) {
 			int i = 0;
-			while (idx >= meshes[i].getSize() && i < getTriangleNb()) {
+			while (idx >= meshes[i].getSize() && i<meshes.size()) {
 				idx -= meshes[i].getSize();
 				i++;
 			}
 			return meshes[i].tri[idx];
 		}
 
-		void instantiateDebugPoint(float3 pos) {
+		const void instantiateDebugPoint(float3 pos, float3 normal) {
 			const float3 gradient[40] = {float3(255, 0, 0), float3(255, 28, 0), float3(255, 56, 0), float3(255, 85, 0), float3(255, 113, 0), float3(255, 141, 0), float3(255, 171, 0),  float3(255, 198, 0), float3(255, 226, 0), float3(255, 255, 0),
 						float3(255, 255, 0), float3(226, 255, 0), float3(198, 255, 0), float3(171, 255, 0), float3(141, 255, 0), float3(113, 255, 0), float3(85, 255, 0), float3(56, 255, 0),  float3(28, 255, 0), float3(0, 255, 0),
 						float3(0, 255, 0), float3(0, 255, 28), float3(0, 255, 56), float3(0, 255, 85), float3(0, 255, 113), float3(0, 255, 141), float3(0, 255, 171),  float3(0, 255, 198), float3(0, 255, 226), float3(0, 255, 255),
 						float3(0, 255, 255), float3(0, 226, 255), float3(0, 198, 255), float3(0, 171, 255), float3(0, 141, 255), float3(0, 113, 255), float3(0, 85, 255),  float3(0, 56, 255), float3(0, 28, 255), float3(0, 0, 255) };
-
-			debug* m = new debug(float3(0));
-			Mesh debugP = Mesh(1, "Resources/rldebug.obj", m, pos, 1);
+			
+			//TODO : Compute rotation according to normal
+			float angleX = computeAngle(float3(0,1,0),float3(0,normal.y,normal.z));
+			if (normal.z < 0) angleX = -angleX;
+			float angleZ = computeAngle(float3(0,1,0),float3(normal.x,normal.y,0));
+			if ( - normal.x < 0) angleZ = -angleZ;
+			//cout << angleX << endl;
+			//cout << angleZ << endl;
+			Mesh debugP = Mesh(1, "Resources/rldebug.obj", new debug(float3(0)), pos, 1 , mat4::RotateX(angleX)* mat4::RotateZ(angleZ));
 			
 			for (int i = 0; i < 40; i++) {
 				debugP.tri[i].mat = new debug(gradient[i] / 255);
 			}
+			
 			meshes.push_back(debugP);
+		}
 
+		float computeAngle(float3 v1, float3 v2) {
+			if (v1.x == 0 && v1.y == 0 && v1.z == 0) return 0;
+			if (v2.x == 0 && v2.y == 0 && v2.z == 0) return 0;
+			return acos(dot(normalize(v1), normalize(v2)));
 		}
 
 		void SetIterationNumber(int i) { iterationNumber = i; }

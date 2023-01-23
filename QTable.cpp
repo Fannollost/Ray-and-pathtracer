@@ -1,7 +1,7 @@
 #include "precomp.h"
 #include "QTable.h"
 
-void QTable::GeneratePoints(const Scene& s) {
+void QTable::GeneratePoints(Scene& s) {
 	tempBounces = maxBounces;
 	for(int i = 0; i < emittedRays; i++){
 		float3 emittedDir = RandomVectorInUnitSphere();
@@ -9,10 +9,11 @@ void QTable::GeneratePoints(const Scene& s) {
 		Bounce(s, emitted);
 		tempBounces = maxBounces;
 	}
+	s.rebuildBVH();
 	cout << "NODES IN TREE: " << kdTree->count << endl;
 }
 
-void QTable::Bounce(const Scene& s, Ray& emitted) {
+void QTable::Bounce(Scene& s, Ray& emitted) {
 
 	if (tempBounces <= 0) return;
 	s.FindNearest(emitted, 0.001f);
@@ -23,8 +24,12 @@ void QTable::Bounce(const Scene& s, Ray& emitted) {
 	if (emitted.GetMaterial()->type == DIFFUSE )
 		//&& distance(nearestPoint, emitted.IntersectionPoint() > rejectRadius)
 	{
-		if(kdTree->getNearestDist(kdTree->rootNode,emitted.IntersectionPoint(), 3) >= rejectRadius)
+		if (kdTree->getNearestDist(kdTree->rootNode, emitted.IntersectionPoint(), 3) >= rejectRadius) {
 			kdTree->insert(NULL, emitted.IntersectionPoint());
+			//cout << emitted.IntersectionPoint().x << ", " << emitted.IntersectionPoint().y << ", " << emitted.IntersectionPoint().z << endl;
+			s.instantiateDebugPoint(emitted.IntersectionPoint(), emitted.hitNormal);
+		}
+			
 	}
 	tempBounces--;
 	float3 emittedDir = RandomInHemisphere(emitted.hitNormal);

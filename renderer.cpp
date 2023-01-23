@@ -237,11 +237,11 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy) {
 
 float3 Renderer::Debug(Ray& ray, float3 totCol)
 {
-	float t_min = 1e-6;
-	scene.FindNearest(ray, t_min, true);
+	float t_min = 1e-6; ray.debug = true;
+	scene.FindNearest(ray, t_min);
 	material* m = ray.GetMaterial();
 
-	if (m->type == DEBUG) {
+	if (m!=nullptr && m->type == DEBUG) {
 		return m->col * scene.aaSamples;
 	}
 	return totCol;

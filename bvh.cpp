@@ -593,9 +593,9 @@ void bvh::Refit()
 	}
 }
 
-void bvh::Intersect(Ray& ray, bool debug) {
-	if(isQBVH) QIntersect(ray, debug);
-	else BIntersect(ray, debug);
+void bvh::Intersect(Ray& ray) {
+	if(isQBVH) QIntersect(ray);
+	else BIntersect(ray);
 }
 
 bool bvh::IsOccluded(Ray& ray) {
@@ -603,7 +603,7 @@ bool bvh::IsOccluded(Ray& ray) {
 	else return BIsOccluded(ray);
 }
 
-void bvh::BIntersect(Ray& ray, bool debug) {
+void bvh::BIntersect(Ray& ray) {
 	float t_min = 0.0001f;
 	BVHNode* node = &bvhNode[rootNodeIdx], *stack[64];
 	uint stackPtr = 0;
@@ -616,7 +616,7 @@ void bvh::BIntersect(Ray& ray, bool debug) {
 			for (uint i = 0; i < node->primCount; i++) {
 				uint primIdx = primitiveIdx[node->leftFirst + i];
 				if (primIdx < NTri) {
-					getTriangle(primIdx).Intersect(ray, t_min, debug);
+					getTriangle(primIdx).Intersect(ray, t_min);
 				} else if(primIdx >=NTri && primIdx < NTri + NSph){
 					primIdx -= NTri;
 					scene->spheres[primIdx].Intersect(ray, t_min);
@@ -655,7 +655,7 @@ void bvh::BIntersect(Ray& ray, bool debug) {
 	}
 }
 
-void bvh::QIntersect(Ray& ray, bool debug) {
+void bvh::QIntersect(Ray& ray) {
 	float t_min = 0.0001f;
 	BVHNode* node = &bvhNode[rootNodeIdx], * stack[64];
 	uint stackPtr = 0;
@@ -667,7 +667,7 @@ void bvh::QIntersect(Ray& ray, bool debug) {
 		if (node->isLeaf()) {
 			for (uint i = 0; i < node->primCount; i++) {
 				uint primIdx = primitiveIdx[node->leftFirst + i];
-				getTriangle(primIdx).Intersect(ray, t_min, debug);
+				getTriangle(primIdx).Intersect(ray, t_min);
 			}
 			if (stackPtr == 0) {
 				break;
