@@ -139,38 +139,9 @@ public:
         return searchRec(root, point, 0);
     }
 
-    string ToString(Node* node) {
+    static string ToString(Node* node) {
         return node->idx + "/" + to_string(node->point.x) + "/" + to_string(node->point.y) + "/" + to_string(node->point.z) + "/" + to_string(node->normal.x) + "/" + to_string(node->normal.y) + "/" + to_string(node->normal.z);
     }
 
-    KDTree* parseTree(string path) {
-        KDTree* res;
-        string line;
-        ifstream file(path, ios::in);
-        while(getline(file, line)){
-            int idx;
-            float px, py, pz, nx, ny, nz;
-            const char* constL = line.c_str();
-            sscanf(constL, "%i/%f/%f/%f/%f/%f/%f", &idx, &px, &py, &pz, &nx, &ny, &nz);
-            res->insert(res->rootNode, float3(px,py,pz), float3(nx,ny,nz));
-        }
-        return res;
-    }
-
-    void writeTree(string exportFile,Node* node) {
-        std::ofstream myFile(exportFile);
-
-        if (node == NULL) return;
-
-        myFile << ToString(node) +"\n";
-        writeTree(exportFile, node->left);
-        writeTree(exportFile, node->right);
-    }
-
-    void ExportData(string exportFile) {
-        
-        writeTree(exportFile, rootNode);
-        
-    }
 };
 }

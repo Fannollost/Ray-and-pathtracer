@@ -79,3 +79,48 @@ float QTable::ApproxIntegral(const int idx, const float3& w, const Ray& ray, flo
 	return sum / (float)mapping.size();
 }
 
+
+QTable* QTable::parseQTable(string path) {
+	QTable* res = new QTable(8, 5, 0.25f, float3(0, 0, 0), 5, 0.2f);
+	string line;
+	ifstream file(path, ios::in);
+	while (getline(file, line)) {
+		int idx;
+		float px, py, pz, nx, ny, nz;
+		const char* constL = line.c_str();
+		sscanf(constL, "%i/%f/%f/%f/%f/%f/%f", &idx, &px, &py, &pz, &nx, &ny, &nz);
+		Tmpl8::KDTree::Node* node = kdTree->insert(kdTree->rootNode, float3(px, py, pz), float3(nx, ny, nz));
+		for (int i = 0; i < 40; i++) {
+			auto& r = res->table.insert({ idx, HemisphereMapping(explorationRate, resx,resy) });
+			float val;
+			getline(file, line);
+			const char* constL = line.c_str();
+			sscanf(constL, "%f", &val);
+			res->table.at(node->idx).updateByIndex(i, val);
+		}
+		
+		
+	}
+	return res;
+}
+
+string ToString(Tmpl8::KDTree::Node* node) {
+	return node->idx + "/" + to_string(node->point.x) + "/" + to_string(node->point.y) + "/" + to_string(node->point.z) + "/" + to_string(node->normal.x) + "/" + to_string(node->normal.y) + "/" + to_string(node->normal.z);
+}
+
+void QTable::writeQTable(string exportFile, Tmpl8::KDTree::Node* node) {
+	std::ofstream myFile(exportFile);
+
+	if (node == NULL) return;
+
+	myFile << ToString(node) << "\n";
+	for (int i = 0; i < 40; i++) {
+		myFile << table.at(node->idx).getValue(i) << "\n";
+	}
+	writeQTable(exportFile, node->left);
+	writeQTable(exportFile, node->right);
+}
+
+void QTable::ToString(string exportFile) {
+	writeQTable(exportFile, kdTree->rootNode);
+}

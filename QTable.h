@@ -17,6 +17,10 @@ namespace Tmpl8 {
 		void GeneratePoints(const Scene& s);
 		void Update(const float3 origin, const float3 hitPoint, int wIndex, const float3& irradiance, const Ray& r, float3 BRDF);
 		void SampleDirection(const int i, HemisphereMapping::Sample& s);
+		void ToString(string exportFile);
+		string ToString(Tmpl8::KDTree::Node* node);
+		QTable* parseQTable(string path);
+		void writeQTable(string exportFile, Tmpl8::KDTree::Node* node);
 	
 		KDTree* kdTree = new KDTree();
 		bool trainingPhase = true;
