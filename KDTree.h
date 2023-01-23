@@ -13,13 +13,14 @@ public:
     {
         int idx = -1;
         float3 point; // To store k dimensional point
+        float3 normal;
         Node* left, * right;
     };
 
     Node* rootNode = nullptr;
     Node* nearestNode = nullptr;
     // A method to create a node of K D tree
-    struct Node* newNode(float3 arr)
+    struct Node* newNode(float3 arr, float3 normal)
     {
         struct Node* temp = new Node;
 
@@ -28,38 +29,42 @@ public:
 
         temp->left = temp->right = NULL;
         temp->idx = count;
+        temp->normal = normal;
         count++;
         return temp;
     }
 
     // Inserts a new node and returns root of modified tree
     // The parameter depth is used to decide axis of comparison
-    Node* insertRec(Node* root, float3 point, unsigned depth)
+    Node* insertRec(Node* root, float3 point, float3 normal, unsigned depth)
     {
         // Tree is empty?
-        if (root == NULL)
-            return newNode(point);
+        if (root == NULL){
+            Node* temp = newNode(point, normal);
+            if (rootNode == nullptr) rootNode = temp;
+            return temp;
+        }
 
         // Calculate current dimension (cd) of comparison
-        unsigned cd = depth % k;
+        unsigned cd = depth % 3;
 
         // Compare the new point with root on current dimension 'cd'
         // and decide the left or right subtree
         if (point[cd] < (root->point[cd]))
-            root->left = insertRec(root->left, point, depth + 1);
+            root->left = insertRec(root->left, point, normal, depth + 1);
         else
-            root->right = insertRec(root->right, point, depth + 1);
+            root->right = insertRec(root->right, point, normal, depth + 1);
 
-        rootNode = root;
         return root;
     }
 
     // Function to insert a new point with given point in
     // KD Tree and return new root. It mainly uses above recursive
     // function "insertRec()"
-    Node* insert(Node* root, float3 point)
+    Node* insert(Node* root, float3 point, float3 normal)
     {
-        return insertRec(root, point, 0);
+        insertRec(root, point, normal, 0);
+        return rootNode;
     }
 
     // A utility method to determine if two Points are same
@@ -76,35 +81,34 @@ public:
 
     float getNearestDist(Node* root, float3 currPoint, int depth) {
         smallestDist = 1e30f;
-        nearestNode = nullptr;
-        int idx = findNearest(root, currPoint, depth);
+        if (root == nullptr)
+        {
+            smallestDist = 1e30f;
+            nearestNode = root;
+            return smallestDist;
+        }
+        findNearest(root, currPoint, depth);
+        //if (nearestNode == nullptr) { nearestNode = root; smallestDist = 0; }
         return smallestDist;
     }
 
-    const int findNearest(Node* root,float3 currPoint, int depth) {
-        if (nearestNode == nullptr)
-            return -1;
+    void findNearest(Node* root,float3 currPoint, int depth) {
         if (root == nullptr)
-            return nearestNode->idx;
-
-        float d = length(currPoint - rootNode->point);
-        if (nearestNode == nullptr || d < smallestDist)
-        {
-            smallestDist = d;
+            return;
+        float dis = length(root->point - currPoint);
+        if (nearestNode == nullptr || dis < smallestDist) {
+            smallestDist = dis;
             nearestNode = root;
         }
 
-
-        unsigned cd = depth % 3;
-
-        // Compare the new point with root on current dimension 'cd'
-        // and decide the left or right subtree
-        if (currPoint[cd] < (root->point[cd]))
-            root->left = insertRec(root->left, currPoint, depth + 1);
-        else
-            root->right = insertRec(root->right, currPoint, depth + 1);
-
-        return nearestNode->idx;
+        if (smallestDist == 0)
+            return;
+        float dx = root->point[depth] - currPoint[depth];
+        depth = (depth + 1) % 3;
+        findNearest(dx > 0 ? root->left : root->right, currPoint, depth);
+        if (dx * dx >= smallestDist)
+            return;
+        findNearest(dx > 0 ? root->right : root->left, currPoint, depth);
     }
     // Searches a Point represented by "point[]" in the K D tree.
     // The parameter depth is used to determine current axis.
@@ -134,5 +138,6 @@ public:
         // Pass current depth as 0
         return searchRec(root, point, 0);
     }
+
 };
 }

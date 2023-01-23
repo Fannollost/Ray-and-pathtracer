@@ -290,6 +290,8 @@ namespace Tmpl8 {
 			e2 = v2 - v0;
 			N = normalize(cross(e1, e2));
 			centroid = (v0 + v1 + v2) * 0.333f;
+			float3 dir = normalize(centroid);
+			cout << dir.x << ", " << dir.y << ", " << dir.z << "\n";
 		}
 		void Intersect(Ray& ray, float t_min) const {		 //scratchapixel implementation
 			if (mat->type == DEBUG && !ray.debug) return;
@@ -710,7 +712,7 @@ namespace Tmpl8 {
 				tl->build();
 			}
 			else {
-				instantiateScene1();
+				instantiateDebugPoint(float3(0), float3(0, 1, 0));
 				b = new bvh(this);
 				b->Build(false);  
 								  

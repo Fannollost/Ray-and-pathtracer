@@ -25,7 +25,7 @@ void QTable::Bounce(Scene& s, Ray& emitted) {
 		//&& distance(nearestPoint, emitted.IntersectionPoint() > rejectRadius)
 	{
 		if (kdTree->getNearestDist(kdTree->rootNode, emitted.IntersectionPoint(), 3) >= rejectRadius) {
-			kdTree->insert(NULL, emitted.IntersectionPoint());
+			kdTree->insert(NULL, emitted.IntersectionPoint(), emitted.hitNormal);
 			//cout << emitted.IntersectionPoint().x << ", " << emitted.IntersectionPoint().y << ", " << emitted.IntersectionPoint().z << endl;
 			s.instantiateDebugPoint(emitted.IntersectionPoint(), emitted.hitNormal);
 		}
