@@ -138,5 +138,10 @@ public:
         // Pass current depth as 0
         return searchRec(root, point, 0);
     }
+
+    static string ToString(Node* node) {
+        return node->idx + "/" + to_string(node->point.x) + "/" + to_string(node->point.y) + "/" + to_string(node->point.z) + "/" + to_string(node->normal.x) + "/" + to_string(node->normal.y) + "/" + to_string(node->normal.z);
+    }
+
 };
 }
