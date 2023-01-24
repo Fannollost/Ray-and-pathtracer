@@ -687,10 +687,10 @@ namespace Tmpl8 {
 	public:
 		Scene()
 		{
-			
+
 			//Instantiate scene
-			
-			
+
+
 			if (useTLAS) {
 				TLASSceneTest();
 				tl = new tlas(bvhList, bvhCount);
@@ -699,30 +699,30 @@ namespace Tmpl8 {
 			else {
 				instantiateScene1();
 				b = new bvh(this);
-				b->Build(false);  
-								  
+				b->Build(false);
+
 				//instantiateScene8(); //to use QBVH, uncomment (this is a scene with 1 mesh)
 				//b = new bvh(&meshes[0]);	//to use  QBVH, uncomment
 				//b->Build(true);  // to use	QBVH, put true;
 			}
 
-			
-			
+
+
 			SetTime(0);
 
 			// Note: once we have triangle support we should get rid of the class
 			// hierarchy: virtuals reduce performance somewhat.
 		}
-		
+
 		void ExportData() {
 			std::ofstream myFile(exportFile);
 
 			for (int i = 0; i < size(names); ++i) {
 				myFile << names[i] << ",";
-				if(useTLAS){
+				if (useTLAS) {
 					for (int bi = 0; bi < bvhCount; bi++) {
 						switch (i) {
-						case 0: 
+						case 0:
 							myFile << bvhList[bi].bvh->dataCollector->GetNodeCount();
 							break;
 						case 1:
@@ -740,7 +740,7 @@ namespace Tmpl8 {
 						case 5:
 							myFile << totalFrames / totIterationNumber;
 							break;
-						case 6: 
+						case 6:
 							myFile << bvhList[bi].bvh->dataCollector->GetBuildTime();
 							break;
 						}
@@ -752,23 +752,23 @@ namespace Tmpl8 {
 					switch (i) {
 					case 0:
 						myFile << b->dataCollector->GetNodeCount();
-						break;	  
-					case 1:		  
+						break;
+					case 1:
 						myFile << b->dataCollector->GetSummedNodeArea();
-						break;	  
-					case 2:		
+						break;
+					case 2:
 						myFile << b->dataCollector->GetIntersectedPrimitives(totIterationNumber) / (1280 * 720);
-						break;	  
-					case 3:		  
+						break;
+					case 3:
 						myFile << b->dataCollector->GetAverageTraversalSteps(totIterationNumber) / (1280 * 720);
-						break;	  
-					case 4:		  
+						break;
+					case 4:
 						myFile << b->dataCollector->GetTreeDepth();
-						break;	  
-					case 5:		  
+						break;
+					case 5:
 						myFile << totalFrames / totIterationNumber;
-						break;	  
-					case 6:		  
+						break;
+					case 6:
 						myFile << b->dataCollector->GetBuildTime();
 						break;
 					}
@@ -888,8 +888,8 @@ namespace Tmpl8 {
 			lights.push_back(new AreaLight(11, float3(0, 8.0f, 0), 10.0f, white, 1.0f, float3(0, -1, 0), 2, raytracer));
 
 			meshes.push_back(Mesh(1, "Resources/BigB.obj", redDiff, float3(0, 0.5f, 0), 1));
-			meshes.push_back(Mesh(2, "Resources/christ.obj", goldMetal, float3(0,0.5f, 0), 1));
-			meshes.push_back(Mesh(3, "Resources/eifel.obj", standardMetal, float3(0,0.5f,0),1));
+			meshes.push_back(Mesh(2, "Resources/christ.obj", goldMetal, float3(0, 0.5f, 0), 1));
+			meshes.push_back(Mesh(3, "Resources/eifel.obj", standardMetal, float3(0, 0.5f, 0), 1));
 			//meshes.push_back(Mesh(1, "Resources/lowBigB.obj", goldDiff, float3(0, 0, 3), 4));
 			bvhList = new bvhInstance[bvhCount];
 			Transforms = new mat4[bvhCount];
@@ -953,7 +953,7 @@ namespace Tmpl8 {
 			animOn = raytracer && defaultAnim;
 			//Loading sky texture
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
-			
+
 			glass* standardGlass = new glass(1.5f, white, float3(0.00f), 0.0f, 0, raytracer);
 			diffuse* specularDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 2, raytracer, 0);
 			diffuse* lightDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 1200, raytracer, 1.2f);
@@ -976,7 +976,7 @@ namespace Tmpl8 {
 			//spheres.push_back(Sphere(8, new diffuse(0.8f, white, 0, 0.3f, 0.7f, raytracer), float3(0, 2.5f, -3.07f), 8));		// 2: rounded corners
 			if (animOn) cubes.push_back(Cube(9, blueDiff, float3(0), float3(1.15f)));		// 3: spinning cube			
 			else cubes.push_back(Cube(9, standardGlass, float3(1.2f, -0.5f, 2.5f), float3(1)));
-			meshes.push_back(Mesh(10,"Resources/ico.obj", greenDiff,  float3(0.1f, -0.6f, 1.5f), 0.5f));
+			meshes.push_back(Mesh(10, "Resources/ico.obj", greenDiff, float3(0.1f, -0.6f, 1.5f), 0.5f));
 
 		}
 
@@ -984,7 +984,7 @@ namespace Tmpl8 {
 
 			//Loading sky texture
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
-			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.2f, 0.8f,  1, raytracer);
+			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.2f, 0.8f, 1, raytracer);
 			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.2f, 0.8f, 1, raytracer);
 			diffuse* whiteDiff = new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer);
 			diffuse* greenDiff = new diffuse(float3(0.8f), green, 0.2f, 0.8f, 2, raytracer);
@@ -1016,7 +1016,7 @@ namespace Tmpl8 {
 			spheres.push_back(Sphere(14, redDiff, float3(-3.1f, -0.5f, 3.2f), 0.5f));
 			spheres.push_back(Sphere(15, redMetal, float3(-4.3f, -0.5f, 3.2f), 0.5f));
 			//triangles.push_back(Mesh(10, standardMetal, "Resources/icos.obj", float3(0.5f, -0.51f, 2), 0.5f));
-			meshes.push_back(Mesh(2,"Resources/eifel.obj", standardMetal, float3(-2,-1.0f,0), 0.08f));
+			meshes.push_back(Mesh(2, "Resources/eifel.obj", standardMetal, float3(-2, -1.0f, 0), 0.08f));
 		}
 
 		void instantiateScene3() {
@@ -1046,7 +1046,7 @@ namespace Tmpl8 {
 
 			float3 threePos = float3(0, 0, 2);
 			float threeScale = 2.5f;
-			meshes.push_back(Mesh(1,"Resources/three.obj", greenDiff, threePos, threeScale));
+			meshes.push_back(Mesh(1, "Resources/three.obj", greenDiff, threePos, threeScale));
 			spheres.push_back(Sphere(1, blueMetal, float3(0.410241, -0.085121, -0.122131) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
 			spheres.push_back(Sphere(2, pinkGlass, float3(0.122131, -0.085121, 0.410241) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
 			spheres.push_back(Sphere(3, blueMetal, float3(-0.410241, -0.085121, 0.122131) * threeScale + threePos - float3(0, 0.05f, 0), 0.05f));
@@ -1064,7 +1064,7 @@ namespace Tmpl8 {
 			cubes.push_back(Cube(9, blueDiff, float3(1.5, -0.875, 1.5), float3(0.25)));
 			cubes.push_back(Cube(9, redDiff, float3(2.2, -0.875, 1.8), float3(0.25)));
 			cubes.push_back(Cube(9, greenDiff, float3(1.55, -0.925, 1.25), float3(0.15)));
-			meshes.push_back(Mesh(2,"Resources/stellatedDode.obj", goldMetal, float3(0.000000, 0.561019, 0.000000) * threeScale + threePos + float3(0, 0.25f, 0), 0.4f));
+			meshes.push_back(Mesh(2, "Resources/stellatedDode.obj", goldMetal, float3(0.000000, 0.561019, 0.000000) * threeScale + threePos + float3(0, 0.25f, 0), 0.4f));
 
 		}
 
@@ -1088,7 +1088,7 @@ namespace Tmpl8 {
 			spheres.push_back(Sphere(8, standardMetal, float3(-2.2f, -0.5f, 2.0f), 0.5f));
 			spheres.push_back(Sphere(9, lightDiff, float3(-3.7f, -0.5f, 2.0f), 0.5f));
 			spheres.push_back(Sphere(5, goldDiff, float3(1.8f, -0.5f, 2.0f), 0.5f));
-			meshes.push_back(Mesh(1,"Resources/ico.obj", standardMetal, float3(0.5f, -0.51f, 2), 0.5f));
+			meshes.push_back(Mesh(1, "Resources/ico.obj", standardMetal, float3(0.5f, -0.51f, 2), 0.5f));
 		}
 
 		void instantiateScene5() {
@@ -1103,7 +1103,7 @@ namespace Tmpl8 {
 			planes.push_back(Plane(0, new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer), float3(0, 1, 0), 0));			// 2: floor
 
 			//meshes.push_back(Mesh(1,"Resources/lowBigB.obj", goldDiff, float3(0), 1));
-			meshes.push_back(Mesh(1,"Resources/BigB.obj", goldDiff, float3(0,0.5f,0), 1));
+			meshes.push_back(Mesh(1, "Resources/BigB.obj", goldDiff, float3(0, 0.5f, 0), 1));
 
 		}
 
@@ -1124,12 +1124,12 @@ namespace Tmpl8 {
 			bvhList = new bvhInstance[bvhCount];
 			Transforms = new mat4[bvhCount];
 
-			bvh *b = new bvh(&meshes[0]);
+			bvh* b = new bvh(&meshes[0]);
 			//bvh *b1 = new bvh(&meshes[1]);
 			b->Build();
 			//b1->Build();
-			
-			Transforms[0] =  mat4::Translate(float3(0, 0, 3)) * mat4::Scale(4) * mat4::RotateX(0) * mat4::RotateY((float)PI * 0.5f) * mat4::RotateZ(0);
+
+			Transforms[0] = mat4::Translate(float3(0, 0, 3)) * mat4::Scale(4) * mat4::RotateX(0) * mat4::RotateY((float)PI * 0.5f) * mat4::RotateZ(0);
 			bvhList[0] = bvhInstance(b);
 			bvhList[0].SetTransform(Transforms[0]);
 			Transforms[1] = mat4::Translate(float3(-3, 0, 2)) * mat4::Scale(4) * mat4::RotateX(0) * mat4::RotateY((float)PI * 0.5f) * mat4::RotateZ(0);
@@ -1157,7 +1157,7 @@ namespace Tmpl8 {
 			for (int x = 0; x < amountSpheresX; x++) {
 				for (int y = 0; y < amountSpheresY; y++) {
 					float die = RandomFloat();
-					if(die < 0.33){
+					if (die < 0.33) {
 						metal* met = new metal(0.7f, float3(RandomFloat(), RandomFloat(), RandomFloat()), raytracer);
 						spheres.push_back(Sphere(13 + x + y, met, float3(x, -0.5f, y), 0.5f));
 					}
@@ -1226,7 +1226,7 @@ namespace Tmpl8 {
 		{
 			ray.objIdx = -1;
 
-			
+
 			/*for (int i = 0; i < size(spheres); ++i) spheres[i].Intersect(ray, t_min);
 			for (int i = 0; i < size(cubes); ++i) cubes[i].Intersect(ray, t_min);
 			for (int i = 0; i < size(meshes); ++i) meshes[i].Intersect(ray, t_min);*/
@@ -1248,8 +1248,8 @@ namespace Tmpl8 {
 			// - we potentially search beyond rayLength
 			float rayLength = ray.t;
 			for (int i = 0; i < size(planes); ++i)
-				if(planes[i].IsOccluding(ray, t_min)) return true;
-			for (int i = 0; i < size(spheres); ++i) 
+				if (planes[i].IsOccluding(ray, t_min)) return true;
+			for (int i = 0; i < size(spheres); ++i)
 				if (spheres[i].IsOccluding(ray, t_min)) return true;
 			for (int i = 0; i < size(cubes); ++i)
 				if (cubes[i].IsOccluding(ray, t_min)) return true;
@@ -1286,21 +1286,21 @@ namespace Tmpl8 {
 			return objIdx == 3 ? 1.0f : 0.0f;
 		}
 
-		float3 GetSkyColor(Ray &r) const
-		{	
+		float3 GetSkyColor(Ray& r) const
+		{
 			float3 horizontalProj = float3(r.D.x, 0, r.D.z);
 			float cHeight = dot(r.D, float3(0, -1, 0));
 			float cOrient = dot(float3(0, 0, 1), normalize(horizontalProj));
 			float sOrient = dot(float3(1, 0, 0), normalize(horizontalProj));
 			sOrient = sOrient > 0 ? 1 : -1;
-			int y = ((cHeight + 1) / 2) * (skydomeY-1);
-			int x = (((sOrient * acos(cOrient))+PI)/ TWOPI )* (skydomeX-1);
-			if (x >= skydomeX) x  = skydomeX ;
-			if (y >= skydomeY) y  = skydomeY ;
-			if (y < 0) y  = 0 ;
-			if (x < 0) x=0 ;
+			int y = ((cHeight + 1) / 2) * (skydomeY - 1);
+			int x = (((sOrient * acos(cOrient)) + PI) / TWOPI) * (skydomeX - 1);
+			if (x >= skydomeX) x = skydomeX;
+			if (y >= skydomeY) y = skydomeY;
+			if (y < 0) y = 0;
+			if (x < 0) x = 0;
 			uint8_t* pixelOffset = skydome + (x + skydomeX * y) * skydomeN;
-			return float3(uint3(pixelOffset[0], pixelOffset[1], pixelOffset[2]))/255;
+			return float3(uint3(pixelOffset[0], pixelOffset[1], pixelOffset[2])) / 255;
 		}
 
 		uint getTriangleNb() {
@@ -1318,6 +1318,62 @@ namespace Tmpl8 {
 				i++;
 			}
 			return meshes[i].tri[idx];
+		}
+
+		void FindNearest(){
+			float3 faces[] = { float3(0.242998, 0.176547, 0.953826), float3(-0.092818, 0.285659, 0.953826), float3(-0.300362, -8.34844e-08, 0.953825), float3(-0.0928182, -0.285659, 0.953826),
+				float3(0.242998, -0.176548, 0.953825), float3(0.491121, -0.356819, 0.794657), float3(0.744452, -0.176548, 0.643911), float3(0.744452, 0.176548, 0.643911),
+				float3(0.491121, 0.356819, 0.794658), float3(0.397953, 0.653458, 0.643914), float3(0.0621367, 0.76257, 0.643915), float3(-0.187594, 0.577344, 0.794659),
+				float3(-0.498503, 0.580404, 0.643915), float3(-0.706047, 0.294743, 0.643913), float3(-0.607059, -7.44388e-08, 0.794657), float3(-0.706048, -0.294744, 0.643912),
+				float3(-0.498504, -0.580405, 0.643913), float3(-0.187594, -0.577346, 0.794657), float3(0.0621369, -0.762571, 0.643913), float3(0.397954, -0.653459, 0.643914),
+				float3(0.548138, -0.762573, 0.34355), float3(0.794656, -0.577348, 0.187595), float3(0.894636, -0.28566, 0.343548), float3(0.987453, -1.38051e-08, 0.157911),
+				float3(0.894636, 0.28566, 0.343548), float3(0.794656, 0.577348, 0.187595), float3(0.548138, 0.762573, 0.34355), float3(0.305139, 0.939124, 0.157913),
+				float3(0.00477389, 0.939122, 0.343551), float3(-0.303533, 0.934171, 0.187596), float3(-0.55587, 0.756955, 0.343551), float3(-0.798869, 0.580407, 0.157913),
+				float3(-0.891684, 0.294744, 0.343549), float3(-0.982247, -1.64e-08, 0.187594), float3(-0.891684, -0.294744, 0.343549), float3(-0.798869, -0.580407, 0.157913),
+				float3(-0.55587, -0.756956, 0.343549), float3(-0.303533, -0.934171, 0.187594), float3(0.0047739, -0.939123, 0.343549), float3(0.305139, -0.939124, 0.157913) };
+
+			float3 samplingDir[] = { float3(1, 0, 0), float3(0.99227786, 0, 0.12403473),float3(0.97014254, 0, 0.24253564),float3(0.9363292, 0, 0.35112345),
+				float3(0.8944272, 0, 0.4472136),float3(0.8479983, 0, 0.52999896),float3(0.8, 0, 0.6),float3(0.7525767, 0, 0.6585046),
+				float3(0.30901697, 0.95105654, 0),float3(0.30657023, 0.9435262, 0.12559009),float3(0.2993275, 0.9212354, 0.248452),float3(0.28790617, 0.88608426, 0.3632696),
+				float3(0.27337238, 0.8413538, 0.4662524),float3(0.25694126, 0.790784, 0.5555556),float3(0.23971629, 0.737771, 0.63105476),float3(0.22254887, 0.68493503, 0.6937838),
+				float3(-0.80901706, 0.5877852, 0),float3(-0.8024449, 0.58301026, 0.12720546),float3(-0.7823094, 0.56838095, 0.2548236),float3(-0.749398, 0.54446936, 0.37677026),
+				float3(-0.706168, 0.513061, 0.48795006),float3(-0.6560197, 0.47662613, 0.58520573),float3(-0.6024084, 0.43767524, 0.66749126),float3(-0.5482015, 0.39829162, 0.7354174),
+				float3(-0.80901676, -0.58778554, 0),float3(-0.8022692, -0.5828832, 0.1288848),float3(-0.7808193, -0.5672989, 0.26171196),float3(-0.74430263, -0.5407679, 0.3918975),
+				float3(-0.694456, -0.5045522, 0.51298916),float3(-0.634645, -0.46109694, 0.6201737),float3(-0.5688383, -0.41328555, 0.7110682),float3(-0.5005922, -0.36370182, 0.855753),
+				float3(0.30901712, -0.9510565, 0),float3(0.3063691, -0.94290674, 0.13063249),float3(0.2976103, -0.91594994, 0.26919094),float3(0.28198785, -0.86786896, 0.40900642),
+				float3(0.2596263, -0.79904723, 0.5423261),float3(0.23153684, -0.7125968, 0.6622662),float3(0.19921048, -0.61310655, 0.7644708),float3(0.16396116, -0.5046203, 0.8476291) };
+
+			float minimum[3];
+			int idxOf[3];
+			int3 nearestDirIdx[40];
+			float3 nearestDirIdx[40];
+			for (int k = 0; k < 3; k++) {
+				minimum[k] = 1e30f;
+			}
+			for (int idx = 0; idx < 40; idx++) {
+				float3 ref = faces[idx];
+				for (int j = 0; j < 40; j++) {
+					float dist = length(samplingDir[j] - ref);
+					dist = dist < 0 ? -dist : dist;
+					if (dist < minimum[2]) {
+						minimum[2] = dist;
+						idxOf[2] = j;
+					}
+					for (int k = 1; k >= 0; k--) {
+						if (minimum[k + 1] > minimum[k]) {
+							float temp = minimum[k + 1];
+							int idxTemp = idxOf[k + 1];
+							minimum[k + 1] = minimum[k];
+							idxOf[k + 1] = idxOf[k];
+							minimum[k] = temp;
+							idxOf[k] = temp;
+						}
+					}
+					
+
+
+				}
+			}
 		}
 
 		void SetIterationNumber(int i) { iterationNumber = i; }
