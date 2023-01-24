@@ -1342,7 +1342,7 @@ namespace Tmpl8 {
 			//TODO : Compute rotation according to normal
 			float angleX = computeAngle(float3(0, 1, 0), float3(0, normal.y, normal.z));
 			if (normal.z < 0) angleX = -angleX;
-			float angleZ = computeAngle(float3(0, 1, 0), float3(normal.x, normal.y, 0));
+			float angleZ = computeAngle(float3(0, 1, 0), TransformVector(float3(normal.x, normal.y, 0), mat4::RotateX(angleX)));
 			if (-normal.x < 0) angleZ = -angleZ;
 			//cout << angleX << endl;
 			//cout << angleZ << endl;
