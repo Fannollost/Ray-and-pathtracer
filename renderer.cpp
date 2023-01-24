@@ -147,7 +147,7 @@ HemisphereSampling::Sample Renderer::SampleDirection(const Ray& r) {
 	if (v1.y * v2.z - v1.z * v2.y < 0) angleX = -angleX;
 	//float angleZ = computeAngle(float3(v1.x, v1.y, 0), float3(v2.x, v2.y, 0));
 	//if (v1.x * v2.y - v1.y * v2.x < 0) angleZ = -angleZ;
-	float angleY = computeAngle(float3(v1.x, 0,v1.z), float3(v2.x, 0, v2.z));
+	float angleY = computeAngle(float3(v1.x, 0,v1.z), TransformVector(float3(v2.x, 0, v2.z), mat4::RotateX(angleX)));
 	if (v1.x * v2.z - v1.z * v2.x < 0) angleY = -angleY;
 
 	sample.dir = TransformVector(sample.dir, mat4::RotateX(angleX) * mat4::RotateY(angleY)); //* mat4::RotateY(angleY));
