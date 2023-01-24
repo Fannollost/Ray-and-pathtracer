@@ -7,7 +7,15 @@ void Renderer::Init()
 	// create fp32 rgb pixel buffer to render to
 	accumulator = (float4*)MALLOC64( SCRWIDTH * SCRHEIGHT * 16 );
 	memset( accumulator, 0, SCRWIDTH * SCRHEIGHT * 16 );
-	qTable->GeneratePoints(scene);
+	ifstream f( (scene.sceneName + ".qtable").c_str() );
+	if (f.good()) {
+		qTable->parseQTable(scene.sceneName + ".qtable", scene);
+		cout << "Parsing qTable\n";
+	}
+	else {
+		qTable->GeneratePoints(scene);
+		cout << "Generating qTable\n";
+	}
 }
 
 enum MAT_TYPE {
@@ -214,9 +222,11 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 			}
 
 			Timer t;
-			if (learningEnabled && qTable->trainingPhase && sampleIdx >= 0)
+			if (learningEnabled && qTable->trainingPhase && sampleIdx >= 0) {
 				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, directLightning,
 					ray, m->albedo * INVPI, scene);
+			}
+				
 
 			float3 indirectLightning = 0;
 			int N = 1;
@@ -379,8 +389,9 @@ void Renderer::Tick(float deltaTime)
 	if (scene.runTime > 20 && !scene.exported) {
 		scene.ExportData();
 	}						  
-	if (scene.runTime > 300) {
+	if (scene.runTime > 10) {
 		qTable->trainingPhase = false;
+		qTable->exportQTable(scene.sceneName + ".qtable");
 	}
 	printf( "%5.2fms (%.1ffps) - %.1fMrays/s %.1fCameraSpeed\n", avg, fps, rps / 1000000, camera.speed );
 	cout << "Energy level: " << energy << endl;
