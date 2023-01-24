@@ -244,7 +244,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 			}
 
 			indirectLightning /= (float)N;
-			totCol = (directLightning + 2 * fminf(indirectLightning * prob,1.0f));
+			totCol = directLightning + fminf(indirectLightning ,1.0f);
 			break;
 		}
 		case METAL:{

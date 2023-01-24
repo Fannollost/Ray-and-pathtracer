@@ -49,7 +49,7 @@ void QTable::Update(const float3 origin, const float3 hitPoint, int wIndex, cons
 
 	float dist = kdTree->getNearestDist(kdTree->rootNode, origin, 0);
 	int idx = kdTree->nearestNode->idx;
-	
+
 	float distHit = kdTree->getNearestDist(kdTree->rootNode, hitPoint, 0);
 	int hitIdx = kdTree->nearestNode->idx;
 
