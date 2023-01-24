@@ -10,17 +10,16 @@ namespace Tmpl8 {
 	class QTable
 	{
 	public:
-		QTable(int x, int y, float lr, float3 emitterPos, int maxBounces, float rejectRadius, float explorationRate = 0.2f) 
-			: resx(x), resy(y), lr(lr), emitterPos(emitterPos), maxBounces(maxBounces), rejectRadius(rejectRadius) {
-			tableSize = resx * resy;
+		QTable(int x, int y, float lr, float3 emitterPos, int maxBounces, float rejectRadius, float explorationRate = 0.2f)
+			:lr(lr), emitterPos(emitterPos), maxBounces(maxBounces), rejectRadius(rejectRadius) {
+			tableSize = 40;
 		}
 		void GeneratePoints(Scene& s);
-		void Update(const float3 origin, const float3 hitPoint, int wIndex, const float3& irradiance, const Ray& r, float3 BRDF);
+		void Update(const float3 origin, const float3 hitPoint, int wIndex, const float3& irradiance, const Ray& r, float3 BRDF, Scene& s);
 		void SampleDirection(const int i, HemisphereMapping::Sample& s);
-		//void ToString(string exportFile);
-		//string ToString(Tmpl8::KDTree::Node* node);
-		//QTable* parseQTable(string path);
-		//void writeQTable(string exportFile, Tmpl8::KDTree::Node* node);
+		void ToString(string exportFile);
+		QTable* parseQTable(string path);
+		void writeQTable(string exportFile, Tmpl8::KDTree::Node* node);
 	
 		KDTree* kdTree = new KDTree();
 		bool trainingPhase = true;
@@ -31,7 +30,7 @@ namespace Tmpl8 {
 		float ApproxIntegral(const int idx, const float3& w, const Ray& r, float3 BRDF);
 		std::map<int, HemisphereMapping> table;   //Int is placeholder!
 		float3 emitterPos;
-		int resx, resy, tempBounces, maxBounces, emittedRays = 200;
+		int tempBounces, maxBounces, emittedRays = 100;
 		float lr, rejectRadius, explorationRate = 0.2f;
 	};
 }

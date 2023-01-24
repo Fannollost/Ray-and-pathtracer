@@ -14,7 +14,7 @@ void QTable::GeneratePoints(Scene& s) {
 }
 
 void QTable::SampleDirection(const int i, HemisphereMapping::Sample& s) {
-	auto& r = table.insert({ i,HemisphereMapping(explorationRate,resx,resy) });
+	auto& r = table.insert({ i,HemisphereMapping(explorationRate) });
 	auto& it = r.first;
 	it->second.SampleDirection(s, float3(0), trainingPhase);
 }
@@ -35,8 +35,8 @@ void QTable::Bounce(Scene& s, Ray& emitted) {
 			float weight;
 			if (nearestNode == nullptr) weight = 1; else weight = dot(emitted.hitNormal, nearestNode->normal);
 			if (d >= rejectRadius * weight) {
-				kdTree->insert(kdTree->rootNode, emitted.IntersectionPoint(), emitted.hitNormal);
-				//s.instantiateDebugPoint(emitted.IntersectionPoint(), emitted.hitNormal);
+				KDTree::Node* node = kdTree->insert(kdTree->rootNode, emitted.IntersectionPoint(), emitted.hitNormal);
+				s.instantiateDebugPoint(emitted.IntersectionPoint(), emitted.hitNormal, kdTree->count-1);
 			}
 		}
 	}
@@ -47,7 +47,7 @@ void QTable::Bounce(Scene& s, Ray& emitted) {
 	Bounce(s, bounce);
 }
 
-void QTable::Update(const float3 origin, const float3 hitPoint, int wIndex, const float3& irradiance, const Ray& r, float3 BRDF) {
+void QTable::Update(const float3 origin, const float3 hitPoint, int wIndex, const float3& irradiance, const Ray& r, float3 BRDF, Scene& s) {
 
 	float dist = kdTree->getNearestDist(kdTree->rootNode, origin, 0);
 	int idx = kdTree->nearestNode->idx;
@@ -62,10 +62,11 @@ void QTable::Update(const float3 origin, const float3 hitPoint, int wIndex, cons
 	
 	float qUpdate = (1.0f - lr) * val + lr * (length(irradiance) + ApproxIntegral(hitIdx, dir, r, BRDF));
 	mapping.updateByIndex(wIndex, qUpdate);
+	s.updateQDebug(idx, wIndex, qUpdate);
 }
 
 float QTable::ApproxIntegral(const int idx, const float3& w, const Ray& ray, float3 BRDF) {
-	auto& r = table.insert({idx, HemisphereMapping(explorationRate, resx,resy) });
+	auto& r = table.insert({idx, HemisphereMapping(explorationRate) });
 	auto& mapping = r.first->second;
 
 	float sum = 0.0f;
@@ -82,7 +83,7 @@ float QTable::ApproxIntegral(const int idx, const float3& w, const Ray& ray, flo
 }
 
 
-/*QTable* QTable::parseQTable(string path) {
+QTable* QTable::parseQTable(string path) {
 	QTable* res = new QTable(8, 5, 0.25f, float3(0, 0, 0), 5, 0.2f);
 	string line;
 	ifstream file(path, ios::in);
@@ -93,7 +94,7 @@ float QTable::ApproxIntegral(const int idx, const float3& w, const Ray& ray, flo
 		sscanf(constL, "%i/%f/%f/%f/%f/%f/%f", &idx, &px, &py, &pz, &nx, &ny, &nz);
 		Tmpl8::KDTree::Node* node = kdTree->insert(kdTree->rootNode, float3(px, py, pz), float3(nx, ny, nz));
 		for (int i = 0; i < 40; i++) {
-			auto& r = res->table.insert({ idx, HemisphereMapping(explorationRate, resx,resy) });
+			auto& r = res->table.insert({ idx, HemisphereMapping(explorationRate) });
 			float val;
 			getline(file, line);
 			const char* constL = line.c_str();
@@ -106,16 +107,14 @@ float QTable::ApproxIntegral(const int idx, const float3& w, const Ray& ray, flo
 	return res;
 }
 
-string ToString(Tmpl8::KDTree::Node* node) {
-	return node->idx + "/" + to_string(node->point.x) + "/" + to_string(node->point.y) + "/" + to_string(node->point.z) + "/" + to_string(node->normal.x) + "/" + to_string(node->normal.y) + "/" + to_string(node->normal.z);
-}
 
-void QTable::writeQTable(string exportFile, Tmpl8::KDTree::Node* node) {
+
+void QTable::writeQTable(string exportFile, KDTree::Node* node) {
 	std::ofstream myFile(exportFile);
 
 	if (node == NULL) return;
 
-	myFile << ToString(node) << "\n";
+	myFile << KDTree::ToString(node) << "\n";
 	for (int i = 0; i < 40; i++) {
 		myFile << table.at(node->idx).getValue(i) << "\n";
 	}
@@ -125,4 +124,4 @@ void QTable::writeQTable(string exportFile, Tmpl8::KDTree::Node* node) {
 
 void QTable::ToString(string exportFile) {
 	writeQTable(exportFile, kdTree->rootNode);
-}	 */
+}

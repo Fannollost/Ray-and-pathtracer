@@ -216,7 +216,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 			Timer t;
 			if (learningEnabled && qTable->trainingPhase && sampleIdx >= 0)
 				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, directLightning,
-					ray, m->albedo * INVPI);
+					ray, m->albedo * INVPI, scene);
 
 			float3 indirectLightning = 0;
 			int N = 1;
@@ -379,7 +379,7 @@ void Renderer::Tick(float deltaTime)
 	if (scene.runTime > 20 && !scene.exported) {
 		scene.ExportData();
 	}						  
-	if (scene.runTime > 10) {
+	if (scene.runTime > 300) {
 		qTable->trainingPhase = false;
 	}
 	printf( "%5.2fms (%.1ffps) - %.1fMrays/s %.1fCameraSpeed\n", avg, fps, rps / 1000000, camera.speed );

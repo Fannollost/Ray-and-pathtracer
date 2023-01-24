@@ -26,9 +26,9 @@
 
 namespace Tmpl8 {
 	class material;
-	class debug;
 	class diffuse;
 	class metal;
+	class debug;
 	class Triangle;
 	class DataCollector;
 	enum MAT_TYPE {
@@ -169,7 +169,7 @@ namespace Tmpl8 {
 
 		float sinAngle;
 	};
-
+	
 	class material {
 	public:
 		material(float3 c, bool rt) : col(c), raytracer(rt) {}
@@ -179,7 +179,6 @@ namespace Tmpl8 {
 		int type;
 		bool raytracer;
 	};
-
 
 	class diffuse : public material {
 	public:
@@ -265,11 +264,11 @@ namespace Tmpl8 {
 		float ir, fresnelVal, specu, N, invIr;
 		float3 absorption;
 	};
-
 	class debug : public material {
 	public:
 		debug(float3(c)) : material(c, false) { type = DEBUG; }
 	};
+
 	// -----------------------------------------------------------
 	// Triangle Primitive
 	// 
@@ -722,6 +721,10 @@ namespace Tmpl8 {
 
 			// Note: once we have triangle support we should get rid of the class
 			// hierarchy: virtuals reduce performance somewhat.
+		}
+		void rebuildBVH() {
+			b = new bvh(this);
+			b->Build(false);
 		}
 
 		void ExportData() {
@@ -1232,32 +1235,6 @@ namespace Tmpl8 {
 			//if (animOn) tl->Build();
 		}
 
-		void rebuildBVH() {
-			b = new bvh(this);
-			b->Build(false);
-		}
-
-		const void instantiateDebugPoint(float3 pos, float3 normal) {
-			const float3 gradient[40] = { float3(255, 0, 0), float3(255, 28, 0), float3(255, 56, 0), float3(255, 85, 0), float3(255, 113, 0), float3(255, 141, 0), float3(255, 171, 0),  float3(255, 198, 0), float3(255, 226, 0), float3(255, 255, 0),
-						float3(255, 255, 0), float3(226, 255, 0), float3(198, 255, 0), float3(171, 255, 0), float3(141, 255, 0), float3(113, 255, 0), float3(85, 255, 0), float3(56, 255, 0),  float3(28, 255, 0), float3(0, 255, 0),
-						float3(0, 255, 0), float3(0, 255, 28), float3(0, 255, 56), float3(0, 255, 85), float3(0, 255, 113), float3(0, 255, 141), float3(0, 255, 171),  float3(0, 255, 198), float3(0, 255, 226), float3(0, 255, 255),
-						float3(0, 255, 255), float3(0, 226, 255), float3(0, 198, 255), float3(0, 171, 255), float3(0, 141, 255), float3(0, 113, 255), float3(0, 85, 255),  float3(0, 56, 255), float3(0, 28, 255), float3(0, 0, 255) };
-
-			//TODO : Compute rotation according to normal
-			float angleX = computeAngle(float3(0, 1, 0), float3(0, normal.y, normal.z));
-			if (normal.z < 0) angleX = -angleX;
-			float angleZ = computeAngle(float3(0, 1, 0), float3(normal.x, normal.y, 0));
-			if (-normal.x < 0) angleZ = -angleZ;
-			//cout << angleX << endl;
-			//cout << angleZ << endl;
-			Mesh debugP = Mesh(1, "Resources/rldebug.obj", new debug(float3(0)), pos, 1, mat4::RotateX(angleX) * mat4::RotateZ(angleZ));
-
-			for (int i = 0; i < 40; i++) {
-				debugP.tri[i].mat = new debug(gradient[i] / 255);
-			}
-
-			meshes.push_back(debugP);
-		}
 		void FindNearest(Ray& ray, float t_min) const
 		{
 			ray.objIdx = -1;
@@ -1356,7 +1333,41 @@ namespace Tmpl8 {
 			return meshes[i].tri[idx];
 		}
 
-	
+		const void instantiateDebugPoint(float3 pos, float3 normal, int idx) {
+			const float3 gradient[40] = { float3(255, 0, 0), float3(255, 28, 0), float3(255, 56, 0), float3(255, 85, 0), float3(255, 113, 0), float3(255, 141, 0), float3(255, 171, 0),  float3(255, 198, 0), float3(255, 226, 0), float3(255, 255, 0),
+						float3(255, 255, 0), float3(226, 255, 0), float3(198, 255, 0), float3(171, 255, 0), float3(141, 255, 0), float3(113, 255, 0), float3(85, 255, 0), float3(56, 255, 0),  float3(28, 255, 0), float3(0, 255, 0),
+						float3(0, 255, 0), float3(0, 255, 28), float3(0, 255, 56), float3(0, 255, 85), float3(0, 255, 113), float3(0, 255, 141), float3(0, 255, 171),  float3(0, 255, 198), float3(0, 255, 226), float3(0, 255, 255),
+						float3(0, 255, 255), float3(0, 226, 255), float3(0, 198, 255), float3(0, 171, 255), float3(0, 141, 255), float3(0, 113, 255), float3(0, 85, 255),  float3(0, 56, 255), float3(0, 28, 255), float3(0, 0, 255) };
+
+			//TODO : Compute rotation according to normal
+			float angleX = computeAngle(float3(0, 1, 0), float3(0, normal.y, normal.z));
+			if (normal.z < 0) angleX = -angleX;
+			float angleZ = computeAngle(float3(0, 1, 0), float3(normal.x, normal.y, 0));
+			if (-normal.x < 0) angleZ = -angleZ;
+			//cout << angleX << endl;
+			//cout << angleZ << endl;
+			Mesh debugP = Mesh(1, "Resources/rldebug.obj", new debug(gradient[39] / 255), pos, 1, mat4::RotateX(angleX) * mat4::RotateZ(angleZ));
+
+			meshes.push_back(debugP);
+			debugMeshes.insert({ idx, meshes.size()-1 });
+		}
+
+		void printMaxQ() {
+			cout << "MAX Q WEIGTH" << maxQ << "\n";
+		}
+
+		const void updateQDebug(int idx, int facesIdx, float qUpdate) {
+			const float3 gradient[40] = { float3(255, 0, 0), float3(255, 28, 0), float3(255, 56, 0), float3(255, 85, 0), float3(255, 113, 0), float3(255, 141, 0), float3(255, 171, 0),  float3(255, 198, 0), float3(255, 226, 0), float3(255, 255, 0),
+						float3(255, 255, 0), float3(226, 255, 0), float3(198, 255, 0), float3(171, 255, 0), float3(141, 255, 0), float3(113, 255, 0), float3(85, 255, 0), float3(56, 255, 0),  float3(28, 255, 0), float3(0, 255, 0),
+						float3(0, 255, 0), float3(0, 255, 28), float3(0, 255, 56), float3(0, 255, 85), float3(0, 255, 113), float3(0, 255, 141), float3(0, 255, 171),  float3(0, 255, 198), float3(0, 255, 226), float3(0, 255, 255),
+						float3(0, 255, 255), float3(0, 226, 255), float3(0, 198, 255), float3(0, 171, 255), float3(0, 141, 255), float3(0, 113, 255), float3(0, 85, 255),  float3(0, 56, 255), float3(0, 28, 255), float3(0, 0, 255) };
+
+			maxQ = max(maxQ, qUpdate * 300);
+			uint i = (uint) (qUpdate * 300);
+			i = i > 39 ? 39 : i;
+			meshes[debugMeshes.at(idx)].tri[facesIdx].mat = new debug(gradient[39-i] / 255);
+		}
+
 		void SetIterationNumber(int i) { iterationNumber = i; }
 
 		int GetIterationNumber() { return iterationNumber; }
@@ -1370,7 +1381,6 @@ namespace Tmpl8 {
 			
 			for (int i = 0; i < size(lights); ++i) lights[i]->updateTracing(raytracer);
 		}
-
 		__declspec(align(64)) // start a new cacheline here
 			float animTime = 0;
 
@@ -1385,11 +1395,13 @@ namespace Tmpl8 {
 		bool exported = false;
 		bvh* b; tlas* tl; bvhInstance* bvhList; 
 		uint bvhCount = 3;
+		float maxQ = 0;
 		mat4* Transforms;
 		vector<Light*> lights;
 		vector<Cube> cubes;
 		vector<Sphere> spheres;
 		vector<Mesh> meshes;
+		map<int, int> debugMeshes;
 		vector<Plane> planes;
 		int aaSamples = 1;
 		int invAaSamples = 1 / aaSamples;

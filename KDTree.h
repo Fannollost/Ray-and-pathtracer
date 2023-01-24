@@ -110,6 +110,7 @@ public:
             return;
         findNearest(dx > 0 ? root->right : root->left, currPoint, depth);
     }
+
     // Searches a Point represented by "point[]" in the K D tree.
     // The parameter depth is used to determine current axis.
     bool searchRec(Node* root, float3 point, unsigned depth)

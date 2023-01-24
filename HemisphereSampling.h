@@ -8,15 +8,7 @@ public:
 		int idx;
 		float prob;
 	};
-
-	//float3 uniformSample(float u, float v) const;
 	virtual void SampleDirection(Sample& s, float3 normal, bool trainingPhase) const;
-	float3 uniformSample(float u1, float u2) const {
-		float r = std::sqrt(1.0f - u1 * u1);
-		float phi = 2 * PI * u2;
-
-		return float3(std::cos(phi) * r, std::sin(phi) * r, u1);
-	}
 };
 
 class CosineWeightedSampling : public HemisphereSampling {
@@ -27,7 +19,7 @@ public:
 
 class HemisphereMapping : public HemisphereSampling {
 public:
-	HemisphereMapping(float er = 0.2f, int resX = 8, int resY = 5) : resX(resX), resY(resY), grid(resX*resY), explorationRate(er){}
+	HemisphereMapping(float er = 0.2f) : grid(40), explorationRate(er){}
 
 	std::size_t size() {
 		return grid.size();
@@ -48,8 +40,6 @@ public:
 	void SampleDirection(Sample& s, float3 normal, bool training) const override;
 private:
 	float3 mapIndexToDirection(int dirIdx) const;
-	float3 simpleMap(float x, float y) const;
-	int resX, resY;
 	std::vector<float> grid;
 	float explorationRate = 0.0f;
 };
