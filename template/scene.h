@@ -26,6 +26,7 @@
 
 namespace Tmpl8 {
 	class material;
+	class debug;
 	class diffuse;
 	class metal;
 	class Triangle;
@@ -34,6 +35,7 @@ namespace Tmpl8 {
 		DIFFUSE = 1,
 		METAL = 2,
 		GLASS = 3,
+		DEBUG = 4
 	};
 	__declspec(align(64)) class Ray
 	{
@@ -67,6 +69,7 @@ namespace Tmpl8 {
 		int objIdx = -1;
 		bool inside = false; // true when in medium
 		bool exists = false;
+		bool debug = false;
 		float3 color = 0;
 		float3 hitNormal;
 		material* m;
@@ -166,7 +169,107 @@ namespace Tmpl8 {
 
 		float sinAngle;
 	};
-	
+
+	class material {
+	public:
+		material(float3 c, bool rt) : col(c), raytracer(rt) {}
+
+		void SetColor(float3 c) { col = c; }
+		float3 col, albedo = 0, emission = 0;
+		int type;
+		bool raytracer;
+	};
+
+
+	class diffuse : public material {
+	public:
+		diffuse(float3 a = 0, float3 c = 0, float ks = 0.2, float kd = 0.8, int n = 2, bool rt = true, float e = 0, float s = 0)
+			: specu(ks), diffu(kd), N(n), material(c, rt) {
+			type = DIFFUSE;
+			albedo = a;
+			emission = e;
+			shinieness = s;
+		}
+		void SetSpecularity(float ks) { specu = ks; }
+		void SetDiffuse(float kd) { diffu = kd; }
+		void SetN(int n) { N = n; }
+		virtual bool scatter(const Ray& ray, float3& att, Ray& scattered, float3 lightDir, float3 lightIntensity, float3 normal, float3& energy) {
+			float3 reflectionDirection = reflect(-lightDir, normal);
+			float3 specularColor, lightAttenuation;
+			specularColor = powf(fmax(0.0f, -dot(reflectionDirection, ray.D)), N) * lightIntensity;
+			lightAttenuation = lightIntensity;
+			att = albedo * lightAttenuation * diffu + specularColor * specu;
+			float3 dir;
+			if (!raytracer) {
+				dir = RandomInHemisphere(normal);
+			}
+			scattered = Ray(ray.IntersectionPoint(), dir, ray.color);
+			float3 retention = float3(1) - albedo;
+			float3 newEnergy(energy - retention);
+			energy = newEnergy.x > 0 ? newEnergy : 0;
+			return true;
+		}
+
+	public:
+		float specu, diffu, shinieness;
+		int N;
+	};
+
+	class metal : public material {
+	public:
+		metal(float f, float3 c, bool rt) : fuzzy(f < 1 ? f : 1), material(c, rt) { type = METAL; emission = 0; }
+		virtual bool scatter(const Ray& ray, Ray& reflected, float3 normal, float3& energy) {
+			float3 dir = reflect(ray.D, normal);
+			reflected = Ray(ray.IntersectionPoint() + normal * 0.001f, dir, ray.color * col);
+			energy = energy;
+			return dot(reflected.D, normal) > 0;
+		}
+
+	public:
+		float fuzzy;
+	};
+
+	class glass : public material {
+	public:
+		glass(float refIndex, float3 c, float3 a, float r, float n, bool rt)
+			: ir(refIndex), absorption(a), specu(r), N(n), material(c, rt) {
+			type = GLASS; invIr = 1 / ir;
+		}
+		void fresnel(const float3& I, const float3& N, const float& ior, float& kr)
+		{
+			float cosi = clamp(dot(I, N), -1.0f, 1.0f);
+			float etai = 1, etat = ior;
+			if (cosi > 0) { std::swap(etai, etat); }
+			float sint = etai / etat * sqrtf(fmaxf(0.f, 1 - cosi * cosi));
+			// Total internal reflection
+			if (sint >= 1) {
+				kr = 1;
+			}
+			else {
+				float cost = sqrtf(fmaxf(0.f, 1 - sint * sint));
+				cosi = fabsf(cosi);
+				float Rs = ((etat * cosi) - (etai * cost)) / ((etat * cosi) + (etai * cost));
+				float Rp = ((etai * cosi) - (etat * cost)) / ((etai * cosi) + (etat * cost));
+				kr = (Rs * Rs + Rp * Rp) / 2;
+			}
+			// As a consequence of the conservation of energy, transmittance is given by:
+			// kt = 1 - kr;
+		}
+		float3 RefractRay(const float3& oRayDir, const float3& normal, const float& refRatio) {
+			float theta = fmin(dot(-oRayDir, normal), 1.0);
+			float3 perpendicular = refRatio * (oRayDir + theta * normal);
+			float3	parallel = -sqrt(fabs(1.0 - pow(length(perpendicular), 2))) * normal;
+			return perpendicular + parallel;
+		}
+
+		float ir, fresnelVal, specu, N, invIr;
+		float3 absorption;
+	};
+
+	class debug : public material {
+	public:
+		debug(float3(c)) : material(c, false) { type = DEBUG; }
+	};
 	// -----------------------------------------------------------
 	// Triangle Primitive
 	// 
@@ -187,18 +290,19 @@ namespace Tmpl8 {
 			N = normalize(cross(e1, e2));
 			centroid = (v0 + v1 + v2) * 0.333f;
 		}
-		void Intersect(Ray& ray, float t_min) const {		 //scratchapixel implementation
+		void Intersect(Ray& ray, float t_min) const {         //scratchapixel implementation
+			if (mat->type == DEBUG && !ray.debug) return;
 			float NdotRayDir = dot(N, ray.D);
 			if (fabs(NdotRayDir) < t_min) return;
 			float d = -dot(N, v0);
 			float t = -(dot(N, ray.O) + d) / NdotRayDir;
 			if (t < 0) return;
 			float3 p = ray.O + t * ray.D;
-			float3 c ;
+			float3 c;
 
 			float3 vp0 = p - v0;
 			c = cross(e1, vp0);
-			if (dot(N, c) < 0) return ;
+			if (dot(N, c) < 0) return;
 			float3 vp1 = p - v1;
 			float3 e3 = v2 - v1;
 			c = cross(e3, vp1);
@@ -208,7 +312,7 @@ namespace Tmpl8 {
 			c = cross(e4, vp2);
 			if (dot(N, c) < 0) return;
 
-			if (t < ray.t && t > t_min) {
+			if (t < ray.t && t > t_min && (mat->type != DEBUG || ray.debug)) {
 				ray.t = t, ray.objIdx = objIdx, ray.m = mat,
 					ray.SetNormal(N);
 			}
@@ -282,7 +386,7 @@ namespace Tmpl8 {
 			}
 			fclose(file);
 		}
-		Mesh(int idGroup, string path, material* m, float3 pos, float scale) : groupIdx(idGroup), mat(m) {
+		Mesh(int idGroup, string path, material* m, float3 pos, float scale, mat4 rotationMat = mat4()) : groupIdx(idGroup), mat(m) {
 			ifstream file(path, ios::in);
 			if (!file)
 			{
@@ -296,8 +400,10 @@ namespace Tmpl8 {
 				if (line.substr(0, 2) == "v ") {
 					istringstream v(line.substr(2));
 					v >> x; v >> y; v >> z;
-					vertices.push_back(float3(x * scale + pos.x, y * scale + pos.y, z * scale + pos.z));
-					originalVerts.push_back(float3(x * scale + pos.x, y * scale + pos.y, z * scale + pos.z));
+					float3 currVert = float3(x, y, z);
+					currVert = TransformVector(currVert, rotationMat);
+					vertices.push_back(float3(currVert.x * scale + pos.x, currVert.y * scale + pos.y, currVert.z * scale + pos.z));
+					originalVerts.push_back(float3(currVert.x * scale + pos.x, currVert.y * scale + pos.y, currVert.z * scale + pos.z));
 				}
 				else if (line.substr(0, 2) == "f ") {
 					int v0, v1, v2;
@@ -308,7 +414,7 @@ namespace Tmpl8 {
 				}
 			}
 			for (uint i = 0; i < size(faces); i++) {
-				tri.push_back(Triangle(1000 * idGroup + i, m, (faces[i] - 1), vertices));
+				tri.push_back(Triangle(1000 * idGroup + i, mat, (faces[i] - 1), vertices));
 			}
 		}
 		uint getSize() {
@@ -577,102 +683,6 @@ namespace Tmpl8 {
 		mat4 T, invT;
 		int objIdx = -1;
 		material* mat;
-	};
-
-	class material {
-	public:
-		material(float3 c, bool rt) : col(c), raytracer(rt) {}
-
-		void SetColor(float3 c) { col = c; }
-		float3 col, albedo = 0, emission = 0;
-		int type;
-		bool raytracer;
-	};
-
-	
-	class diffuse : public material {
-	public:
-		diffuse(float3 a = 0, float3 c = 0, float ks = 0.2, float kd = 0.8, int n = 2, bool rt = true, float e = 0, float s = 0)
-			: specu(ks), diffu(kd), N(n), material(c, rt) {
-			type = DIFFUSE;
-			albedo = a;
-			emission = e;
-			shinieness = s;
-		}
-		void SetSpecularity(float ks) { specu = ks; }
-		void SetDiffuse(float kd) { diffu = kd; }
-		void SetN(int n) { N = n; }
-		virtual bool scatter(const Ray& ray, float3& att, Ray& scattered,  float3 lightDir, float3 lightIntensity, float3 normal, float3& energy) {
-			float3 reflectionDirection = reflect(-lightDir, normal);
-			float3 specularColor, lightAttenuation;
-			specularColor = powf(fmax(0.0f, -dot(reflectionDirection, ray.D)), N) * lightIntensity;
-			lightAttenuation = lightIntensity;
-			att = albedo * lightAttenuation * diffu + specularColor * specu;
-			float3 dir;
-			if (!raytracer) {
-				dir = RandomInHemisphere(normal);
-			}
-			scattered = Ray(ray.IntersectionPoint(), dir, ray.color);
-			float3 retention = float3(1) - albedo;
-			float3 newEnergy(energy - retention);
-			energy = newEnergy.x > 0 ? newEnergy : 0;
-			return true;
-		}
-
-	public:
-		float specu, diffu, shinieness;
-		int N;
-	};
-
-	class metal : public material {
-	public:
-		metal(float f, float3 c, bool rt) : fuzzy(f < 1 ? f : 1), material(c, rt) { type = METAL; emission = 0; }
-		virtual bool scatter(const Ray& ray, Ray& reflected, float3 normal, float3& energy) {
-			float3 dir = reflect(ray.D, normal);
-			reflected = Ray(ray.IntersectionPoint() + normal * 0.001f, dir, ray.color * col);
-			energy = energy;
-			return dot(reflected.D, normal) > 0;
-		}
-
-	public:
-		float fuzzy;
-	};
-
-	class glass : public material{
-	public: 
-		glass(float refIndex, float3 c, float3 a, float r, float n, bool rt)
-			: ir(refIndex), absorption(a), specu(r), N(n), material(c, rt) {
-			type = GLASS; invIr = 1 / ir;
-		}
-		void fresnel(const float3& I, const float3& N, const float& ior, float& kr)
-		{
-			float cosi = clamp(dot(I, N) ,-1.0f, 1.0f);
-			float etai = 1, etat = ior;				 
-			if (cosi > 0) { std::swap(etai, etat); }
-			float sint = etai / etat * sqrtf(fmaxf(0.f, 1 - cosi * cosi));
-			// Total internal reflection
-			if (sint >= 1) {
-				kr = 1;
-			}
-			else {
-				float cost = sqrtf(fmaxf(0.f, 1 - sint * sint));
-				cosi = fabsf(cosi);
-				float Rs = ((etat * cosi) - (etai * cost)) / ((etat * cosi) + (etai * cost));
-				float Rp = ((etai * cosi) - (etat * cost)) / ((etai * cosi) + (etat * cost));
-				kr = (Rs * Rs + Rp * Rp) / 2;
-			}
-			// As a consequence of the conservation of energy, transmittance is given by:
-			// kt = 1 - kr;
-		}
-		float3 RefractRay(const float3& oRayDir, const float3& normal, const float& refRatio) {
-			float theta = fmin(dot(-oRayDir, normal), 1.0);	  
-			float3 perpendicular = refRatio * (oRayDir + theta * normal);
-			float3	parallel = -sqrt(fabs(1.0 - pow(length(perpendicular), 2))) * normal;
-			return perpendicular + parallel;									  
-		}
-
-		float ir, fresnelVal, specu, N, invIr;
-		float3 absorption;
 	};
 
 	// -----------------------------------------------------------
@@ -1222,6 +1232,32 @@ namespace Tmpl8 {
 			//if (animOn) tl->Build();
 		}
 
+		void rebuildBVH() {
+			b = new bvh(this);
+			b->Build(false);
+		}
+
+		const void instantiateDebugPoint(float3 pos, float3 normal) {
+			const float3 gradient[40] = { float3(255, 0, 0), float3(255, 28, 0), float3(255, 56, 0), float3(255, 85, 0), float3(255, 113, 0), float3(255, 141, 0), float3(255, 171, 0),  float3(255, 198, 0), float3(255, 226, 0), float3(255, 255, 0),
+						float3(255, 255, 0), float3(226, 255, 0), float3(198, 255, 0), float3(171, 255, 0), float3(141, 255, 0), float3(113, 255, 0), float3(85, 255, 0), float3(56, 255, 0),  float3(28, 255, 0), float3(0, 255, 0),
+						float3(0, 255, 0), float3(0, 255, 28), float3(0, 255, 56), float3(0, 255, 85), float3(0, 255, 113), float3(0, 255, 141), float3(0, 255, 171),  float3(0, 255, 198), float3(0, 255, 226), float3(0, 255, 255),
+						float3(0, 255, 255), float3(0, 226, 255), float3(0, 198, 255), float3(0, 171, 255), float3(0, 141, 255), float3(0, 113, 255), float3(0, 85, 255),  float3(0, 56, 255), float3(0, 28, 255), float3(0, 0, 255) };
+
+			//TODO : Compute rotation according to normal
+			float angleX = computeAngle(float3(0, 1, 0), float3(0, normal.y, normal.z));
+			if (normal.z < 0) angleX = -angleX;
+			float angleZ = computeAngle(float3(0, 1, 0), float3(normal.x, normal.y, 0));
+			if (-normal.x < 0) angleZ = -angleZ;
+			//cout << angleX << endl;
+			//cout << angleZ << endl;
+			Mesh debugP = Mesh(1, "Resources/rldebug.obj", new debug(float3(0)), pos, 1, mat4::RotateX(angleX) * mat4::RotateZ(angleZ));
+
+			for (int i = 0; i < 40; i++) {
+				debugP.tri[i].mat = new debug(gradient[i] / 255);
+			}
+
+			meshes.push_back(debugP);
+		}
 		void FindNearest(Ray& ray, float t_min) const
 		{
 			ray.objIdx = -1;

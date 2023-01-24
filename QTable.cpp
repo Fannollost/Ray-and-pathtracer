@@ -1,7 +1,7 @@
 #include "precomp.h"
 #include "QTable.h"
 
-void QTable::GeneratePoints(const Scene& s) {
+void QTable::GeneratePoints(Scene& s) {
 	tempBounces = maxBounces;
 	for(int i = 0; i < emittedRays; i++){
 		float3 emittedDir = float3(RandomFloat() * 2 - 1, RandomFloat() * 2 - 1, RandomFloat() * 2 - 1);
@@ -9,6 +9,7 @@ void QTable::GeneratePoints(const Scene& s) {
 		Bounce(s, emitted);
 		tempBounces = maxBounces;
 	}
+	s.rebuildBVH();
 	cout << "NODES IN TREE: " << kdTree->count << endl;
 }
 
@@ -18,7 +19,7 @@ void QTable::SampleDirection(const int i, HemisphereMapping::Sample& s) {
 	it->second.SampleDirection(s, float3(0), trainingPhase);
 }
 
-void QTable::Bounce(const Scene& s, Ray& emitted) {
+void QTable::Bounce(Scene& s, Ray& emitted) {
 
 	if (tempBounces <= 0) return;
 	s.FindNearest(emitted, 0.001f);
@@ -35,6 +36,7 @@ void QTable::Bounce(const Scene& s, Ray& emitted) {
 			if (nearestNode == nullptr) weight = 1; else weight = dot(emitted.hitNormal, nearestNode->normal);
 			if (d >= rejectRadius * weight) {
 				kdTree->insert(kdTree->rootNode, emitted.IntersectionPoint(), emitted.hitNormal);
+				s.instantiateDebugPoint(emitted.IntersectionPoint(), emitted.hitNormal);
 			}
 		}
 	}
@@ -80,7 +82,7 @@ float QTable::ApproxIntegral(const int idx, const float3& w, const Ray& ray, flo
 }
 
 
-QTable* QTable::parseQTable(string path) {
+/*QTable* QTable::parseQTable(string path) {
 	QTable* res = new QTable(8, 5, 0.25f, float3(0, 0, 0), 5, 0.2f);
 	string line;
 	ifstream file(path, ios::in);
@@ -123,4 +125,4 @@ void QTable::writeQTable(string exportFile, Tmpl8::KDTree::Node* node) {
 
 void QTable::ToString(string exportFile) {
 	writeQTable(exportFile, kdTree->rootNode);
-}
+}	 */

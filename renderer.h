@@ -10,6 +10,7 @@ namespace Tmpl8
 		void Init();
 		float3 Trace(Ray& ray, int depth, float3 energy);
 		float3 Sample(Ray& ray, int depth, float3 energy, const int sampleIdx);
+		float3 Debug(Ray& ray, float3 totCol);
 		HemisphereSampling::Sample SampleDirection(const Ray& hitPoint);
 		void Tick(float deltaTime);
 		void Shutdown() { /* implement if you want to do something on exit */ }

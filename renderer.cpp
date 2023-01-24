@@ -292,6 +292,18 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 	}
 	return totCol;
 }
+
+float3 Renderer::Debug(Ray& ray, float3 totCol)
+{
+	float t_min = 1e-6; ray.debug = true;
+	scene.FindNearest(ray, t_min);
+	material* m = ray.GetMaterial();
+
+	if (m != nullptr && m->type == DEBUG) {
+		return m->col * scene.aaSamples;
+	}
+	return totCol;
+}
 // -----------------------------------------------------------
 // Main application tick function - Executed once per frame
 // -----------------------------------------------------------
@@ -326,6 +338,7 @@ void Renderer::Tick(float deltaTime)
 					float newX = x; 
 					float newY = y;
 					totCol += Trace(camera.GetPrimaryRay(newX, newY), 4, float3(1));
+					totCol = Debug(camera.GetPrimaryRay(newX, newY), totCol);
 					accumulator[x + y * SCRWIDTH] = (totCol / scene.aaSamples);
 				}
 				else {
