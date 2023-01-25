@@ -84,6 +84,7 @@ float QTable::ApproxIntegral(const int idx, const float3& w, const Ray& ray, flo
 
 
 void QTable::parseQTable(string path, Scene& s) {
+	trainingPhase = false;
 	tempBounces = maxBounces;
 	string line;
 	ifstream file(path, ios::in);

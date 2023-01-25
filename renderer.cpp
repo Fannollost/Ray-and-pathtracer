@@ -10,6 +10,7 @@ void Renderer::Init()
 	ifstream f( (scene.sceneName + ".qtable").c_str() );
 	if (f.good()) {
 		qTable->parseQTable(scene.sceneName + ".qtable", scene);
+		learningEnabled = false;
 		cout << "Parsing qTable\n";
 	}
 	else {
@@ -142,7 +143,7 @@ HemisphereSampling::Sample Renderer::SampleDirection(const Ray& r) {
 	//cout << sample.dir.x << ", " << sample.dir.y << ", " << sample.dir.z << endl;
 	//float3 temp = sample.dir;
 	float3 v1 = r.hitNormal;
-	float3 v2 = float3(0, 0, 1);
+	float3 v2 = float3(0, 1, 0);
 	//float3 normal = float3(-1, 0, 0);
 	//sample.dir = float3(-1, 0, 0);
 	//float3 newDir = RotateVector(float3(1, 0, 0), float3(0, 1, 0), (-1, 0, 0));
@@ -389,9 +390,10 @@ void Renderer::Tick(float deltaTime)
 	if (scene.runTime > 20 && !scene.exported) {
 		scene.ExportData();
 	}						  
-	if (scene.runTime > 10) {
+	if (scene.runTime > 600) {
 		qTable->trainingPhase = false;
 		qTable->exportQTable(scene.sceneName + ".qtable");
+		cout << "Learning phase ended\n";
 	}
 	printf( "%5.2fms (%.1ffps) - %.1fMrays/s %.1fCameraSpeed\n", avg, fps, rps / 1000000, camera.speed );
 	cout << "Energy level: " << energy << endl;
