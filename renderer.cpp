@@ -143,7 +143,8 @@ HemisphereSampling::Sample Renderer::SampleDirection(const Ray& r) {
 	//cout << sample.idx << ": " << sample.dir.x << ", " << sample.dir.y << ", " << sample.dir.z << endl;
 	float3 temp = sample.dir;
 	float3 v1 = r.hitNormal;
-	float3 v2 = float3(1, 0, 0);
+	float3 v2 = float3(0, 0, 1);
+
 	//float3 normal = float3(-1, 0, 0);
 	//sample.dir = float3(-1, 0, 0);
 	//float3 newDir = RotateVector(sample.dir,v1,v2);
@@ -152,17 +153,32 @@ HemisphereSampling::Sample Renderer::SampleDirection(const Ray& r) {
 	//float angleY = acos(dot(float3(0, 0, 0), float3(normal.x,0, normal.z)) / length(float3(0, normal.y, normal.z)));
 	
 	//mat4 rot = mat4::RotateX(angleX) * mat4::RotateY(angleY) * mat4::RotateZ(angleZ);
-	//float angleX = computeAngle(float3(0, v1.y, v1.z), float3(0, v2.y, v2.z));
-	//if (v1.y * v2.z - v1.z * v2.y < 0) angleX = -angleX;
-	float angleZ = computeAngle(float3(v1.x, v1.y, 0), float3(v2.x, v2.y, 0));
-	if (v1.x * v2.y - v1.y * v2.x < 0) angleZ = -angleZ;
-	float angleY = computeAngle(float3(v1.x, 0,v1.z), float3(v2.x, 0, v2.z));
-	if (v1.x * v2.z - v1.z * v2.x < 0) angleY = -angleY;
+	//float angleZ = computeAngle(float3(v1.x, v1.y, 0), float3(v2.x, v2.y, 0));
+	//if (v1.x * v2.y - v1.y * v2.x < 0) angleZ = -angleZ;
+	//if (dot(v1, v2) == -1) sample.dir = float3(-sample.dir.x, sample.dir.y, -sample.dir.z);
+	if (dot(v1, v2) == -1) sample.dir = float3(-sample.dir.x, sample.dir.y, -sample.dir.z);
+	else if (dot(v1, v2) == 0) {
+		if (v1.y == v2.y) {
+			if (v1.x == 1) sample.dir = float3(sample.dir.z, sample.dir.y, -sample.dir.x);
+			else if (v1.x == -1) sample.dir = float3(-sample.dir.z, sample.dir.y, sample.dir.x);
+		}
+		else if (v1.x == v2.x) {
+			if (v1.y == 1) sample.dir = float3(sample.dir.x, sample.dir.z, -sample.dir.y);
+			else if (v1.y == -1) sample.dir = float3(sample.dir.x, -sample.dir.z, sample.dir.y);
+		}
+	}
+	else{
+		float angleX = computeAngle(float3(0, v1.y, v1.z), float3(0, v2.y, v2.z));
+		if (v1.y * v2.z - v1.z * v2.y < 0) angleX = -angleX;
+		float angleY = computeAngle(float3(v1.x, 0,v1.z), float3(v2.x, 0, v2.z));
+		if (v1.x * v2.z - v1.z * v2.x < 0) angleY = -angleY;
 
-	sample.dir = TransformVector(sample.dir, mat4::RotateY(angleY) * mat4::RotateZ(angleZ)); //* mat4::RotateY(angleY));
+		sample.dir = TransformVector(sample.dir, mat4::RotateX(angleX) * mat4::RotateY(angleY)); //* mat4::RotateY(angleY));
+	}
 	qTable->nextDir = sample.dir;
+	//if(r.objIdx == ) cout << sample.dir.x << ", " << sample.dir.y << ", " << sample.dir.z << endl;
 
-	//cout << angleZ << ", " << computeAngle(float3(temp.x, temp.y, 0), float3(sample.dir.x, sample.dir.y, 0)) << endl;
+//	cout << angleX << ", " << computeAngle(float3(0, temp.y, temp.z), float3(0, sample.dir.y, temp.z)) << endl;
 	//cout << dot(r.hitNormal, sample.dir) << endl;
 	//sample.dir = newDir;
 	//cout << sample.dir()
@@ -253,12 +269,12 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 				}
 
 				float3 cos_i = dot(rayToHemi, normal);
-				indirectLightning += Sample(Ray(intersectionPoint, rayToHemi, float3(0)),
+				indirectLightning += Sample(Ray(intersectionPoint + rayToHemi * eps, rayToHemi, float3(0)),
 					depth - 1, energy, samIdx);
 			}
 
 			indirectLightning /= (float)N;
-			totCol = directLightning + fminf(indirectLightning ,1.0f);
+			totCol = directLightning + fminf(indirectLightning ,1.0f) * INVPI;
 			break;
 		}
 		case METAL:{
@@ -393,9 +409,11 @@ void Renderer::Tick(float deltaTime)
 	if (scene.runTime > 20 && !scene.exported) {
 		scene.ExportData();
 	}						  
-	if (scene.runTime > qTable->GetLearningPhaseTime()) {
+	if (scene.runTime > qTable->GetLearningPhaseTime() & qTable->trainingPhase) {
 		qTable->trainingPhase = false;
+		cout << "--------TRAINING PHASE ENDED!----------" << endl;
 	}
+
 	printf( "%5.2fms (%.1ffps) - %.1fMrays/s %.1fCameraSpeed\n", avg, fps, rps / 1000000, camera.speed );
 	cout << "Energy level: " << energy << endl;
 	energy = 0;

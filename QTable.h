@@ -10,7 +10,7 @@ namespace Tmpl8 {
 	class QTable
 	{
 	public:
-		QTable(int x, int y, float lr, float3 emitterPos, int maxBounces, float rejectRadius, float explorationRate = 0.2f)
+		QTable(int x, int y, float lr, float3 emitterPos, int maxBounces, float rejectRadius, float explorationRate = 0.05f)
 			:lr(lr), emitterPos(emitterPos), maxBounces(maxBounces), rejectRadius(rejectRadius) {
 			tableSize = 40;
 		}

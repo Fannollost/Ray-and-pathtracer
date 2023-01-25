@@ -984,7 +984,7 @@ namespace Tmpl8 {
 			planes.push_back(Plane(2, specReflDiff, float3(0, 1, 0), 1));			// 2: floor
 			planes.push_back(Plane(3, lightDiff, float3(0, -1, 0), 2));			// 3: ceiling
 			planes.push_back(Plane(4, lightDiff, float3(0, 0, 1), 3));			// 4: front wall
-			planes.push_back(Plane(5, specularDiff, float3(0, 0, -1), 3.99f));		// 5: back wall
+			planes.push_back(Plane(5, specularDiff, float3(0, 0, -1), 3.99f));		// 5: wall infront of cam
 
 			if (animOn) spheres.push_back(Sphere(7, standardGlass, float3(-0.7f, -0.4f, 2.0f), 0.5f));			// 1: bouncing ball
 			else spheres.push_back(Sphere(7, greenDiff, float3(-1.5f, -0.5, 2), 0.5f));		    // 1: static ball

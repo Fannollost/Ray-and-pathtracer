@@ -43,7 +43,7 @@ void QTable::Bounce(Scene& s, Ray& emitted) {
 
 	tempBounces--;
 	float3 emittedDir = RandomInHemisphere(emitted.hitNormal);
-	Ray bounce = Ray(emitted.IntersectionPoint(), emittedDir, float3(0));
+	Ray bounce = Ray(emitted.IntersectionPoint() + emittedDir * 0.0001f, emittedDir, float3(0));
 	Bounce(s, bounce);
 }
 
