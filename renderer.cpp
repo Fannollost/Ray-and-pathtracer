@@ -184,7 +184,7 @@ HemisphereSampling::Sample Renderer::SampleDirection(const Ray& r) {
 		sample.dir = TransformVector(sample.dir, mat4::RotateX(angleX) * mat4::RotateY(angleY)); //* mat4::RotateY(angleY));
 	}
 	qTable->nextDir = sample.dir;
-	//if(r.objIdx == ) cout << sample.dir.x << ", " << sample.dir.y << ", " << sample.dir.z << endl;
+	//if(r.objIdx == 1) cout << sample.dir.x << ", " << sample.dir.y << ", " << sample.dir.z << endl;
 
 //	cout << angleX << ", " << computeAngle(float3(0, temp.y, temp.z), float3(0, sample.dir.y, temp.z)) << endl;
 	//cout << dot(r.hitNormal, sample.dir) << endl;
@@ -280,11 +280,11 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 
 				float3 cos_i = dot(rayToHemi, normal);
 				indirectLightning += Sample(Ray(intersectionPoint + rayToHemi * eps, rayToHemi, float3(0)),
-					depth - 1, energy, samIdx);
+					depth - 1, energy, samIdx) * INV2PI;
 			}
 
 			indirectLightning /= (float)N;
-			totCol = directLightning + fminf(indirectLightning ,1.0f) * INVPI;
+			totCol = directLightning + fminf(indirectLightning ,1.0f);
 			break;
 		}
 		case METAL:{
