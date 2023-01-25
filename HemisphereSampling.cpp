@@ -31,6 +31,8 @@ void HemisphereMapping::SampleDirection(Sample& s, float3 normal, bool training)
 		for (int i = 0; i < grid.size(); i++) {
 			sum += grid[i]; 
 		}
+
+
 		for (int i = 0; i < grid.size(); i++){	
 			normalizedGrid[i] = grid[i] / sum;
 		}
@@ -46,23 +48,23 @@ void HemisphereMapping::SampleDirection(Sample& s, float3 normal, bool training)
 		//cout << cum[39] << endl;
 		//std::partial_sum(normalizedGrid.begin(), normalizedGrid.end(), normalizedGrid.begin());   //WHY IS THIS 1???????????????????????????
 		s.idx = grid.size() - 1;
+		s.prob = 1 / grid.size();
+		float f = 0;
 		for (int i = 0; i < (int)cum.size(); i++) {	 
 			r = RandomFloat();
-			if((cum[i] == 0 || r < explorationRate) && training)
+			if (r < explorationRate && training)
 			{
-				s.idx = ((int) (grid.size() - 1) * RandomFloat());
-				s.prob =  1 / (grid.size() * 2 * PI);
+				s.idx = ((int)grid.size() * RandomFloat());
+				s.prob = 1 / (grid.size() * 2 * PI);
 				break;
 			}
-			
-			if (r < normalizedGrid[i]) {
+			if (r < normalizedGrid[i] && sum != 0) {
 				s.idx = i;
 				s.prob = normalizedGrid[s.idx];
+				break;
 			}
-			
 		}
-
-		s.dir = normalize(mapIndexToDirection(s.idx));
+		s.dir = mapIndexToDirection(s.idx);
 }
 
 float3 HemisphereMapping::mapIndexToDirection(int dirIdx) const {
@@ -76,8 +78,8 @@ float3 HemisphereMapping::mapIndexToDirection(int dirIdx) const {
 	float3 v1 = vertices[faces[dirIdx].y];
 	float3 v2 = vertices[faces[dirIdx].z];
 
-	float3 res = v0 + (v0 - v1) * randomShiftX + (v0 - v2) * randomShiftY;
-
-	return normalize(res);
+	float3 res = normalize(v0 + (v0 - v1) * randomShiftX + (v0 - v2) * randomShiftY);
+	cout << dirIdx << ": " << res.x << ", " << res.y << ", " << res.z << " length: " << endl;
+	return res;
 }
 

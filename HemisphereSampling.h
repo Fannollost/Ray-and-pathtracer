@@ -41,5 +41,5 @@ public:
 private:
 	float3 mapIndexToDirection(int dirIdx) const;
 	std::vector<float> grid;
-	float explorationRate = 0.0f;
+	float explorationRate = 0.15f;
 };

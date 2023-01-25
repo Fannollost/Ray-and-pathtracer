@@ -20,7 +20,8 @@ namespace Tmpl8 {
 		void ToString(string exportFile);
 		QTable* parseQTable(string path);
 		void writeQTable(string exportFile, Tmpl8::KDTree::Node* node);
-	
+				  
+		int GetLearningPhaseTime() { return learningTime; }
 		KDTree* kdTree = new KDTree();
 		bool trainingPhase = true;
 		int tableSize;
@@ -31,7 +32,8 @@ namespace Tmpl8 {
 		std::map<int, HemisphereMapping> table;   //Int is placeholder!
 		float3 emitterPos;
 		int tempBounces, maxBounces, emittedRays = 100;
-		float lr, rejectRadius, explorationRate = 0.2f;
+		float lr, rejectRadius, explorationRate = 0.05f;
+		int learningTime = 10; // in seconds
 	};
 }
 

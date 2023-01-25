@@ -130,28 +130,41 @@ HemisphereSampling::Sample Renderer::SampleDirection(const Ray& r) {
 	//qTable->kdTree->findNearest(qTable->kdTree->rootNode, r.IntersectionPoint(), 0);
 	float a = qTable->kdTree->getNearestDist(qTable->kdTree->rootNode, r.IntersectionPoint(), 0);
 	int idx = qTable->kdTree->nearestNode->idx;
+	/*if (a > 2) {
+		cout << "neighbour: " << qTable->kdTree->nearestNode->point.x
+			<< ", " << qTable->kdTree->nearestNode->point.y
+			<< ", " << qTable->kdTree->nearestNode->point.x << " for point "
+			 << r.IntersectionPoint().x
+			<< ", " << r.IntersectionPoint().y
+			<< ", " << r.IntersectionPoint().z << endl;
+
+	}*/
 	qTable->SampleDirection(idx, sample);
-	//cout << sample.dir.x << ", " << sample.dir.y << ", " << sample.dir.z << endl;
-	//float3 temp = sample.dir;
+	//cout << sample.idx << ": " << sample.dir.x << ", " << sample.dir.y << ", " << sample.dir.z << endl;
+	float3 temp = sample.dir;
 	float3 v1 = r.hitNormal;
-	float3 v2 = float3(0, 0, 1);
+	float3 v2 = float3(1, 0, 0);
 	//float3 normal = float3(-1, 0, 0);
 	//sample.dir = float3(-1, 0, 0);
-	//float3 newDir = RotateVector(float3(1, 0, 0), float3(0, 1, 0), (-1, 0, 0));
+	//float3 newDir = RotateVector(sample.dir,v1,v2);
 	//float angleX = acos(dot(float3(0, 1, 0), float3(0, normal.y, normal.z)) / length(float3(0, normal.y, normal.z)));
 	//float angleZ = acos(dot(float3(0, 1, 0), float3(normal.x, normal.y, 0)) / length(float3(normal.x, normal.y, 0)));
 	//float angleY = acos(dot(float3(0, 0, 0), float3(normal.x,0, normal.z)) / length(float3(0, normal.y, normal.z)));
 	
 	//mat4 rot = mat4::RotateX(angleX) * mat4::RotateY(angleY) * mat4::RotateZ(angleZ);
-	float angleX = computeAngle(float3(0, v1.y, v1.z), float3(0, v2.y, v2.z));
-	if (v1.y * v2.z - v1.z * v2.y < 0) angleX = -angleX;
-	//float angleZ = computeAngle(float3(v1.x, v1.y, 0), float3(v2.x, v2.y, 0));
-	//if (v1.x * v2.y - v1.y * v2.x < 0) angleZ = -angleZ;
-	float angleY = computeAngle(float3(v1.x, 0,v1.z), TransformVector(float3(v2.x, 0, v2.z), mat4::RotateX(angleX)));
+	//float angleX = computeAngle(float3(0, v1.y, v1.z), float3(0, v2.y, v2.z));
+	//if (v1.y * v2.z - v1.z * v2.y < 0) angleX = -angleX;
+	float angleZ = computeAngle(float3(v1.x, v1.y, 0), float3(v2.x, v2.y, 0));
+	if (v1.x * v2.y - v1.y * v2.x < 0) angleZ = -angleZ;
+	float angleY = computeAngle(float3(v1.x, 0,v1.z), float3(v2.x, 0, v2.z));
 	if (v1.x * v2.z - v1.z * v2.x < 0) angleY = -angleY;
 
-	sample.dir = TransformVector(sample.dir, mat4::RotateX(angleX) * mat4::RotateY(angleY)); //* mat4::RotateY(angleY));
+	sample.dir = TransformVector(sample.dir, mat4::RotateY(angleY) * mat4::RotateZ(angleZ)); //* mat4::RotateY(angleY));
 	qTable->nextDir = sample.dir;
+
+	//cout << angleZ << ", " << computeAngle(float3(temp.x, temp.y, 0), float3(sample.dir.x, sample.dir.y, 0)) << endl;
+	//cout << dot(r.hitNormal, sample.dir) << endl;
+	//sample.dir = newDir;
 	//cout << sample.dir()
 	//sample.dir = RotateVector(sample.dir, float3(0, 1, 0), r.hitNormal);
 	//sample.dir = TransformVector(sample.dir, rot);
@@ -159,6 +172,7 @@ HemisphereSampling::Sample Renderer::SampleDirection(const Ray& r) {
 	//cout << length(sample.dir) << endl;
 	//if(dot(sample.dir, temp) == 1) cout << "HE" << endl;
 	//sample.dir =sample.dir[0] * right + sample.dir[1] *  0.f + sample.dir[2] * (-n);
+	//if (r.hitNormal.x == 1 && (sample.dir.x > 0 || sample.dir.y > 0 || sample.dir.z > 0)) cout << sample.dir.x << ", " << sample.dir.y << ", " << sample.dir.z << endl;
 	return sample;
 }
 
@@ -379,7 +393,7 @@ void Renderer::Tick(float deltaTime)
 	if (scene.runTime > 20 && !scene.exported) {
 		scene.ExportData();
 	}						  
-	if (scene.runTime > 300) {
+	if (scene.runTime > qTable->GetLearningPhaseTime()) {
 		qTable->trainingPhase = false;
 	}
 	printf( "%5.2fms (%.1ffps) - %.1fMrays/s %.1fCameraSpeed\n", avg, fps, rps / 1000000, camera.speed );

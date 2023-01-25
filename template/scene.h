@@ -316,7 +316,8 @@ namespace Tmpl8 {
 					ray.SetNormal(N);
 			}
 		}
-		bool IsOccluding(Ray& ray, float t_min) const {		 //scratchapixel implementation
+		bool IsOccluding(Ray& ray, float t_min) const {	
+			if (mat->type == DEBUG) return false;//scratchapixel implementation
 			float NdotRayDir = dot(N, ray.D);
 			if (fabs(NdotRayDir) < t_min) return false;
 			float d = -dot(N, v0);
@@ -801,6 +802,7 @@ namespace Tmpl8 {
 			myFile.close();
 		}
 
+#pragma region "Scene Instantiations"
 		void instantiatePrettyScene1() {
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 			lights.push_back(new AreaLight(11, float3(0.1f, 4.0f, 5.0f), 8.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
@@ -1197,6 +1199,9 @@ namespace Tmpl8 {
 			meshes.push_back(Mesh(2, "Resources/christ.obj", yellowMetal, float3(0, -0.5f, 6.2f), 0.3f));
 
 		}
+
+#pragma endregion
+
 		void SetTime(float t)
 		{
 			// default time for the scene is simply 0. Updating/ the time per frame 
@@ -1346,7 +1351,7 @@ namespace Tmpl8 {
 			if (-normal.x < 0) angleZ = -angleZ;
 			//cout << angleX << endl;
 			//cout << angleZ << endl;
-			Mesh debugP = Mesh(1, "Resources/rldebug.obj", new debug(gradient[39] / 255), pos, 1, mat4::RotateX(angleX) * mat4::RotateZ(angleZ));
+			Mesh debugP = Mesh(1, "Resources/rldebug.obj", new debug(gradient[39] / 255), pos, 1, mat4::RotateX(angleX) * mat4::RotateZ(angleZ) * mat4::Scale(0.5f));
 
 			meshes.push_back(debugP);
 			debugMeshes.insert({ idx, meshes.size()-1 });
