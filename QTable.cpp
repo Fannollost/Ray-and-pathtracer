@@ -83,8 +83,9 @@ float QTable::ApproxIntegral(const int idx, const float3& w, const Ray& ray, flo
 }
 
 
-QTable* QTable::parseQTable(string path) {
-	QTable* res = new QTable(8, 5, 0.25f, float3(0, 0, 0), 5, 0.2f);
+void QTable::parseQTable(string path, Scene& s) {
+	trainingPhase = false;
+	tempBounces = maxBounces;
 	string line;
 	ifstream file(path, ios::in);
 	while (getline(file, line)) {
@@ -92,25 +93,27 @@ QTable* QTable::parseQTable(string path) {
 		float px, py, pz, nx, ny, nz;
 		const char* constL = line.c_str();
 		sscanf(constL, "%i/%f/%f/%f/%f/%f/%f", &idx, &px, &py, &pz, &nx, &ny, &nz);
-		Tmpl8::KDTree::Node* node = kdTree->insert(kdTree->rootNode, float3(px, py, pz), float3(nx, ny, nz));
+		kdTree->insert(kdTree->rootNode, float3(px, py, pz), float3(nx, ny, nz), idx);
+		s.instantiateDebugPoint(float3(px, py, pz), float3(nx, ny, nz), kdTree->lastInsertedIdx);
 		for (int i = 0; i < 40; i++) {
-			auto& r = res->table.insert({ idx, HemisphereMapping(explorationRate) });
+			auto& r = table.insert({ idx, HemisphereMapping(explorationRate) });
 			float val;
 			getline(file, line);
 			const char* constL = line.c_str();
 			sscanf(constL, "%f", &val);
-			res->table.at(node->idx).updateByIndex(i, val);
-		}
-		
-		
+			table.at(kdTree->lastInsertedIdx).updateByIndex(i, val);
+			s.updateQDebug(kdTree->lastInsertedIdx, i, val);
+		}		
 	}
-	return res;
+	s.rebuildBVH();
+	return;
 }
 
 
 
 void QTable::writeQTable(string exportFile, KDTree::Node* node) {
-	std::ofstream myFile(exportFile);
+	std::ofstream myFile;
+	myFile.open(exportFile, std::ios_base::app);
 
 	if (node == NULL) return;
 
@@ -118,10 +121,15 @@ void QTable::writeQTable(string exportFile, KDTree::Node* node) {
 	for (int i = 0; i < 40; i++) {
 		myFile << table.at(node->idx).getValue(i) << "\n";
 	}
+	myFile.close();
 	writeQTable(exportFile, node->left);
 	writeQTable(exportFile, node->right);
 }
 
-void QTable::ToString(string exportFile) {
+void QTable::exportQTable(string exportFile) {
+	std::ofstream myFile;
+	myFile.open(exportFile, std::ios_base::trunc);
+	myFile.close();
+	
 	writeQTable(exportFile, kdTree->rootNode);
 }

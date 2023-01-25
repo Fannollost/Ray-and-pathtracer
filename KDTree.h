@@ -8,6 +8,7 @@ public:
     const int k = 3;
     float smallestDist = 1e30f;
     int count = 0;
+    int lastInsertedIdx = -1;
     // A structure to represent node of kd tree
     struct Node
     {
@@ -20,7 +21,7 @@ public:
     Node* rootNode = nullptr;
     Node* nearestNode = nullptr;
     // A method to create a node of K D tree
-    struct Node* newNode(float3 arr, float3 normal)
+    struct Node* newNode(float3 arr, float3 normal, int idx)
     {
         struct Node* temp = new Node;
 
@@ -28,7 +29,9 @@ public:
             temp->point[i] = arr[i];
 
         temp->left = temp->right = NULL;
-        temp->idx = count;
+        if (idx < 0) temp->idx = count;
+        else temp->idx = idx;
+        lastInsertedIdx = temp->idx;
         temp->normal = normal;
         count++;
         return temp;
@@ -36,11 +39,11 @@ public:
 
     // Inserts a new node and returns root of modified tree
     // The parameter depth is used to decide axis of comparison
-    Node* insertRec(Node* root, float3 point, float3 normal, unsigned depth)
+    Node* insertRec(Node* root, float3 point, float3 normal, unsigned depth, int idx)
     {
         // Tree is empty?
         if (root == NULL){
-            Node* temp = newNode(point, normal);
+            Node* temp = newNode(point, normal, idx);
             if (rootNode == nullptr) rootNode = temp;
             return temp;
         }
@@ -51,9 +54,9 @@ public:
         // Compare the new point with root on current dimension 'cd'
         // and decide the left or right subtree
         if (point[cd] < (root->point[cd]))
-            root->left = insertRec(root->left, point, normal, depth + 1);
+            root->left = insertRec(root->left, point, normal, depth + 1, idx);
         else
-            root->right = insertRec(root->right, point, normal, depth + 1);
+            root->right = insertRec(root->right, point, normal, depth + 1, idx);
 
         return root;
     }
@@ -61,9 +64,9 @@ public:
     // Function to insert a new point with given point in
     // KD Tree and return new root. It mainly uses above recursive
     // function "insertRec()"
-    Node* insert(Node* root, float3 point, float3 normal)
+    Node* insert(Node* root, float3 point, float3 normal, int idx = -1)
     {
-        insertRec(root, point, normal, 0);
+        insertRec(root, point, normal, 0, idx);
         return rootNode;
     }
 
@@ -141,7 +144,7 @@ public:
     }
 
     static string ToString(Node* node) {
-        return node->idx + "/" + to_string(node->point.x) + "/" + to_string(node->point.y) + "/" + to_string(node->point.z) + "/" + to_string(node->normal.x) + "/" + to_string(node->normal.y) + "/" + to_string(node->normal.z);
+        return to_string(node->idx) + "/" + to_string(node->point.x) + "/" + to_string(node->point.y) + "/" + to_string(node->point.z) + "/" + to_string(node->normal.x) + "/" + to_string(node->normal.y) + "/" + to_string(node->normal.z);
     }
 
 };

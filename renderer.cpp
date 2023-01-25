@@ -7,7 +7,16 @@ void Renderer::Init()
 	// create fp32 rgb pixel buffer to render to
 	accumulator = (float4*)MALLOC64( SCRWIDTH * SCRHEIGHT * 16 );
 	memset( accumulator, 0, SCRWIDTH * SCRHEIGHT * 16 );
-	qTable->GeneratePoints(scene);
+	ifstream f( (scene.sceneName + ".qtable").c_str() );
+	if (f.good()) {
+		qTable->parseQTable(scene.sceneName + ".qtable", scene);
+		learningEnabled = false;
+		cout << "Parsing qTable\n";
+	}
+	else {
+		qTable->GeneratePoints(scene);
+		cout << "Generating qTable\n";
+	}
 }
 
 enum MAT_TYPE {
@@ -143,8 +152,7 @@ HemisphereSampling::Sample Renderer::SampleDirection(const Ray& r) {
 	//cout << sample.idx << ": " << sample.dir.x << ", " << sample.dir.y << ", " << sample.dir.z << endl;
 	float3 temp = sample.dir;
 	float3 v1 = r.hitNormal;
-	float3 v2 = float3(0, 0, 1);
-
+	float3 v2 = float3(0, 1, 0);
 	//float3 normal = float3(-1, 0, 0);
 	//sample.dir = float3(-1, 0, 0);
 	//float3 newDir = RotateVector(sample.dir,v1,v2);
@@ -244,9 +252,11 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 			}
 
 			Timer t;
-			if (learningEnabled && qTable->trainingPhase && sampleIdx >= 0)
+			if (learningEnabled && qTable->trainingPhase && sampleIdx >= 0) {
 				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, directLightning,
 					ray, m->albedo * INVPI, scene);
+			}
+				
 
 			float3 indirectLightning = 0;
 			int N = 1;
@@ -411,7 +421,8 @@ void Renderer::Tick(float deltaTime)
 	}						  
 	if (scene.runTime > qTable->GetLearningPhaseTime() & qTable->trainingPhase) {
 		qTable->trainingPhase = false;
-		cout << "--------TRAINING PHASE ENDED!----------" << endl;
+		qTable->exportQTable(scene.sceneName + ".qtable");
+		cout << "Learning phase ended\n";
 	}
 
 	printf( "%5.2fms (%.1ffps) - %.1fMrays/s %.1fCameraSpeed\n", avg, fps, rps / 1000000, camera.speed );

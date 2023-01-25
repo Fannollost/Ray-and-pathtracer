@@ -316,8 +316,8 @@ namespace Tmpl8 {
 					ray.SetNormal(N);
 			}
 		}
-		bool IsOccluding(Ray& ray, float t_min) const {	
-			if (mat->type == DEBUG) return false;//scratchapixel implementation
+		bool IsOccluding(Ray& ray, float t_min) const {		 //scratchapixel implementation
+			if (mat->type == DEBUG) return false;
 			float NdotRayDir = dot(N, ray.D);
 			if (fabs(NdotRayDir) < t_min) return false;
 			float d = -dot(N, v0);
@@ -804,6 +804,7 @@ namespace Tmpl8 {
 
 #pragma region "Scene Instantiations"
 		void instantiatePrettyScene1() {
+			sceneName = "PrettyScene1";
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 			lights.push_back(new AreaLight(11, float3(0.1f, 4.0f, 5.0f), 8.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
 			lights.push_back(new AreaLight(12, float3(0.1f, 4.0f, 3.0f), 10.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
@@ -832,6 +833,7 @@ namespace Tmpl8 {
 		}
 
 		void instantiatePrettyAnimationScene() {
+			sceneName = "PrettyAnimationScene";
 			//Loading sky texture
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.2f, 0.8f, 1, raytracer);
@@ -860,6 +862,7 @@ namespace Tmpl8 {
 			meshes.push_back(Mesh(2, "Resources/BigB.obj", redDiff, float3(-2, 1.0f, 0), 4.0f));
 		}
 		void instantiateEifelScene() {
+			sceneName = "BigBScene";
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 			diffuse* lightDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 1200, raytracer, 1.2f);
 			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.6f, 0.4f, 2, raytracer);
@@ -870,6 +873,7 @@ namespace Tmpl8 {
 		}
 
 		void instantiateBigBScene() {
+			sceneName = "BigBScene";
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 			diffuse* lightDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 1200, raytracer, 1.2f);
 			planes.push_back(Plane(2, lightDiff, float3(0, 1, 0), 1));			// 2: floor
@@ -881,6 +885,7 @@ namespace Tmpl8 {
 		}
 
 		void instantiateChristScene() {
+			sceneName = "ChristCcene";
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 			diffuse* lightDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 1200, raytracer, 1.2f);
 			planes.push_back(Plane(2, lightDiff, float3(0, 1, 0), 1));			// 2: floor
@@ -964,6 +969,7 @@ namespace Tmpl8 {
 		}
 
 		void instantiateScene1() {
+			sceneName = "scene1";
 			defaultAnim = false;
 			animOn = raytracer && defaultAnim;
 			//Loading sky texture
@@ -996,7 +1002,7 @@ namespace Tmpl8 {
 		}
 
 		void instantiateScene2() {
-
+			sceneName = "scene2";
 			//Loading sky texture
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.2f, 0.8f, 1, raytracer);
@@ -1035,7 +1041,7 @@ namespace Tmpl8 {
 		}
 
 		void instantiateScene3() {
-
+			sceneName = "scene3";
 			//Loading sky texture
 			skydome = stbi_load("Resources/night.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 
@@ -1084,7 +1090,7 @@ namespace Tmpl8 {
 		}
 
 		void instantiateScene4() {
-
+			sceneName = "scene4";
 			//Loading sky texture
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 
@@ -1107,7 +1113,7 @@ namespace Tmpl8 {
 		}
 
 		void instantiateScene5() {
-
+			sceneName = "scene5";
 			//Loading sky texture
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 			diffuse* goldDiff = new diffuse(float3(0.8f), gold, 0.6f, 0.4f, 30, raytracer);
@@ -1123,6 +1129,7 @@ namespace Tmpl8 {
 		}
 
 		void instantiateScene6() {
+			sceneName = "scene6";
 			metal* goldMetal = new metal(0.7f, white, raytracer);
 			glass* standardGlass = new glass(1.5f, white, float3(0.00f), 0.0f, 0, raytracer);
 
@@ -1162,6 +1169,7 @@ namespace Tmpl8 {
 		}
 
 		void instantiateScene7() {
+			sceneName = "scene7";
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 			diffuse* whiteDiff = new diffuse(0.8f, white, 0.0f, 1.0f, 4, raytracer);
 			planes.push_back(Plane(0, whiteDiff, float3(0, 1, 0), 1));			// 0: floor
@@ -1190,6 +1198,7 @@ namespace Tmpl8 {
 		}
 
 		void instantiateScene8() {
+			sceneName = "scene8";
 			//Loading sky texture
 			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
 			metal* redMetal = new metal(0.7f, red, raytracer);
@@ -1396,6 +1405,7 @@ namespace Tmpl8 {
 			"Max Tree Depth", "Average FPS", "BVH Build time"};
 
 		unsigned char* skydome;
+		string sceneName;
 		float runTime = 0;
 		bool exported = false;
 		bvh* b; tlas* tl; bvhInstance* bvhList; 
