@@ -36,6 +36,7 @@ void QTable::Bounce(Scene& s, Ray& emitted) {
 			if (nearestNode == nullptr) weight = 1; else weight = dot(emitted.hitNormal, nearestNode->normal);
 			if (d >= rejectRadius * weight) {
 				KDTree::Node* node = kdTree->insert(kdTree->rootNode, emitted.IntersectionPoint(), emitted.hitNormal);
+				table.insert({ kdTree->lastInsertedIdx,HemisphereMapping(explorationRate) });
 				s.instantiateDebugPoint(emitted.IntersectionPoint(), emitted.hitNormal, kdTree->count-1);
 			}
 		}

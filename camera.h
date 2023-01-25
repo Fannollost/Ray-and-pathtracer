@@ -4,7 +4,7 @@
 #define SCRWIDTH	200//1280
 #define SCRHEIGHT	100//720
 // #define FULLSCREEN
-
+#define DOUBLESIZE
 namespace Tmpl8 {
 
 class Camera
