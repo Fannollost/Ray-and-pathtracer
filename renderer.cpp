@@ -164,15 +164,15 @@ HemisphereSampling::Sample Renderer::SampleDirection(const Ray& r) {
 	//float angleZ = computeAngle(float3(v1.x, v1.y, 0), float3(v2.x, v2.y, 0));
 	//if (v1.x * v2.y - v1.y * v2.x < 0) angleZ = -angleZ;
 	//if (dot(v1, v2) == -1) sample.dir = float3(-sample.dir.x, sample.dir.y, -sample.dir.z);
-	if (dot(v1, v2) == -1) sample.dir = float3(-sample.dir.x, sample.dir.y, -sample.dir.z);
+	if (dot(v1, v2) == -1) sample.dir = float3(sample.dir.x, -sample.dir.y, -sample.dir.z);
 	else if (dot(v1, v2) == 0) {
-		if (v1.y == v2.y) {
-			if (v1.x == 1) sample.dir = float3(sample.dir.z, sample.dir.y, -sample.dir.x);
-			else if (v1.x == -1) sample.dir = float3(-sample.dir.z, sample.dir.y, sample.dir.x);
+		if (v1.z == v2.z) {
+			if (v1.x == 1) sample.dir = float3(sample.dir.y, -sample.dir.x, sample.dir.z);
+			else if (v1.x == -1) sample.dir = float3(-sample.dir.y, sample.dir.x, sample.dir.z);
 		}
 		else if (v1.x == v2.x) {
-			if (v1.y == 1) sample.dir = float3(sample.dir.x, sample.dir.z, -sample.dir.y);
-			else if (v1.y == -1) sample.dir = float3(sample.dir.x, -sample.dir.z, sample.dir.y);
+			if (v1.z == 1) sample.dir = float3(sample.dir.x, -sample.dir.z, sample.dir.y);
+			else if (v1.z == -1) sample.dir = float3(sample.dir.x, sample.dir.z, -sample.dir.y);
 		}
 	}
 	else{
