@@ -129,8 +129,9 @@ void QTable::writeQTable(string exportFile, KDTree::Node* node) {
 
 void QTable::exportQTable(string exportFile) {
 	std::ofstream myFile;
-	myFile.open(exportFile, std::ios_base::trunc);
+	string sceneTrainingPath = exportFile;
+	myFile.open(sceneTrainingPath, std::ios_base::trunc);
 	myFile.close();
 	
-	writeQTable(exportFile, kdTree->rootNode);
+	writeQTable(sceneTrainingPath, kdTree->rootNode);
 }

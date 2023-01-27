@@ -7,9 +7,9 @@ void Renderer::Init()
 	// create fp32 rgb pixel buffer to render to
 	accumulator = (float4*)MALLOC64( SCRWIDTH * SCRHEIGHT * 16 );
 	memset( accumulator, 0, SCRWIDTH * SCRHEIGHT * 16 );
-	ifstream f( (scene.sceneName + ".qtable").c_str() );
+	ifstream f( (scene.sceneName + "-" + to_string(qTable->GetLearningPhaseTime() / 10) + ".qtable").c_str() );
 	if (f.good()) {
-		qTable->parseQTable(scene.sceneName + ".qtable", scene);
+		qTable->parseQTable(scene.sceneName + "-" + to_string(qTable->GetLearningPhaseTime() / 10) + ".qtable", scene);
 		learningEnabled = false;
 		cout << "Parsing qTable\n";
 	}
@@ -383,7 +383,7 @@ void Renderer::Tick(float deltaTime)
 	}						  
 	if (scene.runTime > qTable->GetLearningPhaseTime() & qTable->trainingPhase) {
 		qTable->trainingPhase = false;
-		qTable->exportQTable(scene.sceneName + ".qtable");
+		qTable->exportQTable(scene.sceneName + "-" + to_string(qTable->GetLearningPhaseTime() / 10) + ".qtable");
 		cout << "Learning phase ended\n";
 	}
 
