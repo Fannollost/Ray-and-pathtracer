@@ -80,7 +80,6 @@ float3 HemisphereMapping::mapIndexToDirection(int dirIdx) const {
 
 	float sqr1 = sqrt(r1);
 	float3 res = normalize((1 - sqr1) * v0 + (sqr1 * (1 - r2)) * v1 + (sqr1 * r2) * v2);
-	if (res.y < 0) cout << dirIdx << " : " << res.x << ", " << res.y << ", " << res.z << endl;
 	return res;
 }
 

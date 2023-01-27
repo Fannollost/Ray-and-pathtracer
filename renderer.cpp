@@ -136,34 +136,16 @@ float3 Renderer::Trace(Ray& ray, int depth, float3 energy)
 
 HemisphereSampling::Sample Renderer::SampleDirection(const Ray& r) {
 	HemisphereSampling::Sample sample;
-	//qTable->kdTree->findNearest(qTable->kdTree->rootNode, r.IntersectionPoint(), 0);
+
 	float a = qTable->kdTree->getNearestDist(qTable->kdTree->rootNode, r.IntersectionPoint(), 0);
 	int idx = qTable->kdTree->nearestNode->idx;
-	/*if (a > 2) {
-		cout << "neighbour: " << qTable->kdTree->nearestNode->point.x
-			<< ", " << qTable->kdTree->nearestNode->point.y
-			<< ", " << qTable->kdTree->nearestNode->point.x << " for point "
-			 << r.IntersectionPoint().x
-			<< ", " << r.IntersectionPoint().y
-			<< ", " << r.IntersectionPoint().z << endl;
 
-	}*/
 	qTable->SampleDirection(idx, sample);
-	//cout << sample.idx << ": " << sample.dir.x << ", " << sample.dir.y << ", " << sample.dir.z << endl;
+
 	float3 temp = sample.dir;
 	float3 v1 = r.hitNormal;
 	float3 v2 = float3(0, 1, 0);
-	//float3 normal = float3(-1, 0, 0);
-	//sample.dir = float3(-1, 0, 0);
-	//float3 newDir = RotateVector(sample.dir,v1,v2);
-	//float angleX = acos(dot(float3(0, 1, 0), float3(0, normal.y, normal.z)) / length(float3(0, normal.y, normal.z)));
-	//float angleZ = acos(dot(float3(0, 1, 0), float3(normal.x, normal.y, 0)) / length(float3(normal.x, normal.y, 0)));
-	//float angleY = acos(dot(float3(0, 0, 0), float3(normal.x,0, normal.z)) / length(float3(0, normal.y, normal.z)));
-	
-	//mat4 rot = mat4::RotateX(angleX) * mat4::RotateY(angleY) * mat4::RotateZ(angleZ);
-	//float angleZ = computeAngle(float3(v1.x, v1.y, 0), float3(v2.x, v2.y, 0));
-	//if (v1.x * v2.y - v1.y * v2.x < 0) angleZ = -angleZ;
-	//if (dot(v1, v2) == -1) sample.dir = float3(-sample.dir.x, sample.dir.y, -sample.dir.z);
+
 	if (dot(v1, v2) == -1) sample.dir = float3(sample.dir.x, -sample.dir.y, -sample.dir.z);
 	else if (dot(v1, v2) == 0) {
 		if (v1.z == v2.z) {
@@ -181,22 +163,10 @@ HemisphereSampling::Sample Renderer::SampleDirection(const Ray& r) {
 		float angleY = computeAngle(float3(v1.x, 0,v1.z), float3(v2.x, 0, v2.z));
 		if (v1.x * v2.z - v1.z * v2.x < 0) angleY = -angleY;
 
-		sample.dir = TransformVector(sample.dir, mat4::RotateX(angleX) * mat4::RotateY(angleY)); //* mat4::RotateY(angleY));
+		sample.dir = TransformVector(sample.dir, mat4::RotateX(angleX) * mat4::RotateY(angleY));
 	}
 	qTable->nextDir = sample.dir;
-	//if(r.objIdx == 1) cout << sample.dir.x << ", " << sample.dir.y << ", " << sample.dir.z << endl;
 
-//	cout << angleX << ", " << computeAngle(float3(0, temp.y, temp.z), float3(0, sample.dir.y, temp.z)) << endl;
-	//cout << dot(r.hitNormal, sample.dir) << endl;
-	//sample.dir = newDir;
-	//cout << sample.dir()
-	//sample.dir = RotateVector(sample.dir, float3(0, 1, 0), r.hitNormal);
-	//sample.dir = TransformVector(sample.dir, rot);
-	//float3 n = -normalize(r.hitNormal);
-	//cout << length(sample.dir) << endl;
-	//if(dot(sample.dir, temp) == 1) cout << "HE" << endl;
-	//sample.dir =sample.dir[0] * right + sample.dir[1] *  0.f + sample.dir[2] * (-n);
-	//if (r.hitNormal.x == 1 && (sample.dir.x > 0 || sample.dir.y > 0 || sample.dir.z > 0)) cout << sample.dir.x << ", " << sample.dir.y << ", " << sample.dir.z << endl;
 	return sample;
 }
 
@@ -208,7 +178,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 	scene.FindNearest(ray, t_min);
 
 	if (ray.objIdx == -1) return scene.GetSkyColor(ray);
-	if (ray.objIdx >= 11 && ray.objIdx < 11 + size(scene.lights)) { //check if its first bounce! If so, give light a color, if not return 0?
+	if (ray.objIdx >= 11 && ray.objIdx < 11 + size(scene.lights)) {
 		return scene.lights[ray.objIdx - 11]->GetLightIntensityAt(ray.IntersectionPoint(), ray.hitNormal, ray.IntersectionPoint());
 	}
 	//return float3(0);
@@ -244,20 +214,8 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 				((diffuse*)m)->scatter(ray, attenuation, scattered, lightRayDirection,
 					scene.lights[i]->GetLightIntensityAt(ray.IntersectionPoint(), normal, pickedPos), normal, energy);
 				
-
-				//if (((diffuse*)m)->shinieness != 0)
-				//	directLightning += ((diffuse*)m)->shinieness * m->col * Sample(Ray(ray.IntersectionPoint(), reflect(ray.D, ray.hitNormal), ray.color), depth - 1, energy);
-
 				directLightning += (1 - ((diffuse*)m)->shinieness) * m->col * attenuation;
 			}
-
-			Timer t;
-			if (learningEnabled && qTable->trainingPhase && sampleIdx >= 0) {
-				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, directLightning,
-					ray, m->albedo * INVPI, scene);
-			}
-				
-
 			float3 indirectLightning = 0;
 			int N = 1;
 			float BRDF = 1 * INV2PI;
@@ -283,8 +241,12 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 					depth - 1, energy, samIdx) * INV2PI;
 			}
 
+			if (learningEnabled && qTable->trainingPhase && sampleIdx >= 0) {
+				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, directLightning + indirectLightning,
+					ray, m->albedo * INV2PI, scene);	
+			}
 			indirectLightning /= (float)N;
-			totCol = directLightning + fminf(indirectLightning ,1.0f);
+			totCol = directLightning + 2 * indirectLightning; //fminf(indirectLightning ,1.0f);
 			break;
 		}
 		case METAL:{

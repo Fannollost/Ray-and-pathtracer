@@ -1011,9 +1011,10 @@ namespace Tmpl8 {
 			glass* standardGlass = new glass(1.5f, white, float3(0.00f), 0.0f, 0, raytracer);
 			diffuse* specularDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 2, raytracer, 0);
 			diffuse* lightDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 1200, raytracer, 1.2f);
-			diffuse* greenDiff = new diffuse(float3(0.8f), green, 0.6f, 0.4f, 2, raytracer);
+			diffuse* greenDiff = new diffuse(float3(0.8f), green, 0.2f, 0.8f, 2, raytracer);
 			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.2f, 0.8f, 4, raytracer);
 			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.6f, 0.4f, 2, raytracer);
+			diffuse* darkMaterial = new diffuse(float3(0.05f), float3(0.01,0.01,0.01) , 0.2f, 0.8f, 2, raytracer);
 			diffuse* specReflDiff = new diffuse(float3(0.7f), white, 0.6f, 0.4f, 50, raytracer, 0.0f);
 			metal* standardMetal = new metal(0.7f, white, raytracer);
 			lights.push_back(new AreaLight(11, float3(0.1f, 1.95f, 1.5f), 4.0f, white, 1.0f, float3(0, -1, 0), 4, raytracer));
@@ -1031,7 +1032,7 @@ namespace Tmpl8 {
 			if (animOn) cubes.push_back(Cube(9, blueDiff, float3(0), float3(1.15f)));		// 3: spinning cube			
 			else cubes.push_back(Cube(9, standardGlass, float3(1.2f, -0.5f, 2.5f), float3(1)));
 			meshes.push_back(Mesh(10, "Resources/ico.obj", greenDiff, float3(0.1f, -0.6f, 1.5f), 0.5f));
-			meshes.push_back(Mesh(13, "Resources/plane.obj", greenDiff, float3(0.0f, 1.5f, 1.5f), 1.5f));
+			meshes.push_back(Mesh(13, "Resources/plane.obj", darkMaterial, float3(0.0f, 1.5f, 1.5f), 1.5f));
 
 		}
 
