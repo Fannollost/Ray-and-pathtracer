@@ -186,6 +186,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 	}
 	if (ray.objIdx >= 11 && ray.objIdx < 11 + size(scene.lights)) {
 		scene.AddRayBounces(maxRayDepth - depth);
+		scene.AddConnectedRay();
 		return scene.lights[ray.objIdx - 11]->GetLightIntensityAt(ray.IntersectionPoint(), ray.hitNormal, ray.IntersectionPoint());
 	}
 	//return float3(0);
@@ -375,7 +376,10 @@ void Renderer::Tick(float deltaTime)
 	}
 
 	cout << "average bounces: " << ((float)scene.GetTotalRayBounces() / (SCRHEIGHT * SCRWIDTH)) << endl;
-	scene.totRayBounces = 0;
+	scene.totRayBounces = 0; 
+
+	cout << "Total Connected Rays: " << scene.GetTotalConnectedRays() << endl;
+	scene.totNonTerminatedRays = 0;
 	
 	if (!scene.raytracer && !camera.GetChange() && !qTable->trainingPhase)
 		scene.SetIterationNumber(it + 1);

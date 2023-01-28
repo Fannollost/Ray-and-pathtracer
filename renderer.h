@@ -99,7 +99,7 @@ namespace Tmpl8
 		int2 mousePos;
 		bool mousePressed = false;
 		bool learningEnabled = false;
-		int maxRayDepth = 10;
+		int maxRayDepth = 5;
 		float4* accumulator;
 		Scene scene;
 		Camera camera;
