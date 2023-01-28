@@ -10,7 +10,7 @@ void Renderer::Init()
 	ifstream f( (scene.sceneName + "-" + to_string(qTable->GetLearningPhaseTime() / 10) + ".qtable").c_str() );
 	if (f.good()) {
 		qTable->parseQTable(scene.sceneName + "-" + to_string(qTable->GetLearningPhaseTime() / 10) + ".qtable", scene);
-		learningEnabled = false;
+		qTable ->trainingPhase = false;
 		cout << "Parsing qTable\n";
 	}
 	else {
@@ -171,14 +171,21 @@ HemisphereSampling::Sample Renderer::SampleDirection(const Ray& r) {
 }
 
 float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx = -1) {
-	if (depth < 0) return float3(0);//float3(0.05f);
+	if (depth < 0) {
+		scene.AddRayBounces(maxRayDepth);
+		return float3(0);
+	}//float3(0.05f);
 	float3 totCol = 0;
 	float t_min = 0.001f;
 	float eps = 0.0001f;
 	scene.FindNearest(ray, t_min);
 
-	if (ray.objIdx == -1) return scene.GetSkyColor(ray);
+	if (ray.objIdx == -1) { 
+		scene.AddRayBounces(maxRayDepth - depth);
+		return scene.GetSkyColor(ray); 
+	}
 	if (ray.objIdx >= 11 && ray.objIdx < 11 + size(scene.lights)) {
+		scene.AddRayBounces(maxRayDepth - depth);
 		return scene.lights[ray.objIdx - 11]->GetLightIntensityAt(ray.IntersectionPoint(), ray.hitNormal, ray.IntersectionPoint());
 	}
 	//return float3(0);
@@ -186,7 +193,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 	float3 normal = ray.hitNormal;
 	material* m = ray.GetMaterial();
 	float3 f = m->col;
-	if (scene.raytracer) {
+	/*if (scene.raytracer) {
 		double p = f.x > f.y && f.x > f.z ? f.x : f.y > f.z ? f.y : f.z;
 		if (depth < 5 || !p) {
 			if (RandomFloat() < p) {
@@ -196,7 +203,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 				return totCol;
 			}
 		}
-	}
+	}*/
 	float3 attenuation;
 	switch (m->type)
 	{
@@ -246,7 +253,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 					ray, m->albedo * INV2PI, scene);	
 			}
 			indirectLightning /= (float)N;
-			totCol = directLightning + 2 * indirectLightning; //fminf(indirectLightning ,1.0f);
+			totCol = directLightning + indirectLightning; //fminf(indirectLightning ,1.0f);
 			break;
 		}
 		case METAL:{
@@ -349,8 +356,8 @@ void Renderer::Tick(float deltaTime)
 					}
 					float newX = x + (RandomFloat() * 2 - 1);
 					float newY = y + (RandomFloat() * 2 - 1);
-					totCol += Sample(camera.GetPrimaryRay(newX, newY),10, float3(1));
-					if(!qTable->trainingPhase) {
+					totCol += Sample(camera.GetPrimaryRay(newX, newY),maxRayDepth, float3(1));
+					if(!qTable->trainingPhase || !learningEnabled) {
 						energy += (totCol.x + totCol.y + totCol.z);
 						accumulator[x + y * SCRWIDTH] += totCol;
 					}
@@ -367,6 +374,8 @@ void Renderer::Tick(float deltaTime)
 		}
 	}
 
+	cout << "average bounces: " << ((float)scene.GetTotalRayBounces() / (SCRHEIGHT * SCRWIDTH)) << endl;
+	scene.totRayBounces = 0;
 	
 	if (!scene.raytracer && !camera.GetChange() && !qTable->trainingPhase)
 		scene.SetIterationNumber(it + 1);

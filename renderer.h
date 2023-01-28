@@ -98,12 +98,13 @@ namespace Tmpl8
 		// data members
 		int2 mousePos;
 		bool mousePressed = false;
-		bool learningEnabled = true;
+		bool learningEnabled = false;
+		int maxRayDepth = 10;
 		float4* accumulator;
 		Scene scene;
 		Camera camera;
 		float2 xBox = float2(-1, 1), yBox = float2(-1, 1), zBox = float2(-1, 1);	//makeboudningbox
-		QTable* qTable = new QTable(8,5,0.25f, float3(0,1,1), 5, 0.15f);
+		QTable* qTable = new QTable(8,5,0.25f, float3(0,1,1), 7, 0.15f);
 		bool majPressed = false;
 		enum UserInput {
 			KEYBOARD_B = 66,

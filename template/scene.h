@@ -1423,6 +1423,9 @@ namespace Tmpl8 {
 
 		void SetFPS(float fps) { totalFrames += fps; }
 
+		void AddRayBounces(int bouncesDone) { totRayBounces += bouncesDone; }
+		int GetTotalRayBounces() { return totRayBounces; }
+
 		void toogleRaytracer() {
 			raytracer = !raytracer;
 			SetIterationNumber(1);
@@ -1457,6 +1460,7 @@ namespace Tmpl8 {
 		int invAaSamples = 1 / aaSamples;
 		int iterationNumber = 1;
 		int totIterationNumber = 0;
+		int totRayBounces = 0;
 		float totalFrames;
 		bool raytracer = true;
 		float mediumIr = 1.0f;
