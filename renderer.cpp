@@ -255,8 +255,8 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 			indirectLightning /= (float)N;
 			totCol = (directLightning * INVPI + fminf(indirectLightning ,1.0f));
 			if (learningEnabled && qTable->trainingPhase && sampleIdx >= 0) {
-				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, directLightning * INVPI,
-					ray, indirectLightning * PI, scene);
+				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, fmaxf(dot(ray.D,normalize(scene.lights[0]->GetLightPosition() - ray.O)),0) * directLightning,
+					ray, m->albedo * INVPI, scene);
 			}
 			break;
 		}

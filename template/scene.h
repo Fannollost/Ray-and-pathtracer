@@ -1256,7 +1256,7 @@ namespace Tmpl8 {
 			planes.push_back(Plane(5, specularDiff, float3(0, 0, -1), 3.99f));		// 5: wall infront of cam
 
 			cubes.push_back(Cube(9, standardGlass, float3(1.2f, -0.5f, 2.5f), float3(1)));
-			meshes.push_back(Mesh(10, "Resources/ico.obj", greenDiff, float3(2.0f, -0.6f, 3.0f), 0.5f));
+			meshes.push_back(Mesh(10, "Resources/ico.obj", redDiff, float3(2.0f, -0.6f, 3.0f), 0.5f));
 			meshes.push_back(Mesh(14, "Resources/plane.obj", whiteDiff, float3(0, 0, 3.0f), 2.0f, mat4::RotateZ(PI / 2)));
 
 		}
