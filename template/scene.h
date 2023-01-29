@@ -707,7 +707,7 @@ namespace Tmpl8 {
 				tl->build();
 			}
 			else {
-				instantiateQLearningScene1();
+				instantiateSceneQ();
 				b = new bvh(this);
 				b->Build(false);
 
@@ -1232,6 +1232,34 @@ namespace Tmpl8 {
 			}
 		}
 
+		void instantiateSceneQ() {
+			sceneName = "sceneQ";
+			defaultAnim = false;
+			animOn = false;
+			//Loading sky texture
+			skydome = stbi_load("Resources/sky.hdr", &skydomeX, &skydomeY, &skydomeN, 3);
+
+			glass* standardGlass = new glass(1.5f, white, float3(0.00f), 0.0f, 0, raytracer);
+			diffuse* specularDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 2, raytracer, 0);
+			diffuse* whiteDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 1200, raytracer, 1.2f);
+			diffuse* greenDiff = new diffuse(float3(0.8f), green, 0.6f, 0.4f, 2, raytracer);
+			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.2f, 0.8f, 4, raytracer);
+			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.6f, 0.4f, 2, raytracer);
+			diffuse* specReflDiff = new diffuse(float3(0.7f), white, 0.6f, 0.4f, 50, raytracer, 0.0f);
+			metal* standardMetal = new metal(0.7f, white, raytracer);
+			lights.push_back(new AreaLight(11, float3(-2.0f, 0.5f, 3.9f), 3.0f, white, 0.5f, float3(0, 0, -1), 4, raytracer));
+			planes.push_back(Plane(0, redDiff, float3(1, 0, 0), 3));			// 0: left wall
+			planes.push_back(Plane(1, greenDiff, float3(-1, 0, 0), 2.99f));		// 1: right wall
+			planes.push_back(Plane(2, specReflDiff, float3(0, 1, 0), 1));			// 2: floor
+			planes.push_back(Plane(3, whiteDiff, float3(0, -1, 0), 2));			// 3: ceiling
+			planes.push_back(Plane(4, whiteDiff, float3(0, 0, 1), 3));			// 4: front wall
+			planes.push_back(Plane(5, specularDiff, float3(0, 0, -1), 3.99f));		// 5: wall infront of cam
+
+			cubes.push_back(Cube(9, standardGlass, float3(1.2f, -0.5f, 2.5f), float3(1)));
+			meshes.push_back(Mesh(10, "Resources/ico.obj", greenDiff, float3(2.0f, -0.6f, 3.0f), 0.5f));
+			meshes.push_back(Mesh(14, "Resources/plane.obj", whiteDiff, float3(0, 0, 3.0f), 2.0f, mat4::RotateZ(PI / 2)));
+
+		}
 		void instantiateScene8() {
 			sceneName = "scene8";
 			//Loading sky texture

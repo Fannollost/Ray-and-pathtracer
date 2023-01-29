@@ -173,7 +173,7 @@ HemisphereSampling::Sample Renderer::SampleDirection(const Ray& r) {
 float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx = -1) {
 	if (depth < 0) {
 		scene.AddRayBounces(maxRayDepth);
-		return float3(0);
+		return float3(0.00f);
 	}//float3(0.05f);
 	float3 totCol = 0;
 	float t_min = 0.001f;
@@ -245,16 +245,17 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 				}
 
 				float3 cos_i = dot(rayToHemi, normal);
-				indirectLightning += Sample(Ray(intersectionPoint + rayToHemi * eps, rayToHemi, float3(0)),
-					depth - 1, energy, samIdx) * INV2PI;
+				indirectLightning += m->col * Sample(Ray(intersectionPoint + rayToHemi * eps, rayToHemi, float3(0)),
+					depth - 1, energy, samIdx);
+
 			}
 
-			if (learningEnabled && qTable->trainingPhase && sampleIdx >= 0) {
-				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, directLightning + indirectLightning,
-					ray, m->albedo * INV2PI, scene);	
-			}
 			indirectLightning /= (float)N;
-			totCol = directLightning + indirectLightning; //fminf(indirectLightning ,1.0f);
+			totCol = (directLightning * INVPI + 2 * indirectLightning) * m->albedo; //fminf(indirectLightning ,1.0f);
+			if (learningEnabled && qTable->trainingPhase && sampleIdx >= 0) {
+				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, indirectLightning,
+					ray, totCol, scene);
+			}
 			break;
 		}
 		case METAL:{
