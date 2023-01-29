@@ -1247,7 +1247,7 @@ namespace Tmpl8 {
 			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.6f, 0.4f, 2, raytracer);
 			diffuse* specReflDiff = new diffuse(float3(0.7f), white, 0.6f, 0.4f, 50, raytracer, 0.0f);
 			metal* standardMetal = new metal(0.7f, white, raytracer);
-			lights.push_back(new AreaLight(11, float3(-2.0f, 0.5f, 3.9f), 3.0f, white, 0.5f, float3(0, 0, -1), 4, raytracer));
+			lights.push_back(new AreaLight(11, float3(-2.0f, 0.5f, 3.9f), 6.0f, white, 0.5f, float3(0, 0, -1), 4, raytracer));
 			planes.push_back(Plane(0, redDiff, float3(1, 0, 0), 3));			// 0: left wall
 			planes.push_back(Plane(1, greenDiff, float3(-1, 0, 0), 2.99f));		// 1: right wall
 			planes.push_back(Plane(2, specReflDiff, float3(0, 1, 0), 1));			// 2: floor

@@ -54,7 +54,7 @@ void HemisphereMapping::SampleDirection(Sample& s, float3 normal, bool training)
 			r = RandomFloat();
 			if (r < normalizedGrid[i] && sum != 0) {
 				s.idx = i;
-				s.prob = normalizedGrid[s.idx] * grid.size() * INV2PI;
+				s.prob = ((float)normalizedGrid[s.idx] * grid.size()) * INV2PI;
 				break;
 			}
 			if (RandomFloat() < explorationRate && training)

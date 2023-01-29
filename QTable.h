@@ -33,7 +33,7 @@ namespace Tmpl8 {
 		float3 emitterPos;
 		int tempBounces, maxBounces, emittedRays = 100;
 		float lr, rejectRadius, explorationRate = 0.05f;
-		int learningTime = 25; // in seconds
+		int learningTime = 200; // in seconds
 	};
 }
 

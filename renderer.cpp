@@ -237,6 +237,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 					rayToHemi = sam.dir;
 					samIdx = sam.idx;
 					prob = sam.prob;
+					//cout << prob << endl;
 				}
 				else {
 					rayToHemi = RandomInHemisphere(normal);
@@ -244,17 +245,18 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 					prob = 1;
 				}
 
+				//if (!qTable->trainingPhase) cout << prob << endl;
 				float3 cos_i = dot(rayToHemi, normal);
-				indirectLightning += m->col * Sample(Ray(intersectionPoint + rayToHemi * eps, rayToHemi, float3(0)),
+				indirectLightning += m->col * Sample(Ray(intersectionPoint + rayToHemi * eps, rayToHemi, float3(1.0f)),
 					depth - 1, energy, samIdx);
 
 			}
 
 			indirectLightning /= (float)N;
-			totCol = (directLightning * INVPI + 2 * indirectLightning) * m->albedo; //fminf(indirectLightning ,1.0f);
+			totCol = (directLightning * INVPI + fminf(indirectLightning ,1.0f));
 			if (learningEnabled && qTable->trainingPhase && sampleIdx >= 0) {
-				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, indirectLightning,
-					ray, totCol, scene);
+				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, directLightning * INVPI,
+					ray, indirectLightning * PI, scene);
 			}
 			break;
 		}
