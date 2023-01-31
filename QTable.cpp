@@ -25,7 +25,6 @@ void QTable::Bounce(Scene& s, Ray& emitted) {
 	s.FindNearest(emitted, 0.001f);
 
 	if (emitted.objIdx == -1) return;
-
 	
 	if (!(emitted.objIdx >= 11 && emitted.objIdx < 11 + size(s.lights))) {
 		if (emitted.GetMaterial()->type == DIFFUSE)
@@ -35,9 +34,9 @@ void QTable::Bounce(Scene& s, Ray& emitted) {
 			float weight;
 			if (nearestNode == nullptr) weight = 1; else weight = dot(emitted.hitNormal, nearestNode->normal);
 			if (d >= rejectRadius * weight) {
-				KDTree::Node* node = kdTree->insert(kdTree->rootNode, emitted.IntersectionPoint(), emitted.hitNormal);
+				KDTree::Node* node = kdTree->insert(kdTree->rootNode, emitted.IntersectionPoint() + emitted.hitNormal * 0.001f, emitted.hitNormal);
 				table.insert({ kdTree->lastInsertedIdx,HemisphereMapping(explorationRate) });
-				s.instantiateDebugPoint(emitted.IntersectionPoint(), emitted.hitNormal, kdTree->count-1);
+				s.instantiateDebugPoint(emitted.IntersectionPoint() + emitted.hitNormal * 0.001f, emitted.hitNormal, kdTree->count-1);
 			}
 		}
 	}
