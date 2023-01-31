@@ -98,7 +98,7 @@ namespace Tmpl8
 		// data members
 		int2 mousePos;
 		bool mousePressed = false;
-		bool learningEnabled = false;
+		bool learningEnabled = true;
 		int maxRayDepth = 5;
 		float4* accumulator;
 		Scene scene;

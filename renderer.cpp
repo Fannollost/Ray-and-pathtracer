@@ -223,6 +223,12 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 					scene.lights[i]->GetLightIntensityAt(ray.IntersectionPoint(), normal, pickedPos), normal, energy);
 				
 				directLightning += (1 - ((diffuse*)m)->shinieness) * m->col * attenuation;
+
+			}
+			if (learningEnabled && qTable->trainingPhase && sampleIdx >= 0) {
+				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, 
+					fmaxf(dot(ray.D,normalize(scene.lights[0]->GetLightPosition() - ray.O)),0) * directLightning,
+					ray, m->albedo * INVPI, scene);
 			}
 			float3 indirectLightning = 0;
 			int N = 1;
@@ -254,10 +260,6 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 
 			indirectLightning /= (float)N;
 			totCol = (directLightning * INVPI + fminf(indirectLightning ,1.0f));
-			if (learningEnabled && qTable->trainingPhase && sampleIdx >= 0) {
-				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, fmaxf(dot(ray.D,normalize(scene.lights[0]->GetLightPosition() - ray.O)),0) * directLightning,
-					ray, m->albedo * INVPI, scene);
-			}
 			break;
 		}
 		case METAL:{
@@ -360,7 +362,7 @@ void Renderer::Tick(float deltaTime)
 					}
 					float newX = x + (RandomFloat() * 2 - 1);
 					float newY = y + (RandomFloat() * 2 - 1);
-					totCol += Sample(camera.GetPrimaryRay(newX, newY),maxRayDepth, float3(1));
+					totCol += Sample(camera.GetPrimaryRay(newX, newY),maxRayDepth, float3(1), -1);
 					if(!qTable->trainingPhase || !learningEnabled) {
 						energy += (totCol.x + totCol.y + totCol.z);
 						accumulator[x + y * SCRWIDTH] += totCol;
