@@ -217,18 +217,20 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 				float len2 = dot(lightRayDirection, lightRayDirection);
 				lightRayDirection = normalize(lightRayDirection);
 				Ray r = Ray(ray.IntersectionPoint() + lightRayDirection * 1e-4f, lightRayDirection, ray.color, sqrt(len2));
-				if (scene.IsOccluded(r)) continue;
+				bool isOccluded = scene.IsOccluded(r);
+				if (isOccluded) continue;
 				Ray scattered;
 				((diffuse*)m)->scatter(ray, attenuation, scattered, lightRayDirection,
 					scene.lights[i]->GetLightIntensityAt(ray.IntersectionPoint(), normal, pickedPos), normal, energy);
 				
 				directLightning += (1 - ((diffuse*)m)->shinieness) * m->col * attenuation;
+				//if (ray.O.x > 2.5 && ray.O.z > 1) cout << isOccluded<< endl;
 
-			}
-			if (learningEnabled && qTable->trainingPhase && sampleIdx >= 0) {
-				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, 
-					fmaxf(dot(ray.D,normalize(scene.lights[0]->GetLightPosition() - ray.O)),0) * directLightning,
-					ray, m->albedo * INVPI, scene);
+				if (learningEnabled && qTable->trainingPhase && sampleIdx >= 0) {
+					qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, 
+						fmaxf(dot(ray.D, normalize(scene.lights[0]->GetLightPosition() - ray.O)),0) * directLightning,
+						ray, m->albedo * INVPI, scene);
+				}
 			}
 			float3 indirectLightning = 0;
 			int N = 1;

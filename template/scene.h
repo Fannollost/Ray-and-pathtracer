@@ -1255,9 +1255,10 @@ namespace Tmpl8 {
 			planes.push_back(Plane(4, whiteDiff, float3(0, 0, 1), 3));			// 4: front wall
 			planes.push_back(Plane(5, specularDiff, float3(0, 0, -1), 3.99f));		// 5: wall infront of cam
 
-			cubes.push_back(Cube(9, standardGlass, float3(1.2f, -0.5f, 2.5f), float3(1)));
+			//cubes.push_back(Cube(9, standardGlass, float3(1.2f, -0.5f, 2.5f), float3(1)));
 			meshes.push_back(Mesh(10, "Resources/ico.obj", redDiff, float3(2.0f, -0.6f, 3.0f), 0.5f));
 			meshes.push_back(Mesh(14, "Resources/plane.obj", whiteDiff, float3(0, 0, 3.0f), 2.0f, mat4::RotateZ(PI / 2)));
+			meshes.push_back(Mesh(15, "Resources/plane.obj", whiteDiff, float3(0.01f, 0, 3.0f), 2.0f, mat4::RotateZ(PI * 1.5)));
 
 		}
 		void instantiateScene8() {

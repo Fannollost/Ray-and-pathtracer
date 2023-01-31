@@ -15,7 +15,7 @@ namespace Tmpl8 {
 			tableSize = 40;
 		}
 		void GeneratePoints(Scene& s);
-		void Update(const float3 origin, const float3 hitPoint, int wIndex, const float3& irradiance, const Ray& r, float3 BRDF, Scene& s);
+		void Update(const float3 origin, const float3 hitPoint, int wIndex, const float3& irradiance, Ray& r, float3 BRDF, Scene& s);
 		void SampleDirection(const int i, HemisphereMapping::Sample& s);
 		void exportQTable(string exportFile);
 		void parseQTable(string path, Scene& s);

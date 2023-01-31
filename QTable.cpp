@@ -48,10 +48,12 @@ void QTable::Bounce(Scene& s, Ray& emitted) {
 	Bounce(s, bounce);
 }
 
-void QTable::Update(const float3 origin, const float3 hitPoint, int wIndex, const float3& irradiance, const Ray& r, float3 BRDF, Scene& s) {
+void QTable::Update(const float3 origin, const float3 hitPoint, int wIndex, const float3& irradiance, Ray& r, float3 BRDF, Scene& s) {
 
 	float dist = kdTree->getNearestDist(kdTree->rootNode, origin, 0);
 	int idx = kdTree->nearestNode->idx;
+
+	float3 tempIr = irradiance;
 
 	float distHit = kdTree->getNearestDist(kdTree->rootNode, hitPoint, 0);
 	int hitIdx = kdTree->nearestNode->idx;
@@ -62,8 +64,8 @@ void QTable::Update(const float3 origin, const float3 hitPoint, int wIndex, cons
 	float3 dir = mapping.getDir(wIndex);
 	float sbeh = ApproxIntegral(hitIdx, dir, r, BRDF);
 	//cout << sbeh << endl;
-	//if (origin.x > 2.5 && origin.z > 1) cout << irradiance.x << ", " << irradiance.y << ", " << irradiance.z << endl;
-	float qUpdate = (1.0f - lr) * val + lr * (length(irradiance) + ApproxIntegral(hitIdx, dir, r, BRDF));
+//	if (origin.x > 2.5 && origin.z > 1) cout << length(irradiance) << endl;
+	float qUpdate = (1.0f - lr) * val + lr * (length(tempIr) + ApproxIntegral(hitIdx, dir, r, BRDF));
 	mapping.updateByIndex(wIndex, qUpdate);
 	s.updateQDebug(idx, wIndex, qUpdate);
 }
