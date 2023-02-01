@@ -19,7 +19,7 @@ public:
 
 class HemisphereMapping : public HemisphereSampling {
 public:
-	HemisphereMapping(float er = 0.2f) : grid(40), explorationRate(er){}
+	HemisphereMapping(float er = 0.2f) : grid(40, ((float)1/40)), explorationRate(er){}
 
 	std::size_t size() {
 		return grid.size();

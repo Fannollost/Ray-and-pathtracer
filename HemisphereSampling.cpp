@@ -51,18 +51,18 @@ void HemisphereMapping::SampleDirection(Sample& s, float3 normal, bool training)
 		s.prob = 1 / grid.size();
 		float f = 0;
 		for (int i = 0; i < (int)cum.size(); i++) {	 
-			r = RandomFloat();
-			if (r < normalizedGrid[i] && sum != 0) {
+			//r = RandomFloat();
+			if (r < cum[i] && sum != 0) {
 				s.idx = i;
 				s.prob = ((float)normalizedGrid[s.idx] * grid.size()) * INV2PI;
 				break;
 			}
-			if (RandomFloat() < explorationRate && training)
-			{
-				s.idx = ((int)(grid.size() * RandomFloat() * 0.999f));
-				s.prob = 1 / (grid.size() * 2 * PI);
-				break;
-			}
+			//if (RandomFloat() < explorationRate && training)
+			//{
+			//	s.idx = ((int)(grid.size() * RandomFloat() * 0.999f));
+			//	s.prob = 1 / (grid.size() * 2 * PI);
+			//	break;
+			//}
 		}
 		s.dir = mapIndexToDirection(s.idx);
 }
