@@ -170,150 +170,68 @@ HemisphereSampling::Sample Renderer::SampleDirection(const Ray& r) {
 	return sample;
 }
 
-float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx = -1) {
+float3 Renderer::Sample(Ray& ray, int depth, float3& energy, const int sampleIdx = -1) {
+
 	if (depth < 0) {
 		scene.AddRayBounces(maxRayDepth);
-		return float3(0.00f);
-	}//float3(0.05f);
-	float3 totCol = 0;
+		return energy;
+	}
 	float t_min = 0.001f;
 	float eps = 0.0001f;
 	scene.FindNearest(ray, t_min);
 
 	if (ray.objIdx == -1) { 
 		scene.AddRayBounces(maxRayDepth - depth);
-		return scene.GetSkyColor(ray); 
+		return energy;
 	}
+
+	float3 intersectionPoint = ray.IntersectionPoint();
+	float3 normal = ray.hitNormal;
+	float3 hitColor;
+	float3 albedo;
+
+	if (ray.GetMaterialType() == -1) {
+		material* m = ray.GetMaterial();
+		hitColor = m->col;
+		albedo = m->albedo;
+		energy = hitColor * albedo;
+	}
+
 	if (ray.objIdx >= 11 && ray.objIdx < 11 + size(scene.lights)) {
 		scene.AddRayBounces(maxRayDepth - depth);
 		scene.AddConnectedRay();
-		return scene.lights[ray.objIdx - 11]->GetLightIntensityAt(ray.IntersectionPoint(), ray.hitNormal, ray.IntersectionPoint());
+		hitColor = scene.lights[ray.objIdx - 11]->GetLightColor();
+		albedo = scene.lights[ray.objIdx - 11]->strength;
+		energy += hitColor * albedo;
 	}
-	//return float3(0);
-	float3 intersectionPoint = ray.IntersectionPoint();
-	float3 normal = ray.hitNormal;
-	material* m = ray.GetMaterial();
-	float3 f = m->col;
-	/*if (scene.raytracer) {
-		double p = f.x > f.y && f.x > f.z ? f.x : f.y > f.z ? f.y : f.z;
-		if (depth < 5 || !p) {
-			if (RandomFloat() < p) {
-				f = f * (1 / p);
-			}
-			else {
-				return totCol;
-			}
-		}
-	}*/
-	float3 attenuation;
-	switch (m->type)
-	{
-		case DIFFUSE: {
-			float3 directLightning = 0;
-			for (int i = 0; i < size(scene.lights); i++) {
+	
+	if (sampleIdx >= 0 && learningEnabled && qTable->trainingPhase)
+		qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx, energy, ray, hitColor * albedo * INVPI , scene);
 
-				float3 pickedPos = scene.lights[i]->GetLightPosition();
-				float3 lightRayDirection = pickedPos - ray.IntersectionPoint();
-				float len2 = dot(lightRayDirection, lightRayDirection);
-				lightRayDirection = normalize(lightRayDirection);
-				Ray r = Ray(ray.IntersectionPoint() + ray.hitNormal * 1e-4f, lightRayDirection, ray.color, sqrt(len2));
-				bool isOccluded = scene.IsOccluded(r);
-				if (isOccluded) continue;
-				Ray scattered;
-				((diffuse*)m)->scatter(ray, attenuation, scattered, lightRayDirection,
-					scene.lights[i]->GetLightIntensityAt(ray.IntersectionPoint(), normal, pickedPos), normal, energy);
-				
-				directLightning += (1 - ((diffuse*)m)->shinieness) * m->col * attenuation;
-				//if (ray.O.x > 2.5 && ray.O.z > 1) cout << isOccluded<< endl;
-			}
-			float3 indirectLightning = 0;
-			int N = 1;
-			float BRDF = 1 * INV2PI;
-			float prob;
-			for (int i = 0; i < N; ++i) {
+	float3 rayToHemi;
+	float3 prob;
+	int sIdx;
 
-				float3 rayToHemi;
-				int samIdx;
-				if (learningEnabled) {
-					auto sam = SampleDirection(ray);
-					rayToHemi = sam.dir;
-					samIdx = sam.idx;
-					prob = sam.prob;
-					//cout << prob << endl;
-				}
-				else {
-					rayToHemi = RandomInHemisphere(normal);
-					samIdx = -1;
-					prob = 1;
-				}
-
-				//if (!qTable->trainingPhase) cout << prob << endl;
-				float3 cos_i = dot(rayToHemi, normal);
-				indirectLightning += m->col * Sample(Ray(intersectionPoint + rayToHemi * eps, rayToHemi, float3(1.0f)),
-					depth - 1, energy, samIdx);
-
-			}
-
-			indirectLightning /= (float)N;
-			totCol = (directLightning * INVPI + fminf(indirectLightning ,1.0f));
-
-			if (learningEnabled && qTable->trainingPhase && sampleIdx >= 0) {
-				if(length(directLightning) != 0 ){
-				qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx,
-					fmaxf(dot(ray.D, normalize(scene.lights[0]->GetLightPosition() - ray.O)), 0) * directLightning,
-					ray, m->albedo * INVPI, scene);
-				}
-				else {
-					qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx,
-						indirectLightning, ray, m->albedo * INVPI, scene);
-				}
-			}
-			break;
-		}
-		case METAL:{
-			Ray reflected;
-			((metal*)m)->scatter(ray, reflected, normal, energy);
-			totCol += m->col * Sample(reflected, depth - 1, energy);
-			break;
-		}
-		case GLASS: {
-			glass* g = (glass*)m;
-			float3 refractionColor = 0, reflectionColor = 0;
-			// compute fresnel
-			float kr;
-			g->fresnel(normalize(ray.D), normalize(ray.hitNormal), g->ir, kr);
-			bool outside = dot(ray.D, ray.hitNormal) < 0;
-			float3 bias = 0.0001f * ray.hitNormal;
-			float3 norm = outside ? ray.hitNormal : -ray.hitNormal;
-			float r = !outside ? g->ir : (1 / g->ir);
-			if (outside)
-			{
-				energy.x *= exp(g->absorption.x * -ray.t);
-				energy.y *= exp(g->absorption.y * -ray.t);
-				energy.z *= exp(g->absorption.z * -ray.t);
-			}
-			else {
-				energy = energy;
-			}
-			float odds = kr;
-			if (odds < RandomFloat()) {
-				float3 refractionDirection = normalize(g->RefractRay(ray.D, norm, r));
-				float3 refractionRayOrig = outside ? ray.IntersectionPoint() - bias : ray.IntersectionPoint() + bias;
-				Ray refrRay = Ray(refractionRayOrig, refractionDirection, ray.color);
-				float3 tempCol = g->col * energy;
-				refractionColor = tempCol * Sample(refrRay, depth - 1, energy);
-				totCol += refractionColor * (1 - kr);
-			} else{
-				float3 reflectionDirection = normalize(reflect(ray.D, norm));
-				float3 reflectionRayOrig = outside ? ray.IntersectionPoint() + bias : ray.IntersectionPoint() - bias;
-				Ray reflRay = Ray(reflectionRayOrig, reflectionDirection, ray.color);
-				float3 reflectionColor = g->col * Sample(reflRay, depth - 1, energy);
-				totCol += reflectionColor * kr;
-			}
-			break;
-		}
+	if (learningEnabled){
+		auto s = SampleDirection(ray);
+		rayToHemi = s.dir;
+		sIdx = s.idx;
+		prob = s.prob;
 	}
-	return totCol;
+	else {
+		rayToHemi = RandomInHemisphere(normal);
+		sIdx = -1;
+		prob = 2 * PI;
+	}
+
+	float3 BRDF = albedo * INVPI * hitColor;
+
+	Ray newRay = Ray(intersectionPoint + rayToHemi * eps, rayToHemi, float3(1));
+
+	float3 indirectShading;
+	float3 Ei = Sample(newRay, depth - 1, indirectShading, sIdx);
+
+	return (indirectShading * BRDF * dot(normal, rayToHemi)) / prob;
 }
 
 float3 Renderer::Debug(Ray& ray, float3 totCol)
@@ -338,7 +256,9 @@ void Renderer::Tick(float deltaTime)
 		static float animTime = 0;
 		scene.SetTime(animTime += deltaTime * 0.002f);
 	}
+
 	int it = scene.GetIterationNumber();
+
 
 	camera.MoveTick();
 	camera.FOVTick();
@@ -370,7 +290,7 @@ void Renderer::Tick(float deltaTime)
 					}
 					float newX = x + (RandomFloat() * 2 - 1);
 					float newY = y + (RandomFloat() * 2 - 1);
-					totCol += Sample(camera.GetPrimaryRay(newX, newY),maxRayDepth, float3(1), -1);
+					totCol += Sample(camera.GetPrimaryRay(newX, newY),maxRayDepth, float3(0), -1);
 					if(!qTable->trainingPhase || !learningEnabled) {
 						energy += (totCol.x + totCol.y + totCol.z);
 						accumulator[x + y * SCRWIDTH] += totCol;
@@ -396,6 +316,7 @@ void Renderer::Tick(float deltaTime)
 	
 	if (!scene.raytracer && !camera.GetChange() && !qTable->trainingPhase)
 		scene.SetIterationNumber(it + 1);
+
 	camera.SetChange(false);
 	// performance report - running average - ms, MRays/s
 	static float avg = 10, alpha = 1;

@@ -53,7 +53,9 @@ namespace Tmpl8 {
 		}
 		float3 IntersectionPoint() const { return O + t * D; }
 		void SetMaterial(material* mat) { m = mat; }
+		void SetMaterialType(int t) { mType = t; }
 		material* GetMaterial() { return m; }
+		int GetMaterialType() { return mType; }
 		void SetNormal(float3 normal) {
 			hitNormal = normal;
 		}
@@ -73,6 +75,7 @@ namespace Tmpl8 {
 		float3 color = 0;
 		float3 hitNormal;
 		material* m;
+		int mType = -1;
 	};
 
 	class Light {
@@ -116,6 +119,7 @@ namespace Tmpl8 {
 					if (sqrtf(dis2) <= radius) {
 						ray.t = t - 1e-6, ray.SetNormal(normal), ray.color = col;
 							ray.objIdx = objIdx;
+							ray.SetMaterialType(4);
 					}
 			}
 
@@ -512,7 +516,8 @@ namespace Tmpl8 {
 		{
 			float t = -(dot(ray.O, this->N) + this->d) / (dot(ray.D, this->N));
 			if (t < ray.t && t > t_min) ray.t = t, ray.objIdx = objIdx, ray.m = mat,
-				ray.SetNormal(N);
+				ray.SetNormal(N); 
+
 		}
 		bool IsOccluding(Ray& ray, float t_min) const
 		{
@@ -668,6 +673,7 @@ namespace Tmpl8 {
 				if (I.x > -size && I.x < size && I.z > -size && I.z < size)
 					ray.t = t, ray.objIdx = objIdx, ray.m = mat,
 					ray.SetNormal(GetNormal(ray.IntersectionPoint()));
+
 			}
 		}
 		float3 GetNormal(const float3 I) const
@@ -1241,22 +1247,23 @@ namespace Tmpl8 {
 
 			glass* standardGlass = new glass(1.5f, white, float3(0.00f), 0.0f, 0, raytracer);
 			diffuse* specularDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 2, raytracer, 0);
-			diffuse* whiteDiff = new diffuse(float3(0.8f), white, 0.6f, 0.4f, 1200, raytracer, 1.2f);
+			diffuse* whiteDiff = new diffuse(float3(0.8f), float3(0.95f,0.95f,0.95f), 0.6f, 0.4f, 1200, raytracer, 1.2f);
 			diffuse* greenDiff = new diffuse(float3(0.8f), green, 0.6f, 0.4f, 2, raytracer);
 			diffuse* blueDiff = new diffuse(float3(0.8f), blue, 0.2f, 0.8f, 4, raytracer);
 			diffuse* redDiff = new diffuse(float3(0.8f), red, 0.6f, 0.4f, 2, raytracer);
 			diffuse* specReflDiff = new diffuse(float3(0.7f), white, 0.6f, 0.4f, 50, raytracer, 0.0f);
 			metal* standardMetal = new metal(0.7f, white, raytracer);
-			lights.push_back(new AreaLight(11, float3(-2.0f, 0.5f, 3.9f), 6.0f, white, 0.5f, float3(0, 0, -1), 4, raytracer));
+			lights.push_back(new AreaLight(11, float3(-2.0f, 0.5f, 3.9f), 15.0f, white, 0.5f, float3(0, 0, -1), 4, raytracer));
 			planes.push_back(Plane(0, redDiff, float3(1, 0, 0), 3));			// 0: left wall
-			planes.push_back(Plane(1, greenDiff, float3(-1, 0, 0), 2.99f));		// 1: right wall
+			planes.push_back(Plane(1, redDiff, float3(-1, 0, 0), 2.99f));		// 1: right wall
 			planes.push_back(Plane(2, specReflDiff, float3(0, 1, 0), 1));			// 2: floor
 			planes.push_back(Plane(3, whiteDiff, float3(0, -1, 0), 2));			// 3: ceiling
 			planes.push_back(Plane(4, whiteDiff, float3(0, 0, 1), 3));			// 4: front wall
 			planes.push_back(Plane(5, specularDiff, float3(0, 0, -1), 3.99f));		// 5: wall infront of cam
+			spheres.push_back(Sphere(7, greenDiff, float3(1.8f, -0.5f, 2.0f), 0.5f));
 
 			//cubes.push_back(Cube(9, standardGlass, float3(1.2f, -0.5f, 2.5f), float3(1)));
-			meshes.push_back(Mesh(10, "Resources/ico.obj", redDiff, float3(2.0f, -0.6f, 3.0f), 0.5f));
+			//meshes.push_back(Mesh(10, "Resources/ico.obj", greenDiff, float3(2.0f, -0.6f, 3.0f), 0.5f));
 			meshes.push_back(Mesh(20, "Resources/plane.obj", whiteDiff, float3(0, 0, 3.0f), 2.0f, mat4::RotateZ(PI / 2)));
 			//meshes.push_back(Mesh(21, "Resources/plane.obj", whiteDiff, float3(0.01f, 0, 3.0f), 2.0f, mat4::RotateZ(PI * 1.5)));
 
@@ -1440,8 +1447,8 @@ namespace Tmpl8 {
 						float3(0, 255, 0), float3(0, 255, 28), float3(0, 255, 56), float3(0, 255, 85), float3(0, 255, 113), float3(0, 255, 141), float3(0, 255, 171),  float3(0, 255, 198), float3(0, 255, 226), float3(0, 255, 255),
 						float3(0, 255, 255), float3(0, 226, 255), float3(0, 198, 255), float3(0, 171, 255), float3(0, 141, 255), float3(0, 113, 255), float3(0, 85, 255),  float3(0, 56, 255), float3(0, 28, 255), float3(0, 0, 255) };
 
-			maxQ = max(maxQ, qUpdate * 300);
-			uint i = (uint) (qUpdate * 300);
+			maxQ = max(maxQ, qUpdate * 20);
+			uint i = (uint) (qUpdate * 20);
 			i = i > 39 ? 39 : i;
 			meshes[debugMeshes.at(idx)].tri[facesIdx].mat = new debug(gradient[39-i] / 255);
 		}
@@ -1501,11 +1508,11 @@ namespace Tmpl8 {
 		//bool animOn = raytracer && defaultAnim; // set to false while debugging to prevent some cast error from primitive object type
 		bool useTLAS = false;
 		bool animOn = raytracer && defaultAnim && !useTLAS; // set to false while debugging to prevent some cast error from primitive object type
-		const float3 white = float3(1.0, 1.0, 1.0);
-		const float3 red = float3(255, 0, 0) / 255;
-		const float3 blue = float3(0, 0, 255) / 255;
+		const float3 white = float3(0.95f, 0.95f, 0.95f);
+		const float3 red = float3(230, 10, 10) / 255;
+		const float3 blue = float3(10, 10, 230) / 255;
 		const float3 babyblue = float3(0.6f, 0.6f, 1.0f);
-		const float3 green = float3(0, 255, 0) / 255;
+		const float3 green = float3(10, 230, 10) / 255;
 		const float3 gold = float3(218, 165, 32) / 255;
 		const float3 pink = float3(255, 20, 147) / 255;
 	};

@@ -36,7 +36,7 @@ void QTable::Bounce(Scene& s, Ray& emitted) {
 			if (d >= rejectRadius * weight) {
 				KDTree::Node* node = kdTree->insert(kdTree->rootNode, emitted.IntersectionPoint() + emitted.hitNormal * 0.001f, emitted.hitNormal);
 				table.insert({ kdTree->lastInsertedIdx,HemisphereMapping(explorationRate) });
-				s.instantiateDebugPoint(emitted.IntersectionPoint() + emitted.hitNormal * 0.001f, emitted.hitNormal, kdTree->count-1);
+				//if(visibleDebug) s.instantiateDebugPoint(emitted.IntersectionPoint() + emitted.hitNormal * 0.001f, emitted.hitNormal, kdTree->count-1);
 			}
 		}
 	}
@@ -52,8 +52,6 @@ void QTable::Update(const float3 origin, const float3 hitPoint, int wIndex, cons
 	float dist = kdTree->getNearestDist(kdTree->rootNode, origin, 0);
 	int idx = kdTree->nearestNode->idx;
 
-	float3 tempIr = irradiance;
-
 	float distHit = kdTree->getNearestDist(kdTree->rootNode, hitPoint, 0);
 	int hitIdx = kdTree->nearestNode->idx;
 
@@ -61,12 +59,11 @@ void QTable::Update(const float3 origin, const float3 hitPoint, int wIndex, cons
 
 	float val = mapping.getValue(wIndex);
 	float3 dir = mapping.getDir(wIndex);
-	float sbeh = ApproxIntegral(hitIdx, dir, r, BRDF);
-	//cout << sbeh << endl;
-//	if (origin.x > 2.5 && origin.z > 1) cout << length(irradiance) << endl;
-	float qUpdate = (1.0f - lr) * val + lr * (length(tempIr) + ApproxIntegral(hitIdx, dir, r, BRDF));
+
+	float qUpdate = (1.0f - lr) * val + lr * (length(irradiance) + ApproxIntegral(hitIdx, dir, r, BRDF));
+
 	mapping.updateByIndex(wIndex, qUpdate);
-	s.updateQDebug(idx, wIndex, qUpdate);
+	//if(visibleDebug) s.updateQDebug(idx, wIndex, qUpdate);
 }
 
 float QTable::ApproxIntegral(const int idx, const float3& w, const Ray& ray, float3 BRDF) {
@@ -78,8 +75,7 @@ float QTable::ApproxIntegral(const int idx, const float3& w, const Ray& ray, flo
 	for (int i = 0; i < (int)mapping.size(); i++) {
 		auto Qy = mapping.getValue(i);
 		float3 wi = mapping.getDir(i);
-		float cosAngle = max(dot(wi, ray.hitNormal), 0.f); ///////////// EVALUATE BRDF IN Wi DIRECTION!
-		//float3 fs = 0.7f; //--> BRDF calculate (pass as arg?)
+		float cosAngle = max(dot(wi, ray.hitNormal), 0.f); 
 		sum += length(BRDF) * Qy * cosAngle;
 	}
 
@@ -106,7 +102,7 @@ void QTable::parseQTable(string path, Scene& s) {
 			const char* constL = line.c_str();
 			sscanf(constL, "%f", &val);
 			table.at(kdTree->lastInsertedIdx).updateByIndex(i, val);
-			s.updateQDebug(kdTree->lastInsertedIdx, i, val);
+			//if(visibleDebug) s.updateQDebug(kdTree->lastInsertedIdx, i, val);
 		}		
 	}
 	s.rebuildBVH();

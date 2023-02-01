@@ -26,45 +26,43 @@ void CosineWeightedSampling::SampleDirection(Sample& s, float3 normal, bool trai
 void HemisphereMapping::SampleDirection(Sample& s, float3 normal, bool training) const {
 	float r = RandomFloat();
 	std::vector<float> normalizedGrid(grid.size());
-	//if(!training) {
-		float sum = 0.0f;
-		for (int i = 0; i < grid.size(); i++) {
-			sum += grid[i]; 
+	float sum = 0.0f;
+	for (int i = 0; i < grid.size(); i++) {
+		sum += grid[i]; 
+	}
+
+	for (int i = 0; i < grid.size(); i++){	
+		normalizedGrid[i] = grid[i] / sum;
+	}
+
+	std::vector<float> cum;
+	float totSum = 0.0f;
+	for (size_t i = 0; i < grid.size(); i++)
+	{
+		totSum += normalizedGrid[i];
+		cum.push_back(totSum);
+	}
+
+	//cout << cum[39] << endl;
+	//std::partial_sum(normalizedGrid.begin(), normalizedGrid.end(), normalizedGrid.begin());   //WHY IS THIS 1???????????????????????????
+	s.idx = grid.size() - 1;
+	//s.prob = 1 / grid.size();
+	float f = 0;
+	for (int i = 0; i < (int)cum.size(); i++) {	 
+		r = RandomFloat();
+		if (r < normalizedGrid[i] && sum != 0) {
+			s.idx = i;
+			s.prob = ((float)normalizedGrid[s.idx] * grid.size())* INV2PI;
+			break;
 		}
-
-
-		for (int i = 0; i < grid.size(); i++){	
-			normalizedGrid[i] = grid[i] / sum;
-		}
-
-		std::vector<float> cum;
-		float totSum = 0.0f;
-		for (size_t i = 0; i < grid.size(); i++)
+		if (RandomFloat() < explorationRate && training)
 		{
-			totSum += normalizedGrid[i];
-			cum.push_back(totSum);
+			s.idx = i;
+			s.prob = ((float)normalizedGrid[s.idx] * grid.size()) * INV2PI;
+			break;
 		}
-
-		//cout << cum[39] << endl;
-		//std::partial_sum(normalizedGrid.begin(), normalizedGrid.end(), normalizedGrid.begin());   //WHY IS THIS 1???????????????????????????
-		s.idx = grid.size() - 1;
-		s.prob = 1 / grid.size();
-		float f = 0;
-		for (int i = 0; i < (int)cum.size(); i++) {	 
-			r = RandomFloat();
-			if (r < normalizedGrid[i] && sum != 0) {
-				s.idx = i;
-				s.prob = ((float)normalizedGrid[s.idx] * grid.size()) * INV2PI;
-				break;
-			}
-			if (RandomFloat() < explorationRate && training)
-			{
-				s.idx = ((int)(grid.size() * RandomFloat() * 0.999f));
-				s.prob = 1 / (grid.size() * 2 * PI);
-				break;
-			}
-		}
-		s.dir = mapIndexToDirection(s.idx);
+	}
+	s.dir = mapIndexToDirection(s.idx);
 }
 
 float3 HemisphereMapping::mapIndexToDirection(int dirIdx) const {

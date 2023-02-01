@@ -9,7 +9,7 @@ namespace Tmpl8
 		// game flow methods
 		void Init();
 		float3 Trace(Ray& ray, int depth, float3 energy);
-		float3 Sample(Ray& ray, int depth, float3 energy, const int sampleIdx);
+		float3 Sample(Ray& ray, int depth, float3& energy, const int sampleIdx);
 		float3 Debug(Ray& ray, float3 totCol);
 		HemisphereSampling::Sample SampleDirection(const Ray& hitPoint);
 		void Tick(float deltaTime);
@@ -104,7 +104,7 @@ namespace Tmpl8
 		Scene scene;
 		Camera camera;
 		float2 xBox = float2(-1, 1), yBox = float2(-1, 1), zBox = float2(-1, 1);	//makeboudningbox
-		QTable* qTable = new QTable(8,5,0.25f, float3(0,1,1), 10, 0.15f);
+		QTable* qTable = new QTable(8,5,0.25f, float3(0,1,1), 15, 0.15f);
 		bool majPressed = false;
 		enum UserInput {
 			KEYBOARD_B = 66,
