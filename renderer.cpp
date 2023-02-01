@@ -209,60 +209,98 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 	switch (m->type)
 	{
 		case DIFFUSE: {
-			float3 directLightning = 0;
-			for (int i = 0; i < size(scene.lights); i++) {
+			if (learningEnabled) {
+				float3 directLightning = 0;
+				for (int i = 0; i < size(scene.lights); i++) {
 
-				float3 pickedPos = scene.lights[i]->GetLightPosition();
-				float3 lightRayDirection = pickedPos - ray.IntersectionPoint();
-				float len2 = dot(lightRayDirection, lightRayDirection);
-				lightRayDirection = normalize(lightRayDirection);
-				Ray r = Ray(ray.IntersectionPoint() + ray.hitNormal * 1e-4f, lightRayDirection, ray.color, sqrt(len2));
-				bool isOccluded = scene.IsOccluded(r);
-				if (isOccluded) continue;
-				Ray scattered;
-				((diffuse*)m)->scatter(ray, attenuation, scattered, lightRayDirection,
-					scene.lights[i]->GetLightIntensityAt(ray.IntersectionPoint(), normal, pickedPos), normal, energy);
-				
-				directLightning += (1 - ((diffuse*)m)->shinieness) * m->col * attenuation;
-				//if (ray.O.x > 2.5 && ray.O.z > 1) cout << isOccluded<< endl;
-			}
-			float3 indirectLightning = 0;
-			int N = 1;
-			float BRDF = 1 * INV2PI;
-			float prob;
-			for (int i = 0; i < N; ++i) {
+					float3 pickedPos = scene.lights[i]->GetLightPosition();
+					float3 lightRayDirection = pickedPos - ray.IntersectionPoint();
+					float len2 = dot(lightRayDirection, lightRayDirection);
+					lightRayDirection = normalize(lightRayDirection);
+					Ray r = Ray(ray.IntersectionPoint() + ray.hitNormal * 1e-4f, lightRayDirection, ray.color, sqrt(len2));
+					bool isOccluded = scene.IsOccluded(r);
+					if (isOccluded) continue;
+					Ray scattered;
+					((diffuse*)m)->scatter(ray, attenuation, scattered, lightRayDirection,
+						scene.lights[i]->GetLightIntensityAt(ray.IntersectionPoint(), normal, pickedPos), normal, energy);
 
-				float3 rayToHemi;
-				int samIdx;
-				if (learningEnabled) {
-					auto sam = SampleDirection(ray);
-					rayToHemi = sam.dir;
-					samIdx = sam.idx;
-					prob = sam.prob;
-					//cout << prob << endl;
+					directLightning += (1 - ((diffuse*)m)->shinieness) * m->col * attenuation;
+					//if (ray.O.x > 2.5 && ray.O.z > 1) cout << isOccluded<< endl;
 				}
-				else {
-					rayToHemi = RandomInHemisphere(normal);
-					samIdx = -1;
-					prob = 1;
+				float3 indirectLightning = 0;
+				int N = 1;
+				float BRDF = 1 * INV2PI;
+				float prob;
+				for (int i = 0; i < N; ++i) {
+
+					float3 rayToHemi;
+					int samIdx;
+					if (learningEnabled) {
+						auto sam = SampleDirection(ray);
+						rayToHemi = sam.dir;
+						samIdx = sam.idx;
+						prob = sam.prob;
+						//cout << prob << endl;
+					}
+					else {
+						rayToHemi = RandomInHemisphere(normal);
+						samIdx = -1;
+						prob = 1;
+					}
+
+					//if (!qTable->trainingPhase) cout << prob << endl;
+					float3 cos_i = dot(rayToHemi, normal);
+					indirectLightning += m->col * Sample(Ray(intersectionPoint + rayToHemi * eps, rayToHemi, float3(1.0f)),
+						depth - 1, energy, samIdx);
+
 				}
 
-				//if (!qTable->trainingPhase) cout << prob << endl;
-				float3 cos_i = dot(rayToHemi, normal);
-				indirectLightning += m->col * Sample(Ray(intersectionPoint + rayToHemi * eps, rayToHemi, float3(1.0f)),
-					depth - 1, energy, samIdx);
+				indirectLightning /= (float)N;
+				totCol = (directLightning * INV2PI * INVPI + fminf(1, indirectLightning) * m->albedo);
 
-			}
-
-			indirectLightning /= (float)N;
-			totCol = (directLightning * INVPI + fminf(indirectLightning ,1.0f));
-
-			if (learningEnabled && qTable->trainingPhase && sampleIdx >= 0) {
+				if (learningEnabled && qTable->trainingPhase && sampleIdx >= 0) {
 					qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx,
 						fmaxf(dot(ray.D, normalize(scene.lights[0]->GetLightPosition() - ray.O)), 0) * directLightning,
 						ray, m->albedo * INVPI, scene);
+				}
+				break;
 			}
-			break;
+			else {
+				float3 directLightning = 0;
+				for (int i = 0; i < size(scene.lights); i++) {
+
+					float3 pickedPos = scene.lights[i]->GetLightPosition();
+					float3 lightRayDirection = pickedPos - ray.IntersectionPoint();
+					float len2 = dot(lightRayDirection, lightRayDirection);
+					lightRayDirection = normalize(lightRayDirection);
+					Ray r = Ray(ray.IntersectionPoint() + lightRayDirection * 1e-4f, lightRayDirection, ray.color, sqrt(len2));
+					if (scene.IsOccluded(r)) continue;
+					Ray scattered;
+					float3 attenuation;
+					((diffuse*)m)->scatter(ray, attenuation, scattered, lightRayDirection,
+						scene.lights[i]->GetLightIntensityAt(ray.IntersectionPoint(), normal, pickedPos), normal, energy);
+
+
+					if (((diffuse*)m)->shinieness != 0)
+						directLightning += ((diffuse*)m)->shinieness * m->col * Sample(Ray(ray.IntersectionPoint(), reflect(ray.D, ray.hitNormal), ray.color), depth - 1, energy);
+
+					directLightning += (1 - ((diffuse*)m)->shinieness) * m->col * attenuation * energy;
+				}
+				float3 indirectLightning = 0;
+
+				int N = 1;
+				float BRDF = 1 * INV2PI;
+				for (int i = 0; i < N; ++i) {
+					float3 rayToHemi = RandomInHemisphere(normal);
+					float3 cos_i = dot(rayToHemi, normal);
+					indirectLightning += m->col * cos_i * Sample(Ray(intersectionPoint, rayToHemi, float3(0)),
+						depth - 1, energy);
+				}
+
+				indirectLightning /= (float)N;
+				totCol = (directLightning * INVPI + 2 * indirectLightning) * m->albedo;
+				break;
+			}
 		}
 		case METAL:{
 			Ray reflected;
@@ -388,8 +426,9 @@ void Renderer::Tick(float deltaTime)
 	cout << "Total Connected Rays: " << scene.GetTotalConnectedRays() << endl;
 	scene.totNonTerminatedRays = 0;
 	
-	if (!scene.raytracer && !camera.GetChange() && !qTable->trainingPhase)
+	if (!scene.raytracer && !camera.GetChange() && !qTable->trainingPhase || !learningEnabled)
 		scene.SetIterationNumber(it + 1);
+
 	camera.SetChange(false);
 	// performance report - running average - ms, MRays/s
 	static float avg = 10, alpha = 1;

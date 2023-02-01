@@ -1501,7 +1501,7 @@ namespace Tmpl8 {
 		//bool animOn = raytracer && defaultAnim; // set to false while debugging to prevent some cast error from primitive object type
 		bool useTLAS = false;
 		bool animOn = raytracer && defaultAnim && !useTLAS; // set to false while debugging to prevent some cast error from primitive object type
-		const float3 white = float3(1.0, 1.0, 1.0);
+		const float3 white = float3(0.95, 0.95, 0.95);
 		const float3 red = float3(255, 0, 0) / 255;
 		const float3 blue = float3(0, 0, 255) / 255;
 		const float3 babyblue = float3(0.6f, 0.6f, 1.0f);
