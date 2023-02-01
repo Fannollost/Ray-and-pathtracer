@@ -52,7 +52,7 @@ void HemisphereMapping::SampleDirection(Sample& s, float3 normal, bool training)
 		float f = 0;
 		for (int i = 0; i < (int)cum.size(); i++) {	 
 			//r = RandomFloat();
-			if (r < cum[i] && sum != 0) {
+			if (r < cum[i]) {
 				s.idx = i;
 				s.prob = ((float)normalizedGrid[s.idx] * grid.size()) * INV2PI;
 				break;
