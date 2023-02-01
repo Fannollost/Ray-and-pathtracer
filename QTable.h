@@ -31,9 +31,9 @@ namespace Tmpl8 {
 		float ApproxIntegral(const int idx, const float3& w, const Ray& r, float3 BRDF);
 		std::map<int, HemisphereMapping> table;   //Int is placeholder!
 		float3 emitterPos;
-		int tempBounces, maxBounces, emittedRays = 200;
+		int tempBounces, maxBounces, emittedRays = 400;
 		float lr, rejectRadius, explorationRate = 0.05f;
-		int learningTime = 100; // in seconds
+		int learningTime = 20; // in seconds
 	};
 }
 

@@ -36,7 +36,7 @@ void QTable::Bounce(Scene& s, Ray& emitted) {
 			if (d >= rejectRadius * weight) {
 				KDTree::Node* node = kdTree->insert(kdTree->rootNode, emitted.IntersectionPoint() + emitted.hitNormal * 0.001f, emitted.hitNormal);
 				table.insert({ kdTree->lastInsertedIdx,HemisphereMapping(explorationRate) });
-				s.instantiateDebugPoint(emitted.IntersectionPoint() + emitted.hitNormal * 0.001f, emitted.hitNormal, kdTree->count-1);
+				//s.instantiateDebugPoint(emitted.IntersectionPoint() + emitted.hitNormal * 0.001f, emitted.hitNormal, kdTree->count-1);
 			}
 		}
 	}
@@ -66,7 +66,7 @@ void QTable::Update(const float3 origin, const float3 hitPoint, int wIndex, cons
 //	if (origin.x > 2.5 && origin.z > 1) cout << length(irradiance) << endl;
 	float qUpdate = (1.0f - lr) * val + lr * (length(tempIr) + ApproxIntegral(hitIdx, dir, r, BRDF));
 	mapping.updateByIndex(wIndex, qUpdate);
-	s.updateQDebug(idx, wIndex, qUpdate);
+	//s.updateQDebug(idx, wIndex, qUpdate);
 }
 
 float QTable::ApproxIntegral(const int idx, const float3& w, const Ray& ray, float3 BRDF) {
@@ -106,7 +106,7 @@ void QTable::parseQTable(string path, Scene& s) {
 			const char* constL = line.c_str();
 			sscanf(constL, "%f", &val);
 			table.at(kdTree->lastInsertedIdx).updateByIndex(i, val);
-			s.updateQDebug(kdTree->lastInsertedIdx, i, val);
+			//s.updateQDebug(kdTree->lastInsertedIdx, i, val);
 		}		
 	}
 	s.rebuildBVH();
