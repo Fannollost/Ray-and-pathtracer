@@ -10,7 +10,7 @@ void Renderer::Init()
 	ifstream f( (scene.sceneName + "-" + to_string(qTable->GetLearningPhaseTime() / 10) + ".qtable").c_str() );
 	if (f.good()) {
 		qTable->parseQTable(scene.sceneName + "-" + to_string(qTable->GetLearningPhaseTime() / 10) + ".qtable", scene);
-		qTable ->trainingPhase = false;
+		qTable->trainingPhase = false;
 		cout << "Parsing qTable\n";
 	}
 	else {
@@ -194,17 +194,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 	float3 normal = ray.hitNormal;
 	material* m = ray.GetMaterial();
 	float3 f = m->col;
-	/*if (scene.raytracer) {
-		double p = f.x > f.y && f.x > f.z ? f.x : f.y > f.z ? f.y : f.z;
-		if (depth < 5 || !p) {
-			if (RandomFloat() < p) {
-				f = f * (1 / p);
-			}
-			else {
-				return totCol;
-			}
-		}
-	}*/
+
 	float3 attenuation;
 	switch (m->type)
 	{
@@ -258,7 +248,7 @@ float3 Renderer::Sample(Ray& ray, int depth, float3 energy, const int sampleIdx 
 				indirectLightning /= (float)N;
 				totCol = (directLightning * INV2PI * INVPI + fminf(1, indirectLightning) * m->albedo);
 
-				if (learningEnabled && qTable->trainingPhase && sampleIdx >= 0) {
+				if (learningEnabled && sampleIdx >= 0) {
 					qTable->Update(ray.O, ray.IntersectionPoint(), sampleIdx,
 						fmaxf(dot(ray.D, normalize(scene.lights[0]->GetLightPosition() - ray.O)), 0) * directLightning,
 						ray, m->albedo * INVPI, scene);
@@ -403,10 +393,8 @@ void Renderer::Tick(float deltaTime)
 					float newX = x + (RandomFloat() * 2 - 1);
 					float newY = y + (RandomFloat() * 2 - 1);
 					totCol += Sample(camera.GetPrimaryRay(newX, newY),maxRayDepth, float3(1), -1);
-					if(!qTable->trainingPhase || !learningEnabled) {
-						energy += (totCol.x + totCol.y + totCol.z);
-						accumulator[x + y * SCRWIDTH] += totCol;
-					}
+					energy += (totCol.x + totCol.y + totCol.z);
+					accumulator[x + y * SCRWIDTH] += totCol;
 					//cout << y << ", " << t.elapsed() << endl;
 				}
 			}
@@ -427,7 +415,7 @@ void Renderer::Tick(float deltaTime)
 	scene.WriteTotalConnectedRays();
 	scene.totNonTerminatedRays = 0;
 
-	if (!scene.raytracer && !camera.GetChange() && !qTable->trainingPhase || !learningEnabled)
+	if (!scene.raytracer && !camera.GetChange())
 		scene.SetIterationNumber(it + 1);
 
 	camera.SetChange(false);
@@ -447,7 +435,7 @@ void Renderer::Tick(float deltaTime)
 		scene.ExportData();
 	}		
 
-	if (scene.runTime > qTable->GetLearningPhaseTime() & qTable->trainingPhase) {
+	if (scene.runTime > qTable->GetLearningPhaseTime()) {
 		qTable->trainingPhase = false;
 		qTable->exportQTable(scene.sceneName + "-" + to_string(qTable->GetLearningPhaseTime() / 10) + ".qtable");
 		cout << "Learning phase ended\n";

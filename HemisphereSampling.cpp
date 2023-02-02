@@ -45,8 +45,6 @@ void HemisphereMapping::SampleDirection(Sample& s, float3 normal, bool training)
 			cum.push_back(totSum);
 		}
 
-		//cout << cum[39] << endl;
-		//std::partial_sum(normalizedGrid.begin(), normalizedGrid.end(), normalizedGrid.begin());   //WHY IS THIS 1???????????????????????????
 		s.idx = grid.size() - 1;
 		s.prob = 1 / grid.size();
 		float f = 0;

@@ -9,7 +9,7 @@ void QTable::GeneratePoints(Scene& s) {
 		Bounce(s, emitted);
 		tempBounces = maxBounces;
 	}
-	s.rebuildBVH();
+	//s.rebuildBVH();
 	cout << "NODES IN TREE: " << kdTree->count << endl;
 }
 
@@ -62,8 +62,7 @@ void QTable::Update(const float3 origin, const float3 hitPoint, int wIndex, cons
 	float val = mapping.getValue(wIndex);
 	float3 dir = mapping.getDir(wIndex);
 	float sbeh = ApproxIntegral(hitIdx, dir, r, BRDF);
-	//cout << sbeh << endl;
-//	if (origin.x > 2.5 && origin.z > 1) cout << length(irradiance) << endl;
+
 	float qUpdate = (1.0f - lr) * val + lr * (length(tempIr) + ApproxIntegral(hitIdx, dir, r, BRDF));
 	mapping.updateByIndex(wIndex, qUpdate);
 	//s.updateQDebug(idx, wIndex, qUpdate);
@@ -78,8 +77,7 @@ float QTable::ApproxIntegral(const int idx, const float3& w, const Ray& ray, flo
 	for (int i = 0; i < (int)mapping.size(); i++) {
 		auto Qy = mapping.getValue(i);
 		float3 wi = mapping.getDir(i);
-		float cosAngle = max(dot(wi, ray.hitNormal), 0.f); ///////////// EVALUATE BRDF IN Wi DIRECTION!
-		//float3 fs = 0.7f; //--> BRDF calculate (pass as arg?)
+		float cosAngle = max(dot(wi, ray.hitNormal), 0.f); 
 		sum += length(BRDF) * Qy * cosAngle;
 	}
 
@@ -98,7 +96,7 @@ void QTable::parseQTable(string path, Scene& s) {
 		const char* constL = line.c_str();
 		sscanf(constL, "%i/%f/%f/%f/%f/%f/%f", &idx, &px, &py, &pz, &nx, &ny, &nz);
 		kdTree->insert(kdTree->rootNode, float3(px, py, pz), float3(nx, ny, nz), idx);
-		s.instantiateDebugPoint(float3(px, py, pz), float3(nx, ny, nz), kdTree->lastInsertedIdx);
+		//s.instantiateDebugPoint(float3(px, py, pz), float3(nx, ny, nz), kdTree->lastInsertedIdx);
 		for (int i = 0; i < 40; i++) {
 			auto& r = table.insert({ idx, HemisphereMapping(explorationRate) });
 			float val;
@@ -109,7 +107,7 @@ void QTable::parseQTable(string path, Scene& s) {
 			//s.updateQDebug(kdTree->lastInsertedIdx, i, val);
 		}		
 	}
-	s.rebuildBVH();
+	//s.rebuildBVH();
 	return;
 }
 

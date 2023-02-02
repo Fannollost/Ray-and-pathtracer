@@ -1436,8 +1436,6 @@ namespace Tmpl8 {
 			if (normal.z < 0) angleX = -angleX;
 			float angleZ = computeAngle(float3(0, 1, 0), TransformVector(float3(normal.x, normal.y, 0), mat4::RotateX(angleX)));
 			if (-normal.x < 0) angleZ = -angleZ;
-			//cout << angleX << endl;
-			//cout << angleZ << endl;
 			Mesh debugP = Mesh(1, "Resources/rldebug.obj", new debug(gradient[39] / 255), pos, 1, mat4::RotateX(angleX) * mat4::RotateZ(angleZ) * mat4::Scale(0.5f));
 
 			meshes.push_back(debugP);
