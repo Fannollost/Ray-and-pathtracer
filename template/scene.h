@@ -1411,6 +1411,20 @@ namespace Tmpl8 {
 			return meshes[i].tri[idx];
 		}
 
+		void ExportQLearningData() {
+			std::ofstream connectedRaysFile("connectedRaysPerFrame.csv");
+
+			for (uint i = 0; i < connectedRaysPerFrame.size(); i++)
+			{
+				connectedRaysFile << connectedRaysPerFrame[i]; 
+				if (i != connectedRaysPerFrame.size() - 1)
+					connectedRaysFile << ",";
+			}
+
+			connectedRaysFile.close();
+			framesExported = true;
+			cout << "Exported Connected Rays to CSV file" << endl;
+		}
 		const void instantiateDebugPoint(float3 pos, float3 normal, int idx) {
 			const float3 gradient[40] = { float3(255, 0, 0), float3(255, 28, 0), float3(255, 56, 0), float3(255, 85, 0), float3(255, 113, 0), float3(255, 141, 0), float3(255, 171, 0),  float3(255, 198, 0), float3(255, 226, 0), float3(255, 255, 0),
 						float3(255, 255, 0), float3(226, 255, 0), float3(198, 255, 0), float3(171, 255, 0), float3(141, 255, 0), float3(113, 255, 0), float3(85, 255, 0), float3(56, 255, 0),  float3(28, 255, 0), float3(0, 255, 0),
@@ -1458,6 +1472,9 @@ namespace Tmpl8 {
 		void AddConnectedRay() { totNonTerminatedRays++; }
 		int GetTotalConnectedRays() { return totNonTerminatedRays; }
 
+		void WriteTotalConnectedRays() {
+			connectedRaysPerFrame.push_back(totNonTerminatedRays);
+		}
 		void toogleRaytracer() {
 			raytracer = !raytracer;
 			SetIterationNumber(1);
@@ -1478,6 +1495,7 @@ namespace Tmpl8 {
 		string sceneName;
 		float runTime = 0;
 		bool exported = false;
+		bool framesExported = false;
 		bvh* b; tlas* tl; bvhInstance* bvhList; 
 		uint bvhCount = 3;
 		float maxQ = 0;
@@ -1493,6 +1511,7 @@ namespace Tmpl8 {
 		int iterationNumber = 1;
 		int totIterationNumber = 0;
 		int totNonTerminatedRays = 0;
+		vector<int> connectedRaysPerFrame;
 		int totRayBounces = 0;
 		float totalFrames;
 		bool raytracer = true;

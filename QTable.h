@@ -22,6 +22,7 @@ namespace Tmpl8 {
 		void writeQTable(string exportFile, Tmpl8::KDTree::Node* node);
 				  
 		int GetLearningPhaseTime() { return learningTime; }
+		int GetExportedFrames() { return exportedFrames; }
 		KDTree* kdTree = new KDTree();
 		bool trainingPhase = true;
 		int tableSize;
@@ -33,7 +34,8 @@ namespace Tmpl8 {
 		float3 emitterPos;
 		int tempBounces, maxBounces, emittedRays = 400;
 		float lr, rejectRadius, explorationRate = 0.05f;
-		int learningTime = 10; // in seconds
+		int learningTime = 20; // in seconds
+		int exportedFrames = 40;
 	};
 }
 

@@ -424,8 +424,9 @@ void Renderer::Tick(float deltaTime)
 	scene.totRayBounces = 0; 
 
 	cout << "Total Connected Rays: " << scene.GetTotalConnectedRays() << endl;
+	scene.WriteTotalConnectedRays();
 	scene.totNonTerminatedRays = 0;
-	
+
 	if (!scene.raytracer && !camera.GetChange() && !qTable->trainingPhase || !learningEnabled)
 		scene.SetIterationNumber(it + 1);
 
@@ -437,9 +438,15 @@ void Renderer::Tick(float deltaTime)
 	float fps = 1000 / avg, rps = (SCRWIDTH * SCRHEIGHT) * fps;
 	scene.SetFPS(fps);
 	scene.runTime += t.elapsed();
+
+	if(scene.totIterationNumber > qTable->GetExportedFrames() & !scene.framesExported)
+		scene.ExportQLearningData();
+
+
 	if (scene.runTime > 20 && !scene.exported) {
 		scene.ExportData();
-	}						  
+	}		
+
 	if (scene.runTime > qTable->GetLearningPhaseTime() & qTable->trainingPhase) {
 		qTable->trainingPhase = false;
 		qTable->exportQTable(scene.sceneName + "-" + to_string(qTable->GetLearningPhaseTime() / 10) + ".qtable");
